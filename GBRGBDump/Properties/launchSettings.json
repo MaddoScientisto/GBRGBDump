@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GBRGBDump": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
