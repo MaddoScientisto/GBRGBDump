@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace GBRGBDump
+namespace GBTools.Decoder
 {
     public interface IApplyFrameService
     {
@@ -73,11 +73,9 @@ namespace GBRGBDump
 
     public class FrameDataService : IFrameDataService
     {
-        private readonly ILocalForage<FrameData> _localForageFrames;
-
-        public FrameDataService(ILocalForage<FrameData> localForageFrames)
+        public FrameDataService()
         {
-            _localForageFrames = localForageFrames;
+
         }
 
         public async Task<(string dataHash, byte[] compressed)> CompressAndHashFrame(List<string> lines, int imageStartLine)

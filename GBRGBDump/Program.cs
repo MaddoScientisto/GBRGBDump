@@ -1,4 +1,7 @@
 ﻿using GBRGBDump;
+using GBTools.Common;
+using GBTools.Decoder;
+using GBTools.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 
 if (args.Length < 2)
@@ -24,15 +27,10 @@ serviceCollection.AddTransient<IRandomIdService, RandomIdService>();
 serviceCollection.AddTransient<IImportSavService, ImportSavService>();
 serviceCollection.AddTransient<IFrameDataService, FrameDataService>();
 
-serviceCollection.AddTransient<ILocalStorageService, LocalStorageService>();
-
 serviceCollection.AddTransient<IDecoderService, DecoderService>();
 serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
 serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
-
-serviceCollection.AddSingleton<ILocalForage<FrameData>>(provider =>
-    LocalForageFactory.CreateInstance<FrameData>("GB Printer Web", "gb-printer-web-frames"));
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
 

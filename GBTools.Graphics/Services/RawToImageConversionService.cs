@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SkiaSharp;
 
-namespace GBRGBDump
+namespace GBTools.Graphics
 {
     public interface IGameboyPrinterService
     {

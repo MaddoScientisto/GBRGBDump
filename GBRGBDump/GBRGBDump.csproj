@@ -16,4 +16,10 @@
     <PackageReference Include="SkiaSharp" Version="2.88.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
+    <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />
+    <ProjectReference Include="..\GBTools.Graphics\GBTools.Graphics.csproj" />
+  </ItemGroup>
+
 </Project>

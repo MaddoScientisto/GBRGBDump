@@ -5,6 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GBTools.Common;
+using GBTools.Decoder;
+using GBTools.Graphics;
 
 namespace GBRGBDump
 {

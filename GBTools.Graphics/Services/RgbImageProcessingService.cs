@@ -5,8 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using GBTools.Common;
 
-namespace GBRGBDump
+namespace GBTools.Graphics
 {
 
     public interface IRgbImageProcessingService
@@ -39,7 +40,7 @@ namespace GBRGBDump
 
         private Dictionary<string, List<List<string>>> GroupImagesByBankAndNumber(string[] imageFiles)
         {
-            var regex = new Regex(@"(.*?)_BANK_(\d{2}) (\d{2})\.png");
+            var regex = new Regex(@"(.*?)_BANK_(\d{2}) (\d{2})( \[deleted\])?\.png");
             var groups = new Dictionary<string, List<List<string>>>();
 
             foreach (var file in imageFiles)

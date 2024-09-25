@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GBRGBDump
+namespace GBTools.Common
 {
     internal class Types
     {

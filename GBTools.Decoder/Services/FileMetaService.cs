@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Text;
+using GBTools.Common;
 
-namespace GBRGBDump
+namespace GBTools.Decoder
 {
     public interface IFileMetaService
     {
