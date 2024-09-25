@@ -196,7 +196,7 @@ namespace GBTools.Graphics
 
         private void SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string bankKey, int groupIndex)
         {
-            string fileName = Path.GetFileNameWithoutExtension(bankKey);
+            string fileName = Path.GetFileName(bankKey);
             for (int i = 0; i < mergedImages.Count - 2; i++)
             {
                 var path = Path.Combine(outputPath, $"{fileName} RGB {groupIndex:00} {i + 1:00}.png");
