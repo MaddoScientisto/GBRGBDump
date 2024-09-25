@@ -20,6 +20,9 @@ serviceCollection.AddTransient<IFrameDataService, FrameDataService>();
 
 serviceCollection.AddTransient<ILocalStorageService, LocalStorageService>();
 
+serviceCollection.AddTransient<IDecoderService, DecoderService>();
+serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
+
 serviceCollection.AddSingleton<ILocalForage<FrameData>>(provider =>
     LocalForageFactory.CreateInstance<FrameData>("GB Printer Web", "gb-printer-web-frames"));
 
@@ -27,4 +30,6 @@ var serviceProvider = serviceCollection.BuildServiceProvider();
 
 var imageTransformService = serviceProvider.GetRequiredService<ImageTransformService>();
 
-await imageTransformService.TransformSav(@"C:\photodump-1.gbc", @"C:\temp\gbcdump");
+//await imageTransformService.TransformSav(@"C:\photodump-1.gbc", @"C:\temp\gbcdump");
+
+await imageTransformService.TransformSav(@"C:\Game Boy Camera (USA, Europe) (SGB Enhanced)_2024-07-12_19-48-03.sav", @"C:\temp\gbcdump4");

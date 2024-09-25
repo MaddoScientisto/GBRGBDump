@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,12 +13,16 @@ namespace GBRGBDump
         private readonly IImportSavService _importSavService;
         private readonly IFileReaderService _fileReaderService;
         private readonly IFileWriterService _fileWriterService;
+        //private readonly IDecoderService _decoderService;
+        private readonly IGameboyPrinterService _gameboyPrinterService;
 
-        public ImageTransformService(IImportSavService importSavService, IFileReaderService fileReaderService, IFileWriterService fileWriterService)
+        public ImageTransformService(IImportSavService importSavService, IFileReaderService fileReaderService, IFileWriterService fileWriterService, IGameboyPrinterService gameboyPrinter /*IDecoderService decoderService*/)
         {
             _importSavService = importSavService;
             _fileReaderService = fileReaderService;
             _fileWriterService = fileWriterService;
+            //_decoderService = decoderService;
+            _gameboyPrinterService = gameboyPrinter;
         }
 
         public async Task<bool> TransformSav(string filePath, string outputPath)
@@ -26,25 +32,50 @@ namespace GBRGBDump
                 byte[] data = await _fileReaderService.ReadFileAsByteArray(filePath);
                 var lastModified = File.GetLastWriteTimeUtc(filePath);
                 var fileName = Path.GetFileName(filePath);
+                var extension = Path.GetExtension(filePath);
 
-                // Assuming default values for parameters
-                var importParams = new ImportSavParams
+                const int maxChunkSize = 128 * 1024; // 128KB
+                int totalChunks = (data.Length + maxChunkSize - 1) / maxChunkSize;
+                int startChunkIndex = data.Length > maxChunkSize ? 1 : 0; // Skip the first chunk only if the file is larger than 128KB
+
+                for (int chunkIndex = startChunkIndex; chunkIndex < totalChunks; chunkIndex++)
                 {
-                    Data = data,
-                    LastModified = lastModified.Ticks,
-                    FileName = fileName,
-                    ImportLastSeen = true,
-                    ImportDeleted = true,
-                    ForceMagicCheck = false
-                };
+                    int offset = chunkIndex * maxChunkSize;
+                    int length = Math.Min(maxChunkSize, data.Length - offset);
 
-                var importItems = await _importSavService.ImportSav(importParams, "", false);
+                    var chunkData = new byte[length];
+                    Array.Copy(data, offset, chunkData, 0, length);
 
-                // Save the results to a local file system folder
-                foreach (var item in importItems)
-                {
-                    string outputFilePath = Path.Combine(outputPath, item.FileName + ".txt"); // Assuming saving as text files
-                    await _fileWriterService.WriteToFile(outputFilePath, item.Tiles);
+                    // Assuming default values for parameters
+                    var importParams = new ImportSavParams
+                    {
+                        Data = chunkData,
+                        LastModified = lastModified.Ticks,
+                        FileName = Path.GetFileNameWithoutExtension(fileName),
+                        ImportLastSeen = false,
+                        ImportDeleted = true,
+                        ForceMagicCheck = false
+                    };
+
+                    var importItems = await _importSavService.ImportSav(importParams, "", false);
+
+                    // Save the results to a local file system folder
+                    foreach (var item in importItems)
+                    {
+                        string formattedFileName = totalChunks > 1
+                            ? $"{item.FileName}_BANK_{chunkIndex}"
+                            : $"{item.FileName}";
+
+                        //string outputFilePath = Path.Combine(outputPath, $"{formattedFileName}.txt"); // Assuming saving as text files
+                        //await _fileWriterService.WriteToFile(outputFilePath, item.Tiles);
+                        if (!Directory.Exists(outputPath))
+                        {
+                            Directory.CreateDirectory(outputPath);
+                        }
+
+                        _gameboyPrinterService.RenderAndSaveAsBmp(item.Tiles,
+                            Path.Combine(outputPath, $"{formattedFileName}.png"));
+                    }
                 }
 
                 return true;

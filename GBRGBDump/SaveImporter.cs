@@ -76,6 +76,7 @@ namespace GBRGBDump
 
                 var imageHash = await _compressAndHashService.CompressAndHash(image.Tiles);
 
+                // this is kind of useless, I'm not passing the function
                 var fileName = parameters.FileName switch
                 {
                     GenerateFilenameFn filenameFn => filenameFn(new GenerateFilenameOptions
@@ -129,7 +130,8 @@ namespace GBRGBDump
                     {
                         return null;
                     }
-                    return "[deleted]";
+                    displayIndex++;
+                    return $"{displayIndex:D2} [deleted]";
                 default:
                     displayIndex++;
                     return displayIndex.ToString("D2");
