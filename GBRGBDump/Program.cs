@@ -1,4 +1,4 @@
-﻿using GBRGBDump;
+﻿using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;

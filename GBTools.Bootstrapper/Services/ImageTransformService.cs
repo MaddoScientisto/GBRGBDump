@@ -9,7 +9,7 @@ using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;
 
-namespace GBRGBDump
+namespace GBTools.Bootstrapper
 {
     public class ImageTransformService
     {

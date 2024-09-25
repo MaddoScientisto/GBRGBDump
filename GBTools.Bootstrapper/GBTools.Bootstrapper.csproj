@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
+    <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />
+    <ProjectReference Include="..\GBTools.Graphics\GBTools.Graphics.csproj" />
+  </ItemGroup>
+
+</Project>
