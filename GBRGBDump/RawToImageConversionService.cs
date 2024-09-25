@@ -106,8 +106,8 @@ namespace GBRGBDump
             switch (value)
             {
                 case 0: return SKColors.White;
-                case 1: return SKColors.LightGray;
-                case 2: return SKColors.DarkGray;
+                case 1: return SKColor.Parse("#AAAAAA");
+                case 2: return SKColor.Parse("#555555");
                 default: return SKColors.Black;
             }
         }

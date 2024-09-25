@@ -117,4 +117,10 @@ namespace GBRGBDump
         public string TempId { get; set; }
     }
 
+    public enum ChannelOrder
+    {
+        Sequential, // RRRGGGBBB
+        Interleaved  // RGBRGBRGB
+    }
+
 }

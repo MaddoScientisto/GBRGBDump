@@ -29,6 +29,8 @@ serviceCollection.AddTransient<ILocalStorageService, LocalStorageService>();
 serviceCollection.AddTransient<IDecoderService, DecoderService>();
 serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
+serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+
 serviceCollection.AddSingleton<ILocalForage<FrameData>>(provider =>
     LocalForageFactory.CreateInstance<FrameData>("GB Printer Web", "gb-printer-web-frames"));
 
@@ -56,3 +58,9 @@ if (!Directory.Exists(outputFolder))
 }
 
 await imageTransformService.TransformSav(inputFilename, outputFolder);
+
+Console.WriteLine("Converted all the images, now merging...");
+
+var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
+
+rgbImageProcessingService.ProcessImages(outputFolder, outputFolder, ChannelOrder.Sequential);
