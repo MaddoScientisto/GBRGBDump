@@ -41,6 +41,8 @@ var imageTransformService = serviceProvider.GetRequiredService<ImageTransformSer
 string inputFilename = args[0];
 string outputFolder = args[1];
 
+string outputSubFolder = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(inputFilename));
+
 // Check if the input file exists
 if (!File.Exists(inputFilename))
 {
@@ -49,16 +51,16 @@ if (!File.Exists(inputFilename))
 }
 
 // Check if the output directory exists, if not, create it
-if (!Directory.Exists(outputFolder))
+if (!Directory.Exists(outputSubFolder))
 {
-    Directory.CreateDirectory(outputFolder);
-    Console.WriteLine($"Created the directory: {outputFolder}");
+    Directory.CreateDirectory(outputSubFolder);
+    Console.WriteLine($"Created the directory: {outputSubFolder}");
 }
 
-await imageTransformService.TransformSav(inputFilename, outputFolder);
+await imageTransformService.TransformSav(inputFilename, outputSubFolder);
 
 Console.WriteLine("Converted all the images, now merging...");
 
 var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
 
-rgbImageProcessingService.ProcessImages(outputFolder, outputFolder, ChannelOrder.Sequential);
+rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);

@@ -196,16 +196,25 @@ namespace GBTools.Graphics
 
         private void SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string bankKey, int groupIndex)
         {
+            string fileName = Path.GetFileNameWithoutExtension(bankKey);
             for (int i = 0; i < mergedImages.Count - 2; i++)
             {
-                var path = Path.Combine(outputPath, $"{bankKey} RGB {groupIndex:00} {i + 1:00}.png");
+                var path = Path.Combine(outputPath, $"{fileName} RGB {groupIndex:00} {i + 1:00}.png");
                 SaveImage(mergedImages[i], path);
             }
 
-            var averagePath = Path.Combine(outputPath, $"{bankKey} RGB {groupIndex:00} average 1X.png");
+            var averageOutputFolder = Path.Combine(outputPath, "average");
+
+            if (!Directory.Exists(averageOutputFolder))
+            {
+                Directory.CreateDirectory(averageOutputFolder);
+                Console.WriteLine($"Created the directory: {averageOutputFolder}");
+            }
+
+            var averagePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 1X.png");
             SaveImage(mergedImages[mergedImages.Count - 2], averagePath);
 
-            var scaledAveragePath = Path.Combine(outputPath, $"{bankKey} RGB {groupIndex:00} average 4X.png");
+            var scaledAveragePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 4X.png");
             SaveImage(mergedImages.Last(), scaledAveragePath);
         }
 
