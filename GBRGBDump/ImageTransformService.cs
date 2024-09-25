@@ -32,6 +32,7 @@ namespace GBRGBDump
                 byte[] data = await _fileReaderService.ReadFileAsByteArray(filePath);
                 var lastModified = File.GetLastWriteTimeUtc(filePath);
                 var fileName = Path.GetFileName(filePath);
+                var filenameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
                 var extension = Path.GetExtension(filePath);
 
                 const int maxChunkSize = 128 * 1024; // 128KB
@@ -46,12 +47,16 @@ namespace GBRGBDump
                     var chunkData = new byte[length];
                     Array.Copy(data, offset, chunkData, 0, length);
 
+                    string formattedFileName = totalChunks > 1
+                        ? $"{filenameWithoutExtension}_BANK_{chunkIndex:D2}"
+                        : $"{filenameWithoutExtension}";
+
                     // Assuming default values for parameters
                     var importParams = new ImportSavParams
                     {
                         Data = chunkData,
                         LastModified = lastModified.Ticks,
-                        FileName = Path.GetFileNameWithoutExtension(fileName),
+                        FileName = formattedFileName,
                         ImportLastSeen = false,
                         ImportDeleted = true,
                         ForceMagicCheck = false
@@ -62,9 +67,9 @@ namespace GBRGBDump
                     // Save the results to a local file system folder
                     foreach (var item in importItems)
                     {
-                        string formattedFileName = totalChunks > 1
-                            ? $"{item.FileName}_BANK_{chunkIndex}"
-                            : $"{item.FileName}";
+                        //string formattedFileName = totalChunks > 1
+                        //    ? $"{item.FileName}_BANK_{chunkIndex:D2}"
+                        //    : $"{item.FileName}";
 
                         //string outputFilePath = Path.Combine(outputPath, $"{formattedFileName}.txt"); // Assuming saving as text files
                         //await _fileWriterService.WriteToFile(outputFilePath, item.Tiles);
@@ -74,7 +79,7 @@ namespace GBRGBDump
                         }
 
                         _gameboyPrinterService.RenderAndSaveAsBmp(item.Tiles,
-                            Path.Combine(outputPath, $"{formattedFileName}.png"));
+                            Path.Combine(outputPath, $"{item.FileName}.png"));
                     }
                 }
 

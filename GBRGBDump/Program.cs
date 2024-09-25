@@ -1,6 +1,12 @@
 ﻿using GBRGBDump;
 using Microsoft.Extensions.DependencyInjection;
 
+if (args.Length < 2)
+{
+    Console.WriteLine("Please provide an input filename and an output folder.");
+    return;
+}
+
 var serviceCollection = new ServiceCollection();
 
 serviceCollection.AddTransient<ImageTransformService>();
@@ -32,4 +38,21 @@ var imageTransformService = serviceProvider.GetRequiredService<ImageTransformSer
 
 //await imageTransformService.TransformSav(@"C:\photodump-1.gbc", @"C:\temp\gbcdump");
 
-await imageTransformService.TransformSav(@"C:\Game Boy Camera (USA, Europe) (SGB Enhanced)_2024-07-12_19-48-03.sav", @"C:\temp\gbcdump4");
+string inputFilename = args[0];
+string outputFolder = args[1];
+
+// Check if the input file exists
+if (!File.Exists(inputFilename))
+{
+    Console.WriteLine($"The file {inputFilename} does not exist.");
+    return;
+}
+
+// Check if the output directory exists, if not, create it
+if (!Directory.Exists(outputFolder))
+{
+    Directory.CreateDirectory(outputFolder);
+    Console.WriteLine($"Created the directory: {outputFolder}");
+}
+
+await imageTransformService.TransformSav(inputFilename, outputFolder);

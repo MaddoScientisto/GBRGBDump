@@ -1,7 +1,8 @@
 {
   "profiles": {
     "GBRGBDump": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\photodump-1.gbc\" \"C:\\temp\\gbcdump5\""
     },
     "Container (Dockerfile)": {
       "commandName": "Docker"
