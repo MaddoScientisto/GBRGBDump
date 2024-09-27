@@ -67,7 +67,10 @@ Console.WriteLine("Converted all the images, now merging...");
 
 var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
 
-rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+await Task.Run(() =>
+    rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
+
+//rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
 return;
 
 void ReportProgress(ProgressInfo value)

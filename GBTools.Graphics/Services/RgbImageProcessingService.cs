@@ -12,7 +12,8 @@ namespace GBTools.Graphics
 
     public interface IRgbImageProcessingService
     {
-        void ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder);
+        Task ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder,
+            IProgress<ProgressInfo>? progress = null);
     }
 
     public class RgbImageProcessingService : IRgbImageProcessingService
@@ -22,20 +23,39 @@ namespace GBTools.Graphics
 
         }
 
-        public void ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder)
+        public async Task ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder, IProgress<ProgressInfo>? progress = null)
         {
             var imageFiles = Directory.GetFiles(inputPath, "*.png");
             var groupedImages = GroupImagesByBankAndNumber(imageFiles);
+
+            var progressInfo = new ProgressInfo();
+            progressInfo.CurrentImage = 1;
+            progressInfo.CurrentBank = 1;
+            progressInfo.CurrentImageName = string.Empty;
+            progressInfo.TotalBanks = groupedImages.Count + 1;
+            progressInfo.TotalImages = 0;
+
+            progress?.Report(progressInfo);
 
             foreach (var bank in groupedImages)
             {
                 for (int groupIndex = 0; groupIndex < bank.Value.Count; groupIndex++)
                 {
+                    progress?.Report(progressInfo);
+
                     var group = bank.Value[groupIndex];
                     var mergedImages = MergeGroupImages(group, channelOrder);
-                    SaveMergedImages(outputPath, mergedImages, bank.Key, groupIndex + 1);
+                    await SaveMergedImages(outputPath, mergedImages, bank.Key, groupIndex + 1);
+
+                    progressInfo.CurrentImage++;
                 }
+
+                progress?.Report(progressInfo);
+                progressInfo.CurrentBank++;
             }
+
+            progressInfo.CurrentImage--;
+            progress?.Report(progressInfo);
         }
 
         private Dictionary<string, List<List<string>>> GroupImagesByBankAndNumber(string[] imageFiles)
@@ -194,13 +214,13 @@ namespace GBTools.Graphics
             return (averagedBitmap, scaledBitmap);
         }
 
-        private void SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string bankKey, int groupIndex)
+        private async Task SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string bankKey, int groupIndex)
         {
             string fileName = Path.GetFileName(bankKey);
             for (int i = 0; i < mergedImages.Count - 2; i++)
             {
                 var path = Path.Combine(outputPath, $"{fileName} RGB {groupIndex:00} {i + 1:00}.png");
-                SaveImage(mergedImages[i], path);
+                await SaveImageAsync(mergedImages[i], path);
             }
 
             var averageOutputFolder = Path.Combine(outputPath, "average");
@@ -212,17 +232,18 @@ namespace GBTools.Graphics
             }
 
             var averagePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 1X.png");
-            SaveImage(mergedImages[mergedImages.Count - 2], averagePath);
+            await SaveImageAsync(mergedImages[mergedImages.Count - 2], averagePath);
 
             var scaledAveragePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 4X.png");
-            SaveImage(mergedImages.Last(), scaledAveragePath);
+            await SaveImageAsync(mergedImages.Last(), scaledAveragePath);
         }
 
-        private void SaveImage(SKBitmap image, string path)
+        private async Task SaveImageAsync(SKBitmap image, string path)
         {
             using var skImage = SKImage.FromBitmap(image);
             using var data = skImage.Encode(SKEncodedImageFormat.Png, 100);
-            using var stream = File.OpenWrite(path);
+            await using var stream = File.OpenWrite(path);
+            
             data.SaveTo(stream);
         }
     }
