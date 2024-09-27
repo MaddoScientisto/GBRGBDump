@@ -117,6 +117,15 @@ namespace GBTools.Common
         public string TempId { get; set; }
     }
 
+    public class ProgressInfo
+    {
+        public int TotalBanks { get; set; }
+        public int CurrentBank { get; set; }
+        public int CurrentImage { get; set; }
+        public int TotalImages { get; set; }
+        public string CurrentImageName { get; set; }
+    }
+
     public enum ChannelOrder
     {
         Sequential, // RRRGGGBBB

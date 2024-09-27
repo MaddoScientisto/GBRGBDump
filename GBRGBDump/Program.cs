@@ -57,10 +57,20 @@ if (!Directory.Exists(outputSubFolder))
     Console.WriteLine($"Created the directory: {outputSubFolder}");
 }
 
-await imageTransformService.TransformSav(inputFilename, outputSubFolder);
+var progress = new Progress<ProgressInfo>(ReportProgress);
+
+var result = await Task.Run(() => imageTransformService.TransformSav(inputFilename, outputSubFolder, progress));
+
+//await imageTransformService.TransformSav(inputFilename, outputSubFolder);
 
 Console.WriteLine("Converted all the images, now merging...");
 
 var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
 
 rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+return;
+
+void ReportProgress(ProgressInfo value)
+{
+    Console.WriteLine($"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}");
+}

@@ -28,10 +28,12 @@ namespace GBTools.Bootstrapper
             _gameboyPrinterService = gameboyPrinter;
         }
 
-        public async Task<bool> TransformSav(string filePath, string outputPath, IProgress<int>? progress = null)
+        public async Task<bool> TransformSav(string filePath, string outputPath, IProgress<ProgressInfo>? progress = null)
         {
             try
             {
+                ProgressInfo progressInfo = new ProgressInfo();
+
                 byte[] data = await _fileReaderService.ReadFileAsByteArray(filePath);
                 var lastModified = File.GetLastWriteTimeUtc(filePath);
                 var fileName = Path.GetFileName(filePath);
@@ -41,6 +43,13 @@ namespace GBTools.Bootstrapper
                 const int maxChunkSize = 128 * 1024; // 128KB
                 int totalChunks = (data.Length + maxChunkSize - 1) / maxChunkSize;
                 int startChunkIndex = data.Length > maxChunkSize ? 1 : 0; // Skip the first chunk only if the file is larger than 128KB
+
+                progressInfo.TotalBanks = totalChunks;
+                progressInfo.CurrentBank = 1;
+                progressInfo.CurrentImage = 1;
+                progressInfo.CurrentImageName = string.Empty;
+
+                progress?.Report(progressInfo);
 
                 for (int chunkIndex = startChunkIndex; chunkIndex < totalChunks; chunkIndex++)
                 {
@@ -53,6 +62,9 @@ namespace GBTools.Bootstrapper
                     string formattedFileName = totalChunks > 1
                         ? $"{filenameWithoutExtension}_BANK_{chunkIndex:D2}"
                         : $"{filenameWithoutExtension}";
+
+                    progressInfo.CurrentImage = 1;
+                    progressInfo.CurrentImageName = formattedFileName;
 
                     // Assuming default values for parameters
                     var importParams = new ImportSavParams
@@ -67,11 +79,13 @@ namespace GBTools.Bootstrapper
 
                     var importItems = await _importSavService.ImportSav(importParams, "", false);
 
-                    int progressCount = 0;
-
+                    progressInfo.TotalImages = importItems.Count;
                     // Save the results to a local file system folder
                     foreach (var item in importItems)
                     {
+                        progress?.Report(progressInfo);
+                        
+
                         //string formattedFileName = totalChunks > 1
                         //    ? $"{item.FileName}_BANK_{chunkIndex:D2}"
                         //    : $"{item.FileName}";
@@ -86,9 +100,17 @@ namespace GBTools.Bootstrapper
                         _gameboyPrinterService.RenderAndSaveAsBmp(item.Tiles,
                             Path.Combine(outputPath, $"{item.FileName}.png"));
 
-                        progress?.Report(progressCount++);
+                        progressInfo.CurrentImage++;
                     }
+
+                    progress?.Report(progressInfo);
+
+                    progressInfo.CurrentBank++;
                 }
+
+                progressInfo.CurrentImage--;
+
+                progress?.Report(progressInfo);
 
                 return true;
             }

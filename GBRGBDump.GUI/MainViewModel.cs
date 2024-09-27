@@ -114,9 +114,9 @@ namespace GBRGBDump.GUI
             }
         }
 
-        private int _progressCounter;
+        private string _progressCounter;
 
-        public int ProgressCounter
+        public string ProgressCounter
         {
             get => _progressCounter;
             set
@@ -207,11 +207,11 @@ namespace GBRGBDump.GUI
             // Check if the output directory exists, if not, create it
             _fileSystemService.CreateDirectory(outputSubFolder);
 
-            ProgressCounter = 0;
+            ProgressCounter = string.Empty;
 
             if (DoRgbMerge)
             {
-                var progress = new Progress<int>(ReportProgress);
+                var progress = new Progress<ProgressInfo>(ReportProgress);
 
                 // Run Asynchronously to avoid locking the UI thread
                 var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder, progress));
@@ -232,9 +232,9 @@ namespace GBRGBDump.GUI
             //UpdateStartupCondition();
         }
 
-        private void ReportProgress(int value)
+        private void ReportProgress(ProgressInfo value)
         {
-            ProgressCounter = value;
+            ProgressCounter = $"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}";
         }
 
         private void SelectSourceFile()

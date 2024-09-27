@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="241" Width="298" Closing="Window_Closing"
+        Title="GB Camera Photo Dump and RGB Merge" Height="277" Width="298" Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
         >
 
