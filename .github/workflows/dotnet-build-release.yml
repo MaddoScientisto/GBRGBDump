@@ -62,14 +62,14 @@ jobs:
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: dawidd6/action-download-artifact@v6
       with:
         path: artifacts
-        #merge-multiple: true
-        pattern: GBRGBDump-*
+        skip_unpack: true
+        if_no_artifact_found: fail
     # Debug step
     - name: Display structure of downloaded files
-      run: ls -R artifacts
+      run: ls -R
 
     # - name: Create Release
     #   id: create_release
