@@ -29,6 +29,7 @@ namespace GBRGBDump.GUI
                 _sourcePath = value;
                 _settingsService.SourcePath = value;
                 OnPropertyChanged();
+                UpdateStartupCondition();
             }
         }
 
@@ -42,6 +43,7 @@ namespace GBRGBDump.GUI
                 _destinationPath = value;
                 _settingsService.DestinationPath = value;
                 OnPropertyChanged();
+                UpdateStartupCondition();
             }
         }
 
@@ -54,6 +56,7 @@ namespace GBRGBDump.GUI
             {
                 _isWorking = value;
                 OnPropertyChanged();
+                UpdateStartupCondition();
             }
         }
 
@@ -96,6 +99,21 @@ namespace GBRGBDump.GUI
             }
         }
 
+        private bool _canStart;
+        public bool CanStart
+        {
+            get => _canStart;
+            set
+            {
+                if (_canStart != value)
+                {
+                    _canStart = value;
+                    OnPropertyChanged();
+                    (MergePhotosCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -128,9 +146,11 @@ namespace GBRGBDump.GUI
             _settingsService = settingsService;
 
             // Assign Commands
-            MergePhotosCommand = new AsyncCommand(MergePhotos);
+            MergePhotosCommand = new AsyncCommand(MergePhotos, () => CanStart);
             SelectSourceFileCommand = new RelayCommand(SelectSourceFile);
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
+
+            _canStart = false;
 
             LoadSettings();
         }
@@ -146,6 +166,8 @@ namespace GBRGBDump.GUI
 
             DoHDR = _settingsService.DoHDR;
             DoRgbMerge = _settingsService.DoRGBMerge;
+
+            //UpdateStartupCondition();
         }
 
         private async Task MergePhotos()
@@ -168,15 +190,29 @@ namespace GBRGBDump.GUI
                 return;
             }
 
+            IsWorking = true;
+
             // Check if the output directory exists, if not, create it
             _fileSystemService.CreateDirectory(outputSubFolder);
 
-            await _imageTransformService.TransformSav(SourcePath, outputSubFolder);
+            if (DoRgbMerge)
+            {
+                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder));
 
-            // TODO: Upgrade to async operation
-            _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+                //await _imageTransformService.TransformSav(SourcePath, outputSubFolder);
+            }
 
-            // TODO: Notify
+            if (DoHDR)
+            {
+                // TODO: Upgrade to async operation
+                _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+            }
+            
+            _dialogService.ShowMessage("Done!");
+
+            IsWorking = false;
+
+            //UpdateStartupCondition();
         }
 
         private void SelectSourceFile()
@@ -186,6 +222,8 @@ namespace GBRGBDump.GUI
             {
                 SourcePath = dialogResult;
             }
+
+            //UpdateStartupCondition();
         }
 
         private void SelectDestinationPath()
@@ -195,6 +233,14 @@ namespace GBRGBDump.GUI
             {
                 DestinationPath = dialogResult;
             }
+
+            //UpdateStartupCondition();
+        }
+
+        private void UpdateStartupCondition()
+        {
+            CanStart = !string.IsNullOrWhiteSpace(SourcePath) && !string.IsNullOrWhiteSpace(DestinationPath) &&
+                       !_isWorking;
         }
     }
 }
