@@ -5,6 +5,7 @@ using GBRGBDump.GUI.Services;
 using GBRGBDump.GUI.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
+using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,6 +49,9 @@ namespace GBRGBDump.GUI
             services.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
 
             services.AddTransient<IDialogService, DialogService>();
+
+            services.AddTransient<IFileSystemService, FileSystemService>();
+            services.AddSingleton<ISettingsService, SettingsService>();
 
             services.AddTransient<MainViewModel>();
 

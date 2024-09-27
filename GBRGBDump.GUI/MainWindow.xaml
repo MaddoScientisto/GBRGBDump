@@ -33,11 +33,11 @@
         
 
         <StackPanel>
-            <CheckBox>Remember Settings</CheckBox>
+            <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
             <CheckBox>Export Deleted</CheckBox>
             <CheckBox>Check Magic Number</CheckBox>
-            <CheckBox>RGB Merge</CheckBox>
-            <CheckBox>Average Results</CheckBox>
+            <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
+            <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
         </StackPanel>
 
         <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
