@@ -221,8 +221,10 @@ namespace GBRGBDump.GUI
 
             if (DoHDR)
             {
-                // TODO: Upgrade to async operation
-                _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+                var progress = new Progress<ProgressInfo>(ReportProgress);
+
+                await Task.Run(() => _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
+                //_rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
             }
             
             _dialogService.ShowMessage("Done!");
