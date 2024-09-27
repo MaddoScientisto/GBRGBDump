@@ -114,6 +114,18 @@ namespace GBRGBDump.GUI
             }
         }
 
+        private int _progressCounter;
+
+        public int ProgressCounter
+        {
+            get => _progressCounter;
+            set
+            {
+                _progressCounter = value;
+                OnPropertyChanged();
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -195,9 +207,14 @@ namespace GBRGBDump.GUI
             // Check if the output directory exists, if not, create it
             _fileSystemService.CreateDirectory(outputSubFolder);
 
+            ProgressCounter = 0;
+
             if (DoRgbMerge)
             {
-                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder));
+                var progress = new Progress<int>(ReportProgress);
+
+                // Run Asynchronously to avoid locking the UI thread
+                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder, progress));
 
                 //await _imageTransformService.TransformSav(SourcePath, outputSubFolder);
             }
@@ -213,6 +230,11 @@ namespace GBRGBDump.GUI
             IsWorking = false;
 
             //UpdateStartupCondition();
+        }
+
+        private void ReportProgress(int value)
+        {
+            ProgressCounter = value;
         }
 
         private void SelectSourceFile()

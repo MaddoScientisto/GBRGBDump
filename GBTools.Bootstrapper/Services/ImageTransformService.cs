@@ -28,7 +28,7 @@ namespace GBTools.Bootstrapper
             _gameboyPrinterService = gameboyPrinter;
         }
 
-        public async Task<bool> TransformSav(string filePath, string outputPath)
+        public async Task<bool> TransformSav(string filePath, string outputPath, IProgress<int>? progress = null)
         {
             try
             {
@@ -67,6 +67,8 @@ namespace GBTools.Bootstrapper
 
                     var importItems = await _importSavService.ImportSav(importParams, "", false);
 
+                    int progressCount = 0;
+
                     // Save the results to a local file system folder
                     foreach (var item in importItems)
                     {
@@ -83,6 +85,8 @@ namespace GBTools.Bootstrapper
 
                         _gameboyPrinterService.RenderAndSaveAsBmp(item.Tiles,
                             Path.Combine(outputPath, $"{item.FileName}.png"));
+
+                        progress?.Report(progressCount++);
                     }
                 }
 

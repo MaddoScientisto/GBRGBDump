@@ -41,5 +41,7 @@
         </StackPanel>
 
         <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
+
+        <Label Content="{Binding ProgressCounter}"></Label>
     </StackPanel>
 </Window>
