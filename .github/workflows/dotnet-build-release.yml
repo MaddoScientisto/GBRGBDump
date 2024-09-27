@@ -64,10 +64,10 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        path: artifacts
+        path: ./artifacts
     # Debug step
     - name: Display structure of downloaded files
-      run: ls -R artifacts
+      run: ls -R ./artifacts
 
     # - name: Create Release
     #   id: create_release
@@ -83,7 +83,7 @@ jobs:
       #env:
       #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        files: artifacts/**
+        files: ./artifacts/**
         # upload_url: ${{ steps.create_release.outputs.upload_url }}
         # asset_path: ./artifacts
         # asset_name: Release-Assets.zip
