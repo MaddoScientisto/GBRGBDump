@@ -1,4 +1,5 @@
-﻿using GBTools.Bootstrapper;
+﻿using System.Diagnostics;
+using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;
@@ -59,6 +60,9 @@ if (!Directory.Exists(outputSubFolder))
 
 var progress = new Progress<ProgressInfo>(ReportProgress);
 
+Stopwatch s = new Stopwatch();
+s.Start();
+
 var result = await Task.Run(() => imageTransformService.TransformSav(inputFilename, outputSubFolder, progress));
 
 //await imageTransformService.TransformSav(inputFilename, outputSubFolder);
@@ -69,7 +73,9 @@ var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProc
 
 await Task.Run(() =>
     rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
+s.Stop();
 
+Console.WriteLine($"Time Taken: {s.Elapsed:g}");
 //rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
 return;
 

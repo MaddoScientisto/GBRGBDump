@@ -44,7 +44,6 @@
         <Separator></Separator>
         <Button Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
         <Separator></Separator>
-
         <Label Content="{Binding ProgressCounter}"></Label>
     </StackPanel>
 </Window>

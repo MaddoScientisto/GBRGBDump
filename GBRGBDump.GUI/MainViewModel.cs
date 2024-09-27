@@ -205,6 +205,9 @@ namespace GBRGBDump.GUI
                 return;
             }
 
+            Stopwatch s = new Stopwatch();
+            s.Start();
+
             IsWorking = true;
 
             // Check if the output directory exists, if not, create it
@@ -233,7 +236,9 @@ namespace GBRGBDump.GUI
             _dialogService.ShowMessage("Done!");
 
             IsWorking = false;
+            s.Stop();
 
+            ProgressCounter += $"\r\nTime: {s.Elapsed:g}";
             //UpdateStartupCondition();
         }
 
