@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="277" Width="298" Closing="Window_Closing"
+        Title="GB Camera Photo Dump and RGB Merge" Height="343" Width="298" Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
         >
 
@@ -30,7 +30,7 @@
             <Button Grid.Column="2" Grid.Row="1" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}">Select</Button>
         </Grid>
 
-        
+        <Separator></Separator>
 
         <StackPanel>
             <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
@@ -39,8 +39,11 @@
             <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
             <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
         </StackPanel>
-
+        <Separator></Separator>
         <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
+        <Separator></Separator>
+        <Button Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
+        <Separator></Separator>
 
         <Label Content="{Binding ProgressCounter}"></Label>
     </StackPanel>

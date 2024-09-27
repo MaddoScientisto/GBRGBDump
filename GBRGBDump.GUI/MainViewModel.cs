@@ -135,6 +135,8 @@ namespace GBRGBDump.GUI
         public ICommand SelectSourceFileCommand { get; }
         public ICommand SelectDestinationPathCommand { get; }
 
+        public ICommand OpenDestinationCommand { get; }
+
         #endregion
 
         #region Services
@@ -161,6 +163,7 @@ namespace GBRGBDump.GUI
             MergePhotosCommand = new AsyncCommand(MergePhotos, () => CanStart);
             SelectSourceFileCommand = new RelayCommand(SelectSourceFile);
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
+            OpenDestinationCommand = new RelayCommand(OpenDestination);
 
             _canStart = false;
 
@@ -259,6 +262,16 @@ namespace GBRGBDump.GUI
             }
 
             //UpdateStartupCondition();
+        }
+
+        private void OpenDestination()
+        {
+            if (string.IsNullOrWhiteSpace(DestinationPath))
+            {
+                return;
+            }
+
+            Process.Start("explorer.exe", DestinationPath);
         }
 
         private void UpdateStartupCondition()
