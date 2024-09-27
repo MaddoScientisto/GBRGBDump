@@ -31,7 +31,7 @@ jobs:
         dotnet publish ./GBRGBDump/GBRGBDump.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump/${{ matrix.output }}
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-${{ matrix.output }}
         path: publish/GBRGBDump/${{ matrix.output }}/**
@@ -52,7 +52,7 @@ jobs:
         dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-GUI-win-x64
         path: publish/GBRGBDump.GUI/win-x64/**
