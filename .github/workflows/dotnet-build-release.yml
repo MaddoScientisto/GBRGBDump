@@ -62,27 +62,29 @@ jobs:
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         path: artifacts
+    # Debug step
+    - name: Display structure of downloaded files
+      run: ls -R path/to/artifacts
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
+    # - name: Create Release
+    #   id: create_release
+    #   uses: elgohr/Github-Release-Action@v5
+    #   env:
+    #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     tag: ${{ github.run_number }}
+    #     title: Release ${{ github.run_number }}
 
     - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
+      #env:
+      #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts
-        asset_name: Release-Assets.zip
-        asset_content_type: application/zip
+        files: artifacts/**
+        # upload_url: ${{ steps.create_release.outputs.upload_url }}
+        # asset_path: ./artifacts
+        # asset_name: Release-Assets.zip
+        # asset_content_type: application/zip
