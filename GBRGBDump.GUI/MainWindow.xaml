@@ -5,9 +5,41 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="129" Width="224">
+        Title="GB Camera Photo Dump and RGB Merge" Height="241" Width="298" Closing="Window_Closing"
+        d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
+        >
+
     <StackPanel Orientation="Vertical">
-        <Label HorizontalAlignment="Center">Asdf</Label>
-        <Button Click="Button_Click">Start</Button>
+        <Label HorizontalAlignment="Center">GB Camera Photo Dump and RGB Merge</Label>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="50"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <Label Grid.Column="0" Grid.Row="0">Source File</Label>
+            <Label Grid.Column="1" Grid.Row="0" x:Name="TxtSourcePath" HorizontalAlignment="Left" Content="{Binding SourcePath}"></Label>
+            <Button Grid.Column="2" Grid.Row="0" x:Name="BtnPickSource"  Command="{Binding SelectSourceFileCommand}">Select</Button>
+
+            <Label Grid.Column="0" Grid.Row="1">Destination Root Folder</Label>
+            <Label Grid.Column="1" Grid.Row="1" x:Name="TxtDestinationPath" HorizontalAlignment="Left" Content="{Binding DestinationPath}"></Label>
+            <Button Grid.Column="2" Grid.Row="1" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}">Select</Button>
+        </Grid>
+
+        
+
+        <StackPanel>
+            <CheckBox>Remember Settings</CheckBox>
+            <CheckBox>Export Deleted</CheckBox>
+            <CheckBox>Check Magic Number</CheckBox>
+            <CheckBox>RGB Merge</CheckBox>
+            <CheckBox>Average Results</CheckBox>
+        </StackPanel>
+
+        <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
     </StackPanel>
 </Window>

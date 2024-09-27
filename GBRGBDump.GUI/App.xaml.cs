@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using GBRGBDump.GUI.Services;
+using GBRGBDump.GUI.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
@@ -44,12 +46,18 @@ namespace GBRGBDump.GUI
             services.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
             services.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+
+            services.AddTransient<IDialogService, DialogService>();
+
+            services.AddTransient<MainViewModel>();
+
             services.AddSingleton<MainWindow>();
         }
 
         private void OnStartup(object sender, StartupEventArgs e)
         {
             var mainWindow = _serviceProvider.GetService<MainWindow>();
+            mainWindow.DataContext = _serviceProvider.GetService<MainViewModel>();
             mainWindow.Show();
         }
     }
