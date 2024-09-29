@@ -60,7 +60,7 @@ namespace GBTools.Graphics
 
         private Dictionary<string, List<List<string>>> GroupImagesByBankAndNumber(string[] imageFiles)
         {
-            var regex = new Regex(@"(.*?)_BANK_(\d{2}) (\d{2})( \[deleted\])?\.png");
+            var regex = new Regex(@"(.*?)(_BANK_(\d{2}))? (\d{2})( \[deleted\])?\.png");
             var groups = new Dictionary<string, List<List<string>>>();
 
             foreach (var file in imageFiles)
