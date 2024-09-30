@@ -67,12 +67,12 @@ var result = await Task.Run(() => imageTransformService.TransformSav(inputFilena
 
 //await imageTransformService.TransformSav(inputFilename, outputSubFolder);
 
-Console.WriteLine("Converted all the images, now merging...");
+//Console.WriteLine("Converted all the images, now merging...");
 
-var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
+//var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
 
-await Task.Run(() =>
-    rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
+//await Task.Run(() =>
+//    rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
 s.Stop();
 
 Console.WriteLine($"Time Taken: {s.Elapsed:g}");

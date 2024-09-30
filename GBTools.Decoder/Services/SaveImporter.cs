@@ -99,7 +99,9 @@ namespace GBTools.Decoder
                     Tiles = image.Tiles,
                     LastModified = parameters.LastModified,
                     Meta = image.Meta.Meta,
-                    TempId = _randomIdService.GenerateRandomId()
+                    TempId = _randomIdService.GenerateRandomId(),
+                    Bank = parameters.Bank,
+                    Index = displayIndex
                 };
             }));
 

@@ -14,6 +14,9 @@ namespace GBTools.Graphics
     {
         Task ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder,
             IProgress<ProgressInfo>? progress = null);
+
+        Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder,
+            IProgress<ProgressInfo>? progress = null);
     }
 
     public class RgbImageProcessingService : IRgbImageProcessingService
@@ -56,6 +59,92 @@ namespace GBTools.Graphics
 
             progressInfo.CurrentImage--;
             progress?.Report(progressInfo);
+        }
+
+        public async Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder,
+            IProgress<ProgressInfo>? progress = null)
+        {
+
+            var averageOutputFolder = Path.Combine(outputPath, "average");
+            if (!Directory.Exists(averageOutputFolder))
+            {
+                Directory.CreateDirectory(averageOutputFolder);
+                Console.WriteLine($"Created the directory: {averageOutputFolder}");
+            }
+
+            // Just split list in two parts
+            // Very naive for now
+            var groups = new List<List<RenderedGameBoyImage>>();
+            groups.Add([..renderedImages.Take(15)]);
+            groups.Add([..renderedImages.TakeLast(15)]);
+
+            var allMerged = new List<SKBitmap>();
+
+            int gi = 1;
+            foreach (var group in groups)
+            {
+                var merged = MergeGroupImages(group, ChannelOrder.Sequential);
+                allMerged.AddRange(merged);
+
+                // Create averages
+                var (averagedImage, scaledAveragedImage) = CreateAveragedImage(merged);
+
+                var filename = Path.GetFileNameWithoutExtension(group.First().RawData.FileName);
+                var bank = group.First().RawData.Bank;
+
+                var fn = Path.GetFileName($"{filename} {bank:00}");
+
+                await SaveMergedImages(outputPath, merged, fn, gi);
+
+                // Save average
+                await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([averagedImage, scaledAveragedImage]), $"{fn} average", gi++);
+            }
+
+            // Do double group HDR
+            var fullMergedFilename = $"{Path.GetFileNameWithoutExtension(renderedImages.First().RawData.FileName)} full" ;
+            var fullMergedBank = renderedImages.First().RawData.Bank;
+
+            // Create averages
+            var (fullAveragedImage, fullScaledAveragedImage) = CreateAveragedImage(allMerged);
+
+            await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([fullAveragedImage, fullScaledAveragedImage]), $"{fullMergedFilename} {fullMergedBank:00} fullaverage", gi++);
+
+        }
+
+        private List<SKBitmap> MergeGroupImages(List<RenderedGameBoyImage> imageGroup, ChannelOrder order)
+        {
+            var mergedImages = new List<SKBitmap>();
+            List<SKBitmap> redImages, greenImages, blueImages;
+
+            switch (order)
+            {
+                case ChannelOrder.Sequential:
+                    redImages = imageGroup.Take(5).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    greenImages = imageGroup.Skip(5).Take(5).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    blueImages = imageGroup.Skip(10).Take(5).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    break;
+                case ChannelOrder.Interleaved:
+                    redImages = imageGroup.Where((_, index) => index % 3 == 0).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    greenImages = imageGroup.Where((_, index) => index % 3 == 1).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    blueImages = imageGroup.Where((_, index) => index % 3 == 2).Select(x => SKBitmap.FromImage(x.RenderedImage)).ToList();
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported channel order");
+            }
+
+            // Merge and store each RGB image
+            for (int i = 0; i < redImages.Count; i++)
+            {
+                var mergedImage = MergeColorChannels(redImages[i], greenImages[i], blueImages[i]);
+                mergedImages.Add(mergedImage);
+            }
+
+            // Create averaged image from the merged RGB images
+            //var (averagedImage, scaledAveragedImage) = CreateAveragedImage(mergedImages);
+            //mergedImages.Add(averagedImage);
+            //mergedImages.Add(scaledAveragedImage);
+
+            return mergedImages;
         }
 
         private Dictionary<string, List<List<string>>> GroupImagesByBankAndNumber(string[] imageFiles)
@@ -189,10 +278,8 @@ namespace GBTools.Graphics
                 for (int i = 0; i < mergedImages.Count; i++)
                 {
                     float alpha = 1f / (i + 1);
-                    using (var paint = new SKPaint { Color = SKColors.White.WithAlpha((byte)(255 * alpha)) })
-                    {
-                        canvas.DrawBitmap(mergedImages[i], new SKPoint(0, 0), paint);
-                    }
+                    using var paint = new SKPaint { Color = SKColors.White.WithAlpha((byte)(255 * alpha)) };
+                    canvas.DrawBitmap(mergedImages[i], new SKPoint(0, 0), paint);
                 }
             }
 
@@ -214,28 +301,28 @@ namespace GBTools.Graphics
             return (averagedBitmap, scaledBitmap);
         }
 
-        private async Task SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string bankKey, int groupIndex)
+        private async Task SaveMergedImages(string outputPath, List<SKBitmap> mergedImages, string baseFileName, int groupIndex)
         {
-            string fileName = Path.GetFileName(bankKey);
-            for (int i = 0; i < mergedImages.Count - 2; i++)
+            string fileName = Path.GetFileName(baseFileName);
+            for (int i = 0; i < mergedImages.Count; i++)
             {
                 var path = Path.Combine(outputPath, $"{fileName} RGB {groupIndex:00} {i + 1:00}.png");
                 await SaveImageAsync(mergedImages[i], path);
             }
 
-            var averageOutputFolder = Path.Combine(outputPath, "average");
+            //var averageOutputFolder = Path.Combine(outputPath, "average");
 
-            if (!Directory.Exists(averageOutputFolder))
-            {
-                Directory.CreateDirectory(averageOutputFolder);
-                Console.WriteLine($"Created the directory: {averageOutputFolder}");
-            }
+            //if (!Directory.Exists(averageOutputFolder))
+            //{
+            //    Directory.CreateDirectory(averageOutputFolder);
+            //    Console.WriteLine($"Created the directory: {averageOutputFolder}");
+            //}
 
-            var averagePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 1X.png");
-            await SaveImageAsync(mergedImages[mergedImages.Count - 2], averagePath);
+            //var averagePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 1X.png");
+            //await SaveImageAsync(mergedImages[mergedImages.Count - 2], averagePath);
 
-            var scaledAveragePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 4X.png");
-            await SaveImageAsync(mergedImages.Last(), scaledAveragePath);
+            //var scaledAveragePath = Path.Combine(averageOutputFolder, $"{fileName} RGB {groupIndex:00} average 4X.png");
+            //await SaveImageAsync(mergedImages.Last(), scaledAveragePath);
         }
 
         private async Task SaveImageAsync(SKBitmap image, string path)

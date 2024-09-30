@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GBTools.Common;
 using SkiaSharp;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GBTools.Graphics
 {
     public interface IGameboyPrinterService
     {
-        void RenderAndSaveAsBmp(List<string> rawTiles, string filePath);
+        Task RenderAndSaveAsPng(List<string> rawTiles, string filePath);
+        SKImage RenderImage(List<string> rawTiles);
+        Task SaveImageAsync(SKImage image, string filePath);
+        Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath);
     }
 
     public class GameboyPrinterService : IGameboyPrinterService
@@ -19,14 +25,69 @@ namespace GBTools.Graphics
         private const int TilePixelHeight = 8;
         private const int TilesPerLine = 20;
 
-        public void RenderAndSaveAsBmp(List<string> rawTiles, string filePath)
+        private readonly IRgbImageProcessingService _rgbImageProcessingService;
+
+        public GameboyPrinterService(IRgbImageProcessingService rgbImageProcessingService)
+        {
+            _rgbImageProcessingService = rgbImageProcessingService;
+        }
+
+        public async Task RenderAndSaveAsPng(List<string> rawTiles, string filePath)
+        {
+            using var image = RenderImage(rawTiles);
+            await SaveImageAsync(image, filePath);
+        }
+
+        public SKImage RenderImage(List<string> rawTiles)
         {
             var tiles = ParseAndDecode(rawTiles);
             using var bitmap = RenderTilesToBitmap(tiles);
-            using var image = SKImage.FromBitmap(bitmap);
+            var image = SKImage.FromBitmap(bitmap);
+            return image;
+        }
+
+        public async Task SaveImageAsync(SKImage image, string filePath)
+        {
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            using var stream = File.OpenWrite(filePath);
+            await using var stream = File.OpenWrite(filePath);
             data.SaveTo(stream);
+        }
+
+        public async Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath)
+        {
+            var renderedItems = RenderImages(rawItems);
+
+            await _rgbImageProcessingService.ProcessImages(renderedItems, outputPath, ChannelOrder.Sequential);
+
+            // Save Images
+
+
+            foreach (var renderedGameBoyImage in renderedItems)
+            {
+                renderedGameBoyImage.RenderedImage?.Dispose();
+            }
+
+            // Do HDR
+            // Save Images
+            // Dispose
+
+        }
+
+        private List<RenderedGameBoyImage> RenderImages(List<ImportItem> rawItems)
+        {
+            var renderedItems = new List<RenderedGameBoyImage>();
+
+            foreach (var importItem in rawItems)
+            {
+                var renderedItem = new RenderedGameBoyImage()
+                {
+                    RawData = importItem,
+                    RenderedImage = RenderImage(importItem.Tiles)
+                };
+                renderedItems.Add(renderedItem);
+            }
+
+            return renderedItems;
         }
 
         private List<int[]> ParseAndDecode(List<string> rawTiles)
@@ -76,27 +137,26 @@ namespace GBTools.Graphics
             int imageHeight = TilePixelHeight * tileHeightCount;
 
             var bitmap = new SKBitmap(imageWidth, imageHeight);
-            using (var canvas = new SKCanvas(bitmap))
+            using var canvas = new SKCanvas(bitmap);
+            canvas.Clear(SKColors.White); // Clear with white background
+
+            for (int index = 0; index < tiles.Count; index++)
             {
-                canvas.Clear(SKColors.White); // Clear with white background
+                var pixels = tiles[index];
+                int tileXOffset = index % TilesPerLine;
+                int tileYOffset = index / TilesPerLine;
 
-                for (int index = 0; index < tiles.Count; index++)
+                for (int i = 0; i < TilePixelWidth; i++)
                 {
-                    var pixels = tiles[index];
-                    int tileXOffset = index % TilesPerLine;
-                    int tileYOffset = index / TilesPerLine;
-
-                    for (int i = 0; i < TilePixelWidth; i++)
+                    for (int j = 0; j < TilePixelHeight; j++)
                     {
-                        for (int j = 0; j < TilePixelHeight; j++)
-                        {
-                            var color = ColorFromPixelValue(pixels[j * TilePixelWidth + i]);
-                            var paint = new SKPaint { Color = color };
-                            canvas.DrawRect(tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j, 1, 1, paint);
-                        }
+                        var color = ColorFromPixelValue(pixels[j * TilePixelWidth + i]);
+                        var paint = new SKPaint { Color = color, IsAntialias = false, FilterQuality = SKFilterQuality.None  };
+                        canvas.DrawRect(tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j, 1, 1, paint);
                     }
                 }
             }
+
             return bitmap;
         }
 

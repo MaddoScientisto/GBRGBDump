@@ -1,11 +1,15 @@
 {
   "profiles": {
-    "GBRGBDump": {
-      "commandName": "Project",
-      "commandLineArgs": "\"C:\\PHOTO-1.lipu.gbc\" \"C:\\temp\\gbcdump6\""
-    },
     "Container (Dockerfile)": {
       "commandName": "Docker"
+    },
+    "PHOTO Dump": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\PHOTO-1.lipu.gbc\" \"C:\\temp\\gbcdump7\""
+    },
+    "SAV Dump": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\20240929_133606_GB_C54AC95A_Game Boy Camera.sav\" \"C:\\temp\\gbcdump7\""
     }
   }
 }

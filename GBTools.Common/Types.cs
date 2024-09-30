@@ -54,6 +54,9 @@ namespace GBTools.Common
         public long? LastModified { get; set; } // Using nullable long to represent optional number
         public string TempId { get; set; }
         public ImageMetaData Meta { get; set; } // Assuming ImageMetaData is already defined
+
+        public int Bank { get; set; }
+        public int Index { get; set; }
     }
 
     public class ImageMetaData
@@ -99,6 +102,7 @@ namespace GBTools.Common
         public bool ImportDeleted { get; set; }
         public Action<AnyAction> Dispatch { get; set; }
         public bool ForceMagicCheck { get; set; }
+        public int Bank { get; set; }
     }
 
     public class Frame

@@ -74,12 +74,14 @@ namespace GBTools.Bootstrapper
                         FileName = formattedFileName,
                         ImportLastSeen = false,
                         ImportDeleted = true,
-                        ForceMagicCheck = false
+                        ForceMagicCheck = false,
+                        Bank = chunkIndex
                     };
 
                     var importItems = await _importSavService.ImportSav(importParams, "", false);
 
                     progressInfo.TotalImages = importItems.Count;
+
                     // Save the results to a local file system folder
                     foreach (var item in importItems)
                     {
@@ -97,11 +99,15 @@ namespace GBTools.Bootstrapper
                             Directory.CreateDirectory(outputPath);
                         }
 
-                        _gameboyPrinterService.RenderAndSaveAsBmp(item.Tiles,
+                        await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
                             Path.Combine(outputPath, $"{item.FileName}.png"));
 
                         progressInfo.CurrentImage++;
                     }
+
+                    // HDR Merge
+                    await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath);
+
 
                     progress?.Report(progressInfo);
 
