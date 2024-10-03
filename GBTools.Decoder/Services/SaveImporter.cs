@@ -9,7 +9,7 @@ namespace GBTools.Decoder
 {
     public interface IImportSavService
     {
-        Task<List<ImportItem>> ImportSav(ImportSavParams parameters, string selectedFrameset, bool cartIsJP);
+        Task<List<ImportItem>> ImportSav(ImportSavParams parameters);
     }
 
     public class ImportSavService : IImportSavService
@@ -37,45 +37,45 @@ namespace GBTools.Decoder
            // _eventDispatcher = eventDispatcher;
         }
 
-        public async Task<List<ImportItem>> ImportSav(ImportSavParams parameters, string selectedFrameset, bool cartIsJP)
+        public async Task<List<ImportItem>> ImportSav(ImportSavParams parameters)
         {
-            if (parameters.ForceMagicCheck && !IsMagic(parameters.Data))
+            if (parameters.Options.ForceMagicCheck && !IsMagic(parameters.Data))
             {
-                return null;
+                return [];
             }
 
             var addresses = Enumerable.Range(2, 30).Select(index => index * 0x1000).Where(address => address < parameters.Data.Length).ToList();
-            if (parameters.ImportLastSeen)
+            if (parameters.Options.ImportLastSeen)
             {
                 addresses.Insert(0, 0);
             }
 
             var images = await Task.WhenAll(addresses.Select<int, Task<FileMetadataWithTiles>>(async address =>
             {
-                var meta = _fileMetaService.GetFileMeta(parameters.Data, address, cartIsJP);
-                var transformedData = _transformImageService.TransformImage(parameters.Data, address);
+                var meta = _fileMetaService.GetFileMeta(parameters.Data, address, parameters.Options.CartIsJp);
+                var transformedData = await Task.Run(() => _transformImageService.TransformImage(parameters.Data, address));
 
-                if (transformedData != null)
+                if (transformedData.Count != 0)
                 {
-                    var tiles = await _applyFrameService.ApplyFrame(transformedData, MapCartFrameToHash(meta.FrameNumber, selectedFrameset, parameters.Frames));
-                    return new FileMetadataWithTiles { Tiles = tiles, Meta = meta };
+                    //var tiles = await _applyFrameService.ApplyFrame(transformedData, MapCartFrameToHash(meta.FrameNumber, parameters.Options.SelectedFrameset, parameters.Frames));
+                    return new FileMetadataWithTiles { Tiles = transformedData, Meta = meta };
                 }
 
-                return null;
+                return new FileMetadataWithTiles();
             }));
 
-            var sortedImages = images.Where(image => image != null).OrderBy(image => image.Meta.AlbumIndex).ToList();
+            var sortedImages = images.Where(image => image .IsValid).OrderBy(image => image.Meta.AlbumIndex).ToList();
 
             int displayIndex = 0;
             var imageData = await Task.WhenAll(sortedImages.Select<FileMetadataWithTiles, Task<ImportItem>>(async image =>
             {
-                string indexText = GetIndexText(image.Meta.AlbumIndex, ref displayIndex, parameters.ImportDeleted);
+                var indexText = GetIndexText(image.Meta.AlbumIndex, ref displayIndex, parameters.Options.ImportDeleted);
                 if (indexText == null)
                 {
-                    return null;
+                    return new ImportItem(); // Return invalid, filter it later
                 }
 
-                var imageHash = await _compressAndHashService.CompressAndHash(image.Tiles);
+                var imageHash = await Task.Run(() => _compressAndHashService.CompressAndHash(image.Tiles)) ;
 
                 // this is kind of useless, I'm not passing the function
                 var fileName = parameters.FileName switch
@@ -106,7 +106,7 @@ namespace GBTools.Decoder
             }));
 
 
-            return imageData.ToList();
+            return imageData.Where(x => x.Index != -1).OrderBy(x => x.Index).ToList();
             //_eventDispatcher.Dispatch(new ImportQueueAddMultiAction
             //{
             //    Type = "IMPORTQUEUE_ADD_MULTI",
@@ -122,7 +122,7 @@ namespace GBTools.Decoder
             return magicPlaces.All(index => Encoding.ASCII.GetString(data, index, 5) == "Magic");
         }
 
-        private string GetIndexText(int albumIndex, ref int displayIndex, bool importDeleted)
+        private string? GetIndexText(int albumIndex, ref int displayIndex, bool importDeleted)
         {
             switch (albumIndex)
             {

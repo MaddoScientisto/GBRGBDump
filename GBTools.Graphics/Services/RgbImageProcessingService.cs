@@ -64,7 +64,6 @@ namespace GBTools.Graphics
         public async Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder,
             IProgress<ProgressInfo>? progress = null)
         {
-
             var averageOutputFolder = Path.Combine(outputPath, "average");
             if (!Directory.Exists(averageOutputFolder))
             {
@@ -78,13 +77,13 @@ namespace GBTools.Graphics
             groups.Add([..renderedImages.Take(15)]);
             groups.Add([..renderedImages.TakeLast(15)]);
 
-            var allMerged = new List<SKBitmap>();
+            //var allMerged = new List<SKBitmap>();
 
             int gi = 1;
             foreach (var group in groups)
             {
                 var merged = MergeGroupImages(group, ChannelOrder.Sequential);
-                allMerged.AddRange(merged);
+                //allMerged.AddRange(merged);
 
                 // Create averages
                 var (averagedImage, scaledAveragedImage) = CreateAveragedImage(merged);
@@ -97,17 +96,25 @@ namespace GBTools.Graphics
                 await SaveMergedImages(outputPath, merged, fn, gi);
 
                 // Save average
-                await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([averagedImage, scaledAveragedImage]), $"{fn} average", gi++);
+                await SaveMergedImages(averageOutputFolder, [averagedImage, scaledAveragedImage], $"{fn} average", gi++);
+                
+                // Done, dispose
+                averagedImage.Dispose();
+                scaledAveragedImage.Dispose();
+                foreach (var bitmap in merged)
+                {
+                    bitmap.Dispose();
+                }
             }
 
             // Do double group HDR
-            var fullMergedFilename = $"{Path.GetFileNameWithoutExtension(renderedImages.First().RawData.FileName)} full" ;
-            var fullMergedBank = renderedImages.First().RawData.Bank;
-
-            // Create averages
-            var (fullAveragedImage, fullScaledAveragedImage) = CreateAveragedImage(allMerged);
-
-            await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([fullAveragedImage, fullScaledAveragedImage]), $"{fullMergedFilename} {fullMergedBank:00} fullaverage", gi++);
+            // var fullMergedFilename = $"{Path.GetFileNameWithoutExtension(renderedImages.First().RawData.FileName)} full" ;
+            // var fullMergedBank = renderedImages.First().RawData.Bank;
+            //
+            // // Create averages
+            // var (fullAveragedImage, fullScaledAveragedImage) = CreateAveragedImage(allMerged);
+            //
+            // await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([fullAveragedImage, fullScaledAveragedImage]), $"{fullMergedFilename} {fullMergedBank:00} fullaverage", gi++);
 
         }
 

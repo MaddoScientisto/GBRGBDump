@@ -28,13 +28,13 @@ namespace GBTools.Bootstrapper
             _gameboyPrinterService = gameboyPrinter;
         }
 
-        public async Task<bool> TransformSav(string filePath, string outputPath, IProgress<ProgressInfo>? progress = null)
+        public async Task<bool> TransformSav(string filePath, string outputPath, ImportSavOptions options, IProgress<ProgressInfo>? progress = null)
         {
             try
             {
-                ProgressInfo progressInfo = new ProgressInfo();
+                var progressInfo = new ProgressInfo();
 
-                byte[] data = await _fileReaderService.ReadFileAsByteArray(filePath);
+                var data = await _fileReaderService.ReadFileAsByteArray(filePath);
                 var lastModified = File.GetLastWriteTimeUtc(filePath);
                 var fileName = Path.GetFileName(filePath);
                 var filenameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
@@ -72,13 +72,11 @@ namespace GBTools.Bootstrapper
                         Data = chunkData,
                         LastModified = lastModified.Ticks,
                         FileName = formattedFileName,
-                        ImportLastSeen = false,
-                        ImportDeleted = true,
-                        ForceMagicCheck = false,
+                        Options = options,
                         Bank = chunkIndex
                     };
 
-                    var importItems = await _importSavService.ImportSav(importParams, "", false);
+                    var importItems = await _importSavService.ImportSav(importParams);
 
                     progressInfo.TotalImages = importItems.Count;
 
@@ -105,10 +103,16 @@ namespace GBTools.Bootstrapper
                         progressInfo.CurrentImage++;
                     }
 
-                    // HDR Merge
-                    await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath);
-
-
+                    GC.Collect();
+                    
+                    if (options.AverageType != AverageTypes.None)
+                    {
+                        // HDR Merge
+                        await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath);
+                    }
+                    
+                    GC.Collect();
+                    
                     progress?.Report(progressInfo);
 
                     progressInfo.CurrentBank++;

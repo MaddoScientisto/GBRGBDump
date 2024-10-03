@@ -53,10 +53,10 @@ namespace GBTools.Common
         public List<string> Tiles { get; set; }
         public long? LastModified { get; set; } // Using nullable long to represent optional number
         public string TempId { get; set; }
-        public ImageMetaData Meta { get; set; } // Assuming ImageMetaData is already defined
+        public ImageMetaData Meta { get; set; }
 
         public int Bank { get; set; }
-        public int Index { get; set; }
+        public int Index { get; set; } = -1;
     }
 
     public class ImageMetaData
@@ -79,6 +79,8 @@ namespace GBTools.Common
     {
         public FileMetaData Meta { get; set; }
         public List<string> Tiles { get; set; }
+        
+        public bool IsValid => Tiles.Count != 0;
     }
 
     public class GenerateFilenameOptions
@@ -94,15 +96,34 @@ namespace GBTools.Common
 
     public class ImportSavParams
     {
-        public bool ImportLastSeen { get; set; }
+        
         public byte[] Data { get; set; }
         public long LastModified { get; set; }
         public List<Frame> Frames { get; set; }
         public object FileName { get; set; } // Can be string or GenerateFilenameFn
-        public bool ImportDeleted { get; set; }
         public Action<AnyAction> Dispatch { get; set; }
-        public bool ForceMagicCheck { get; set; }
         public int Bank { get; set; }
+        
+        public ImportSavOptions Options { get; set; }
+    }
+
+    public class ImportSavOptions
+    {
+        public bool ImportDeleted { get; set; }
+        public bool ForceMagicCheck { get; set; }
+        public bool ImportLastSeen { get; set; }
+        public AverageTypes AverageType { get; set; }
+        public int BanksToProcess { get; set; }
+        public int AebStep { get; set; }
+        public bool CartIsJp { get; set; }
+        public string? SelectedFrameset { get; set; }
+    }
+
+    public enum AverageTypes
+    {
+        None,
+        Normal,
+        FullBank
     }
 
     public class Frame

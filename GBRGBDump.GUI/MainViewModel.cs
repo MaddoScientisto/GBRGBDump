@@ -220,18 +220,28 @@ namespace GBRGBDump.GUI
                 var progress = new Progress<ProgressInfo>(ReportProgress);
 
                 // Run Asynchronously to avoid locking the UI thread
-                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder, progress));
+                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder, new ImportSavOptions()
+                {
+                  // TODO: Set options
+                  ImportLastSeen = false,
+                  ImportDeleted = true,
+                  ForceMagicCheck = false,
+                  AverageType = DoHDR ? AverageTypes.FullBank : AverageTypes.None,
+                  AebStep = 2,
+                  BanksToProcess = -1,
+                  CartIsJp = false
+                }, progress));
 
                 //await _imageTransformService.TransformSav(SourcePath, outputSubFolder);
             }
 
-            if (DoHDR)
-            {
-                var progress = new Progress<ProgressInfo>(ReportProgress);
-
-                await Task.Run(() => _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
-                //_rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
-            }
+            // if (DoHDR)
+            // {
+            //     var progress = new Progress<ProgressInfo>(ReportProgress);
+            //
+            //     await Task.Run(() => _rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
+            //     //_rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
+            // }
             
             _dialogService.ShowMessage("Done!");
 

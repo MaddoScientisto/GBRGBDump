@@ -9,7 +9,7 @@ namespace GBTools.Decoder
 {
     public interface ICompressAndHashService
     {
-        Task<HashedCompressed> CompressAndHash(List<string> lines);
+        HashedCompressed CompressAndHash(List<string> lines);
     }
 
     public class CompressAndHashService : ICompressAndHashService
@@ -21,7 +21,7 @@ namespace GBTools.Decoder
             _applyFrameService = applyFrameService;
         }
 
-        public async Task<HashedCompressed> CompressAndHash(List<string> lines)
+        public HashedCompressed CompressAndHash(List<string> lines)
         {
             var imageData = string.Join("\n", lines.Select(line => line.Replace(" ", "").ToUpper()));
 

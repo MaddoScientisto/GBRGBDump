@@ -58,7 +58,7 @@ namespace GBTools.Common
             // Add lower frame placeholder
             transformed.AddRange(Enumerable.Repeat(Black, 40));
 
-            return hasData ? transformed : null;
+            return hasData ? transformed : [];
         }
     }
 }

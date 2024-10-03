@@ -51,6 +51,7 @@ namespace GBTools.Graphics
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
             await using var stream = File.OpenWrite(filePath);
             data.SaveTo(stream);
+            
         }
 
         public async Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath)
@@ -58,10 +59,7 @@ namespace GBTools.Graphics
             var renderedItems = RenderImages(rawItems);
 
             await _rgbImageProcessingService.ProcessImages(renderedItems, outputPath, ChannelOrder.Sequential);
-
-            // Save Images
-
-
+            
             foreach (var renderedGameBoyImage in renderedItems)
             {
                 renderedGameBoyImage.RenderedImage?.Dispose();

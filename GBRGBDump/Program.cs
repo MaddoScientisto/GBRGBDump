@@ -63,7 +63,20 @@ var progress = new Progress<ProgressInfo>(ReportProgress);
 Stopwatch s = new Stopwatch();
 s.Start();
 
-var result = await Task.Run(() => imageTransformService.TransformSav(inputFilename, outputSubFolder, progress));
+var importParams = new ImportSavOptions()
+{
+    ImportLastSeen = false,
+    ImportDeleted = true,
+    ForceMagicCheck = false,
+    AverageType = AverageTypes.FullBank,
+    AebStep = 2,
+    BanksToProcess = -1,
+    CartIsJp = false
+};
+
+
+var result = await Task.Run(() =>
+    imageTransformService.TransformSav(inputFilename, outputSubFolder, importParams, progress));
 
 //await imageTransformService.TransformSav(inputFilename, outputSubFolder);
 
@@ -81,5 +94,6 @@ return;
 
 void ReportProgress(ProgressInfo value)
 {
-    Console.WriteLine($"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}");
+    Console.WriteLine(
+        $"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}");
 }
