@@ -16,7 +16,7 @@ namespace GBTools.Graphics
         Task RenderAndSaveAsPng(List<string> rawTiles, string filePath);
         SKImage RenderImage(List<string> rawTiles);
         Task SaveImageAsync(SKImage image, string filePath);
-        Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath);
+        Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath, AverageTypes averageType, ChannelOrder channelOrder);
     }
 
     public class GameboyPrinterService : IGameboyPrinterService
@@ -54,11 +54,11 @@ namespace GBTools.Graphics
             
         }
 
-        public async Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath)
+        public async Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath, AverageTypes averageType, ChannelOrder channelOrder)
         {
             var renderedItems = RenderImages(rawItems);
 
-            await _rgbImageProcessingService.ProcessImages(renderedItems, outputPath, ChannelOrder.Sequential);
+            await _rgbImageProcessingService.ProcessImages(renderedItems, outputPath, channelOrder, averageType);
             
             foreach (var renderedGameBoyImage in renderedItems)
             {
@@ -133,7 +133,7 @@ namespace GBTools.Graphics
             int tileHeightCount = tiles.Count / TilesPerLine;
             int imageWidth = TilePixelWidth * TilesPerLine;
             int imageHeight = TilePixelHeight * tileHeightCount;
-
+            
             var bitmap = new SKBitmap(imageWidth, imageHeight);
             using var canvas = new SKCanvas(bitmap);
             canvas.Clear(SKColors.White); // Clear with white background
@@ -149,8 +149,12 @@ namespace GBTools.Graphics
                     for (int j = 0; j < TilePixelHeight; j++)
                     {
                         var color = ColorFromPixelValue(pixels[j * TilePixelWidth + i]);
-                        var paint = new SKPaint { Color = color, IsAntialias = false, FilterQuality = SKFilterQuality.None  };
-                        canvas.DrawRect(tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j, 1, 1, paint);
+                        using var paint = new SKPaint();
+                        paint.Color = color;
+                        paint.IsAntialias = false;
+                        paint.FilterQuality = SKFilterQuality.None;
+                        canvas.DrawPoint(tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j, paint);
+                        //canvas.DrawRect(tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j, 1, 1, paint);
                     }
                 }
             }

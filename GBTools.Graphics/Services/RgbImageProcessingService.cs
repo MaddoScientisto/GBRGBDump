@@ -15,7 +15,7 @@ namespace GBTools.Graphics
         Task ProcessImages(string inputPath, string outputPath, ChannelOrder channelOrder,
             IProgress<ProgressInfo>? progress = null);
 
-        Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder,
+        Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder, AverageTypes averageType,
             IProgress<ProgressInfo>? progress = null);
     }
 
@@ -61,7 +61,7 @@ namespace GBTools.Graphics
             progress?.Report(progressInfo);
         }
 
-        public async Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder,
+        public async Task ProcessImages(List<RenderedGameBoyImage> renderedImages, string outputPath, ChannelOrder channelOrder, AverageTypes averageType,
             IProgress<ProgressInfo>? progress = null)
         {
             var averageOutputFolder = Path.Combine(outputPath, "average");
@@ -77,45 +77,62 @@ namespace GBTools.Graphics
             groups.Add([..renderedImages.Take(15)]);
             groups.Add([..renderedImages.TakeLast(15)]);
 
-            //var allMerged = new List<SKBitmap>();
+            var allMerged = new List<SKBitmap>();
 
             int gi = 1;
             foreach (var group in groups)
             {
                 var merged = MergeGroupImages(group, ChannelOrder.Sequential);
-                //allMerged.AddRange(merged);
-
-                // Create averages
-                var (averagedImage, scaledAveragedImage) = CreateAveragedImage(merged);
-
-                var filename = Path.GetFileNameWithoutExtension(group.First().RawData.FileName);
-                var bank = group.First().RawData.Bank;
-
-                var fn = Path.GetFileName($"{filename} {bank:00}");
-
-                await SaveMergedImages(outputPath, merged, fn, gi);
-
-                // Save average
-                await SaveMergedImages(averageOutputFolder, [averagedImage, scaledAveragedImage], $"{fn} average", gi++);
-                
-                // Done, dispose
-                averagedImage.Dispose();
-                scaledAveragedImage.Dispose();
-                foreach (var bitmap in merged)
+                if (averageType == AverageTypes.FullBank)
                 {
-                    bitmap.Dispose();
+                    allMerged.AddRange(merged);
+                }
+
+                if (averageType != AverageTypes.None)
+                {
+                    // Create averages
+                    var (averagedImage, scaledAveragedImage) = CreateAveragedImage(merged);
+
+                    var filename = Path.GetFileNameWithoutExtension(group.First().RawData.FileName);
+                    var bank = group.First().RawData.Bank;
+
+                    var fn = Path.GetFileName($"{filename} {bank:00}");
+
+                    await SaveMergedImages(outputPath, merged, fn, gi);
+
+                    // Save average
+                    await SaveMergedImages(averageOutputFolder, [averagedImage, scaledAveragedImage], $"{fn} average", gi++);
+                    
+                    // Done, dispose
+                    averagedImage.Dispose();
+                    scaledAveragedImage.Dispose();
+                }
+
+                if (averageType != AverageTypes.FullBank)
+                {
+                    foreach (var bitmap in merged)
+                    {
+                        bitmap.Dispose();
+                    }
                 }
             }
 
-            // Do double group HDR
-            // var fullMergedFilename = $"{Path.GetFileNameWithoutExtension(renderedImages.First().RawData.FileName)} full" ;
-            // var fullMergedBank = renderedImages.First().RawData.Bank;
-            //
-            // // Create averages
-            // var (fullAveragedImage, fullScaledAveragedImage) = CreateAveragedImage(allMerged);
-            //
-            // await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([fullAveragedImage, fullScaledAveragedImage]), $"{fullMergedFilename} {fullMergedBank:00} fullaverage", gi++);
+            if (averageType == AverageTypes.FullBank)
+            {
+                //Do double group HDR
+                var fullMergedFilename = $"{Path.GetFileNameWithoutExtension(renderedImages.First().RawData.FileName)} full" ;
+                var fullMergedBank = renderedImages.First().RawData.Bank;
+            
+                // Create averages
+                var (fullAveragedImage, fullScaledAveragedImage) = CreateAveragedImage(allMerged);
+            
+                await SaveMergedImages(averageOutputFolder, new List<SKBitmap>([fullAveragedImage, fullScaledAveragedImage]), $"{fullMergedFilename} {fullMergedBank:00} fullaverage", gi++);
 
+                foreach (var bitmap in allMerged)
+                {
+                    bitmap.Dispose();
+                }
+            } 
         }
 
         private List<SKBitmap> MergeGroupImages(List<RenderedGameBoyImage> imageGroup, ChannelOrder order)
@@ -285,7 +302,8 @@ namespace GBTools.Graphics
                 for (int i = 0; i < mergedImages.Count; i++)
                 {
                     float alpha = 1f / (i + 1);
-                    using var paint = new SKPaint { Color = SKColors.White.WithAlpha((byte)(255 * alpha)) };
+                    using var paint = new SKPaint();
+                    paint.Color = SKColors.White.WithAlpha((byte)(255 * alpha));
                     canvas.DrawBitmap(mergedImages[i], new SKPoint(0, 0), paint);
                 }
             }
@@ -299,8 +317,10 @@ namespace GBTools.Graphics
             using (var canvas = new SKCanvas(scaledBitmap))
             {
                 canvas.Clear(SKColors.Transparent);
-                using (var paint = new SKPaint { IsAntialias = false, FilterQuality = SKFilterQuality.None })
+                using (var paint = new SKPaint())
                 {
+                    paint.IsAntialias = false;
+                    paint.FilterQuality = SKFilterQuality.None;
                     canvas.DrawBitmap(averagedBitmap, new SKRect(0, 0, scaledWidth, scaledHeight), paint);
                 }
             }

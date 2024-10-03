@@ -86,6 +86,19 @@ namespace GBRGBDump.GUI
             }
         }
 
+        private bool _doFullHDR = false;
+
+        public bool DoFullHDR
+        {
+            get => _doFullHDR;
+            set
+            {
+                _doFullHDR = value;
+                _settingsService.DoFullHDR = value;
+                OnPropertyChanged();
+            }
+        }
+
         private bool _rememberSettings = false;
 
         public bool RememberSettings
@@ -226,7 +239,8 @@ namespace GBRGBDump.GUI
                   ImportLastSeen = false,
                   ImportDeleted = true,
                   ForceMagicCheck = false,
-                  AverageType = DoHDR ? AverageTypes.FullBank : AverageTypes.None,
+                  AverageType = DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
+                  ChannelOrder = ChannelOrder.Sequential,
                   AebStep = 2,
                   BanksToProcess = -1,
                   CartIsJp = false
@@ -243,10 +257,10 @@ namespace GBRGBDump.GUI
             //     //_rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
             // }
             
-            _dialogService.ShowMessage("Done!");
-
             IsWorking = false;
             s.Stop();
+            
+            _dialogService.ShowMessage("Done!");
 
             ProgressCounter += $"\r\nTime: {s.Elapsed:g}";
             //UpdateStartupCondition();

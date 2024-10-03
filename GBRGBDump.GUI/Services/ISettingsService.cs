@@ -14,6 +14,7 @@ namespace GBRGBDump.GUI.Services
 
         bool DoRGBMerge { get; set; }
         bool DoHDR { get; set; }
+        bool DoFullHDR { get; set; }
 
         void LoadSettings();
         void SaveSettings();

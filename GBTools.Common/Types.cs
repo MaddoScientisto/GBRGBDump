@@ -112,7 +112,8 @@ namespace GBTools.Common
         public bool ImportDeleted { get; set; }
         public bool ForceMagicCheck { get; set; }
         public bool ImportLastSeen { get; set; }
-        public AverageTypes AverageType { get; set; }
+        public AverageTypes AverageType { get; set; } = AverageTypes.None;
+        public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
         public int BanksToProcess { get; set; }
         public int AebStep { get; set; }
         public bool CartIsJp { get; set; }

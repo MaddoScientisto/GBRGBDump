@@ -38,6 +38,7 @@
             <CheckBox>Check Magic Number</CheckBox>
             <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
             <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
+            <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
         </StackPanel>
         <Separator></Separator>
         <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>

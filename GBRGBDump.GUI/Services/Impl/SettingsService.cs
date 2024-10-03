@@ -13,6 +13,8 @@ namespace GBRGBDump.GUI.Services.Impl
         public bool RememberSettings { get; set; }
         public bool DoRGBMerge { get; set; }
         public bool DoHDR { get; set; }
+        
+        public bool DoFullHDR { get; set; }
 
         public void LoadSettings()
         {
@@ -25,6 +27,7 @@ namespace GBRGBDump.GUI.Services.Impl
 
             DoRGBMerge = Properties.Settings.Default.RGBMerge;
             DoHDR = Properties.Settings.Default.HDR;
+            DoFullHDR = Properties.Settings.Default.DoFullHDR;
         }
 
         public void SaveSettings()
@@ -41,6 +44,7 @@ namespace GBRGBDump.GUI.Services.Impl
             Properties.Settings.Default.DestinationPath = DestinationPath;
             Properties.Settings.Default.RGBMerge = DoRGBMerge;
             Properties.Settings.Default.HDR = DoHDR;
+            Properties.Settings.Default.DoFullHDR = DoFullHDR;
 
             Properties.Settings.Default.Save();
         }

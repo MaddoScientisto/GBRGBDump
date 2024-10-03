@@ -103,15 +103,15 @@ namespace GBTools.Bootstrapper
                         progressInfo.CurrentImage++;
                     }
 
-                    GC.Collect();
+                    //GC.Collect();
                     
                     if (options.AverageType != AverageTypes.None)
                     {
                         // HDR Merge
-                        await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath);
+                        await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType, options.ChannelOrder);
                     }
                     
-                    GC.Collect();
+                    //GC.Collect();
                     
                     progress?.Report(progressInfo);
 
