@@ -3,6 +3,14 @@
     "Container (Dockerfile)": {
       "commandName": "Docker"
     },
+    "Parameterless": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    },
+    "Help": {
+      "commandName": "Project",
+      "commandLineArgs": "-h"
+    },
     "PHOTO Dump": {
       "commandName": "Project",
       "commandLineArgs": "\"C:\\PHOTO-1.lipu.gbc\" \"C:\\temp\\gbcdump7\""
