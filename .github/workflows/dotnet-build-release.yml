@@ -7,6 +7,8 @@ on:
       - beta
   workflow_dispatch:
 concurrency: production
+permissions: 
+  contents: write
 
 jobs:
   # GitVersion_v6_cross_job:
@@ -159,8 +161,8 @@ jobs:
 
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
-      #env:
-      #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: ./artifacts/**
         tag_name: ${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
