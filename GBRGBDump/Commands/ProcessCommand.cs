@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using GBTools.Bootstrapper;
 using GBTools.Common;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace GBRGBDump.Commands;
@@ -23,6 +24,18 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
         [CommandOption("-j|--cart-is-jp")]
         [Description("Process Japanese Game Boy Camera carts.")]
         public bool? CartIsJp { get; set; }
+        
+        [CommandOption("-i|--interleaved")]
+        [Description("Enables interleaved RGB Processing (RGB RGB RGB). Defaults to Sequential (RRR GGG BBB).")]
+        public bool? InterleavedOrder { get; set; }
+        
+        [CommandOption("-a|--do-hdr")]
+        [Description("Merges images into HDR. Defaults to True.")]
+        public bool? DoHdr { get; set; }
+        
+        [CommandOption("-f|--do-full-hdr")]
+        [Description("Merges images into HDR across Groups. Implies -do-hdr")]
+        public bool? DoFullHdr { get; set; }
     }
 
     public ProcessCommand(ImageTransformService imageTransformService)
@@ -53,15 +66,37 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
         Stopwatch s = new Stopwatch();
         s.Start();
 
+        var hdrSetting = settings.DoHdr ?? true;
+        var fullHdrSetting = settings.DoFullHdr ?? false;
+        
+        var averageType = fullHdrSetting ? AverageTypes.FullBank : hdrSetting ? AverageTypes.Normal : AverageTypes.None;
+
+        switch (averageType)
+        {
+            case AverageTypes.None:
+                AnsiConsole.WriteLine("Not doing HDR processing.");
+                break;
+            case AverageTypes.Normal:
+                AnsiConsole.WriteLine("Regular HDR processing.");
+                break;
+            case AverageTypes.FullBank:
+                AnsiConsole.WriteLine("Full HDR processing.");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        
         var importParams = new ImportSavOptions()
         {
             ImportLastSeen = false,
             ImportDeleted = true,
             ForceMagicCheck = false,
-            AverageType = AverageTypes.FullBank,
+            AverageType = averageType,
             AebStep = 2,
             BanksToProcess = -1,
             CartIsJp = settings.CartIsJp ?? false,
+            ChannelOrder =  settings.InterleavedOrder ?? false ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
+            RgbMerge = true
         };
 
 
@@ -69,14 +104,14 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
             _imageTransformService.TransformSav(settings.InputFilePath, outputSubFolder, importParams, progress));
         
         s.Stop();
-        Console.WriteLine($"Time Taken: {s.Elapsed:g}");
+        AnsiConsole.WriteLine($"Time Taken: {s.Elapsed:g}");
         
         return 0;
     }
     
     private void ReportProgress(ProgressInfo value)
     {
-        Console.WriteLine(
+        AnsiConsole.WriteLine(
             $"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}");
     }
 }
