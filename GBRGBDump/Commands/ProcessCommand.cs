@@ -45,21 +45,25 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        string outputSubFolder = Path.Combine(settings.OutputPath, Path.GetFileNameWithoutExtension(settings.OutputPath));
-
-// Check if the input file exists
+        // Check if the input file exists
         if (!File.Exists(settings.InputFilePath))
         {
-            Console.WriteLine($"The file {settings.InputFilePath} does not exist.");
+            AnsiConsole.WriteLine($"The file {settings.InputFilePath} does not exist.");
             return 1; // TODO: Change to proper fail code
         }
+        
+        AnsiConsole.WriteLine($"Processing {settings.InputFilePath}");
+        
+        string outputSubFolder = Path.Combine(settings.OutputPath, Path.GetFileNameWithoutExtension(settings.InputFilePath));
 
 // Check if the output directory exists, if not, create it
         if (!Directory.Exists(outputSubFolder))
         {
             Directory.CreateDirectory(outputSubFolder);
-            Console.WriteLine($"Created the directory: {outputSubFolder}");
+            AnsiConsole.WriteLine($"Created the directory: {outputSubFolder}");
         }
+        
+        AnsiConsole.WriteLine($"Saving to: {outputSubFolder}");
 
         var progress = new Progress<ProgressInfo>(ReportProgress);
 
@@ -99,9 +103,17 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
             RgbMerge = true
         };
 
+        try
+        {
 
-        var result = await Task.Run(() =>
-            _imageTransformService.TransformSav(settings.InputFilePath, outputSubFolder, importParams, progress));
+            var result = await Task.Run(() =>
+                _imageTransformService.TransformSav(settings.InputFilePath, outputSubFolder, importParams, progress));
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.WriteException(e);
+            return 1;
+        }
         
         s.Stop();
         AnsiConsole.WriteLine($"Time Taken: {s.Elapsed:g}");
