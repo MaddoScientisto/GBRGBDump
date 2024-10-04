@@ -14,6 +14,8 @@ namespace GBRGBDump.GUI.Services.Impl
         public bool DoRGBMerge { get; set; }
         public bool DoHDR { get; set; }
         
+        public bool RgbInterleaved { get; set; } 
+        
         public bool DoFullHDR { get; set; }
 
         public void LoadSettings()
@@ -28,6 +30,7 @@ namespace GBRGBDump.GUI.Services.Impl
             DoRGBMerge = Properties.Settings.Default.RGBMerge;
             DoHDR = Properties.Settings.Default.HDR;
             DoFullHDR = Properties.Settings.Default.DoFullHDR;
+            RgbInterleaved = Properties.Settings.Default.RGBInterleaved;
         }
 
         public void SaveSettings()
@@ -45,6 +48,7 @@ namespace GBRGBDump.GUI.Services.Impl
             Properties.Settings.Default.RGBMerge = DoRGBMerge;
             Properties.Settings.Default.HDR = DoHDR;
             Properties.Settings.Default.DoFullHDR = DoFullHDR;
+            Properties.Settings.Default.RGBInterleaved = RgbInterleaved;
 
             Properties.Settings.Default.Save();
         }

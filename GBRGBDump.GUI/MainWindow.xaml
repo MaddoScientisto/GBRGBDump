@@ -37,6 +37,7 @@
             <CheckBox>Export Deleted</CheckBox>
             <CheckBox>Check Magic Number</CheckBox>
             <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
+            <CheckBox IsChecked="{Binding RgbInterleaved}">Use interleaved RGB ordering (RGB-RGB-RGB)</CheckBox>
             <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
             <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
         </StackPanel>

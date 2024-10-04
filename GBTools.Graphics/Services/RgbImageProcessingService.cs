@@ -65,7 +65,7 @@ namespace GBTools.Graphics
             IProgress<ProgressInfo>? progress = null)
         {
             var averageOutputFolder = Path.Combine(outputPath, "average");
-            if (!Directory.Exists(averageOutputFolder))
+            if (averageType != AverageTypes.None && !Directory.Exists(averageOutputFolder))
             {
                 Directory.CreateDirectory(averageOutputFolder);
                 Console.WriteLine($"Created the directory: {averageOutputFolder}");
@@ -82,24 +82,25 @@ namespace GBTools.Graphics
             int gi = 1;
             foreach (var group in groups)
             {
-                var merged = MergeGroupImages(group, ChannelOrder.Sequential);
+                var merged = MergeGroupImages(group, channelOrder);
                 if (averageType == AverageTypes.FullBank)
                 {
                     allMerged.AddRange(merged);
                 }
 
+                // Save the RGB Merged images
+                var filename = Path.GetFileNameWithoutExtension(group.First().RawData.FileName);
+                var bank = group.First().RawData.Bank;
+
+                var fn = Path.GetFileName($"{filename} {bank:00}");
+
+                await SaveMergedImages(outputPath, merged, fn, gi);
+                
                 if (averageType != AverageTypes.None)
                 {
                     // Create averages
                     var (averagedImage, scaledAveragedImage) = CreateAveragedImage(merged);
-
-                    var filename = Path.GetFileNameWithoutExtension(group.First().RawData.FileName);
-                    var bank = group.First().RawData.Bank;
-
-                    var fn = Path.GetFileName($"{filename} {bank:00}");
-
-                    await SaveMergedImages(outputPath, merged, fn, gi);
-
+                    
                     // Save average
                     await SaveMergedImages(averageOutputFolder, [averagedImage, scaledAveragedImage], $"{fn} average", gi++);
                     

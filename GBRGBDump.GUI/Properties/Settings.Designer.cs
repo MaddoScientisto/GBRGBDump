@@ -117,5 +117,17 @@ namespace GBRGBDump.GUI.Properties {
                 this["DoFullHDR"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool RGBInterleaved {
+            get {
+                return ((bool)(this["RGBInterleaved"]));
+            }
+            set {
+                this["RGBInterleaved"] = value;
+            }
+        }
     }
 }

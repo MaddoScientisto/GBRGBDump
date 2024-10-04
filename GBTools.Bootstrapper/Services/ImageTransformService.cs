@@ -15,11 +15,15 @@ namespace GBTools.Bootstrapper
     {
         private readonly IImportSavService _importSavService;
         private readonly IFileReaderService _fileReaderService;
+
         private readonly IFileWriterService _fileWriterService;
+
         //private readonly IDecoderService _decoderService;
         private readonly IGameboyPrinterService _gameboyPrinterService;
 
-        public ImageTransformService(IImportSavService importSavService, IFileReaderService fileReaderService, IFileWriterService fileWriterService, IGameboyPrinterService gameboyPrinter /*IDecoderService decoderService*/)
+        public ImageTransformService(IImportSavService importSavService, IFileReaderService fileReaderService,
+            IFileWriterService fileWriterService,
+            IGameboyPrinterService gameboyPrinter /*IDecoderService decoderService*/)
         {
             _importSavService = importSavService;
             _fileReaderService = fileReaderService;
@@ -28,7 +32,8 @@ namespace GBTools.Bootstrapper
             _gameboyPrinterService = gameboyPrinter;
         }
 
-        public async Task<bool> TransformSav(string filePath, string outputPath, ImportSavOptions options, IProgress<ProgressInfo>? progress = null)
+        public async Task<bool> TransformSav(string filePath, string outputPath, ImportSavOptions options,
+            IProgress<ProgressInfo>? progress = null)
         {
             try
             {
@@ -42,7 +47,8 @@ namespace GBTools.Bootstrapper
 
                 const int maxChunkSize = 128 * 1024; // 128KB
                 int totalChunks = (data.Length + maxChunkSize - 1) / maxChunkSize;
-                int startChunkIndex = data.Length > maxChunkSize ? 1 : 0; // Skip the first chunk only if the file is larger than 128KB
+                int startChunkIndex =
+                    data.Length > maxChunkSize ? 1 : 0; // Skip the first chunk only if the file is larger than 128KB
 
                 progressInfo.TotalBanks = totalChunks;
                 progressInfo.CurrentBank = 1;
@@ -52,7 +58,7 @@ namespace GBTools.Bootstrapper
                 progress?.Report(progressInfo);
 
                 var itemsToProcess = new List<ImportSavParams>();
-                
+
                 for (int chunkIndex = startChunkIndex; chunkIndex < totalChunks; chunkIndex++)
                 {
                     int offset = chunkIndex * maxChunkSize;
@@ -77,7 +83,7 @@ namespace GBTools.Bootstrapper
                         Options = options,
                         Bank = chunkIndex
                     };
-                    
+
                     itemsToProcess.Add(importParams);
 
                     // var importItems = await _importSavService.ImportSav(importParams);
@@ -139,13 +145,15 @@ namespace GBTools.Bootstrapper
                         await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
                             Path.Combine(outputPath, $"{item.FileName}.png"));
                     }
-                    
-                    if (options.AverageType != AverageTypes.None)
+
+                    if (!options.RgbMerge)
                     {
-                        // HDR Merge
-                        await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType, options.ChannelOrder);
+                        return;
                     }
                     
+                    // RGB and HDR Merge
+                    await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType,
+                        options.ChannelOrder);
                 });
 
                 progressInfo.CurrentImage--;

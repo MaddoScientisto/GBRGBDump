@@ -126,6 +126,21 @@ namespace GBRGBDump.GUI
                 }
             }
         }
+        
+        private bool _rgbInterleaved = false;
+        public bool RgbInterleaved
+        {
+            get => _rgbInterleaved;
+            set
+            {
+                if (_rgbInterleaved != value)
+                {
+                    _rgbInterleaved = value;
+                    _settingsService.RgbInterleaved = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         private string _progressCounter;
 
@@ -240,7 +255,7 @@ namespace GBRGBDump.GUI
                   ImportDeleted = true,
                   ForceMagicCheck = false,
                   AverageType = DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
-                  ChannelOrder = ChannelOrder.Sequential,
+                  ChannelOrder = RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
                   AebStep = 2,
                   BanksToProcess = -1,
                   CartIsJp = false
