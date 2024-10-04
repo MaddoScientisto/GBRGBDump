@@ -4,5 +4,7 @@
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <!-- Required for cache on github actions -->
         <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+        <!-- Nuget Package Lock file -->
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     </PropertyGroup>
 </Project>
