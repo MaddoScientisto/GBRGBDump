@@ -4,9 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
+        xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         mc:Ignorable="d"
         Title="GB Camera Photo Dump and RGB Merge" Height="343" Width="298" Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
+        behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}"
         >
 
     <StackPanel Orientation="Vertical">

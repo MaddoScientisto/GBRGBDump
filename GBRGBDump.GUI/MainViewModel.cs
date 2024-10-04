@@ -162,8 +162,8 @@ namespace GBRGBDump.GUI
 
         public ICommand SelectSourceFileCommand { get; }
         public ICommand SelectDestinationPathCommand { get; }
-
         public ICommand OpenDestinationCommand { get; }
+        public ICommand FileDropCommand { get; }
 
         #endregion
 
@@ -192,7 +192,10 @@ namespace GBRGBDump.GUI
             SelectSourceFileCommand = new RelayCommand(SelectSourceFile);
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
             OpenDestinationCommand = new RelayCommand(OpenDestination);
-
+            FileDropCommand = new RelayCommand(OnFileDrop);
+            
+            
+            // Initializations
             _canStart = false;
 
             LoadSettings();
@@ -355,6 +358,14 @@ namespace GBRGBDump.GUI
         {
             CanStart = !string.IsNullOrWhiteSpace(SourcePath) && !string.IsNullOrWhiteSpace(DestinationPath) &&
                        !_isWorking;
+        }
+
+        private void OnFileDrop(object parameter)
+        {
+            if (parameter is string filePath)
+            {
+                SourcePath = filePath;
+            }
         }
     }
 }
