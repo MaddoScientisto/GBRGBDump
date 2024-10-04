@@ -67,6 +67,7 @@ jobs:
         path: artifacts
         skip_unpack: true
         if_no_artifact_found: fail
+        workflow_conclusion: ""
     # Debug step
     - name: Display structure of downloaded files
       run: ls -R
