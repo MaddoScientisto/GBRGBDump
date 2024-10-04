@@ -32,8 +32,48 @@ jobs:
   #       id: version_step # step id used as reference for output values
   #       uses: gittools/actions/gitversion/execute@v3.0.0
 
+  build-gbrgbdump-gui:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+          fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        cache: true
+    
+    - name: Restore dependencies
+      run: dotnet restore --locked-mode
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.0.0
+      with:
+        versionSpec: '6.x'
+
+    - name: Update Version
+      uses: gittools/actions/gitversion/command@v3.0.0
+      with:
+        arguments: /updateprojectfiles
+
+    - name: Build GBRGBDump.GUI
+      run: |
+        dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBRGBDump-GUI-win-x64
+        path: publish/GBRGBDump.GUI/win-x64/**
+        if-no-files-found: error
+
   build-gbrgbdump:
     runs-on: ubuntu-latest
+    # Avoid running time-expensive matrix build if the GUI fails
+    needs: build-gbrgbdump-gui
     strategy:
         matrix:
             include:
@@ -75,44 +115,6 @@ jobs:
       with:
         name: GBRGBDump-${{ matrix.output }}
         path: publish/GBRGBDump/${{ matrix.output }}/**
-        if-no-files-found: error
-
-  build-gbrgbdump-gui:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-          fetch-depth: 0
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-        cache: true
-    
-    - name: Restore dependencies
-      run: dotnet restore --locked-mode
-
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3.0.0
-      with:
-        versionSpec: '6.x'
-
-    - name: Update Version
-      uses: gittools/actions/gitversion/command@v3.0.0
-      with:
-        arguments: /updateprojectfiles
-
-    - name: Build GBRGBDump.GUI
-      run: |
-        dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: GBRGBDump-GUI-win-x64
-        path: publish/GBRGBDump.GUI/win-x64/**
         if-no-files-found: error
 
   publish-release:
