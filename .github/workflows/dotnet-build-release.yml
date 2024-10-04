@@ -136,7 +136,6 @@ jobs:
         if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/')
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
     steps:
