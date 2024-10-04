@@ -33,7 +33,7 @@ jobs:
   #       uses: gittools/actions/gitversion/execute@v3.0.0     
 
   build-gbrgbdump-gui:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
