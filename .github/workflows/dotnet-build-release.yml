@@ -45,6 +45,7 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         cache: true
+        cache-dependency-path: subdir/packages.lock.json
     
     - name: Restore dependencies
       run: dotnet restore --locked-mode
@@ -61,7 +62,7 @@ jobs:
 
     - name: Build GBRGBDump.GUI
       run: |
-        dotnet publish ./GBRGBDump-GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
+        dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
@@ -92,6 +93,7 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         cache: true
+        cache-dependency-path: subdir/packages.lock.json
 
     - name: Restore dependencies
       run: dotnet restore --locked-mode

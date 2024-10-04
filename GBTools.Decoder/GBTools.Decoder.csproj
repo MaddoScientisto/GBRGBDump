@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GBTools-Common\GBTools.Common.csproj" />
+    <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
   </ItemGroup>
 
 </Project>
