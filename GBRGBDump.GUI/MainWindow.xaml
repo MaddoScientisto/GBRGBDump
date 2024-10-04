@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="343" Width="298" Closing="Window_Closing"
+        Title="GB Camera Photo Dump and RGB Merge" Height="400" Width="300" Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
         behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}"
         >
@@ -17,19 +17,21 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="50"></ColumnDefinition>
+                <ColumnDefinition Width="25"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>
                 <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
             <Label Grid.Column="0" Grid.Row="0">Source File</Label>
-            <Label Grid.Column="1" Grid.Row="0" x:Name="TxtSourcePath" HorizontalAlignment="Left" Content="{Binding SourcePath}"></Label>
-            <Button Grid.Column="2" Grid.Row="0" x:Name="BtnPickSource"  Command="{Binding SelectSourceFileCommand}">Select</Button>
+            <Label Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" x:Name="TxtSourcePath" HorizontalAlignment="Left" Content="{Binding SourcePath}"></Label>
+            <Button Grid.Column="2" Grid.Row="1" x:Name="BtnPickSource"  Command="{Binding SelectSourceFileCommand}">...</Button>
 
-            <Label Grid.Column="0" Grid.Row="1">Destination Root Folder</Label>
-            <Label Grid.Column="1" Grid.Row="1" x:Name="TxtDestinationPath" HorizontalAlignment="Left" Content="{Binding DestinationPath}"></Label>
-            <Button Grid.Column="2" Grid.Row="1" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}">Select</Button>
+            <Label Grid.Column="0" Grid.Row="2">Destination Root Folder</Label>
+            <Label Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" x:Name="TxtDestinationPath" HorizontalAlignment="Left" Content="{Binding DestinationPath}"></Label>
+            <Button Grid.Column="2" Grid.Row="3" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}">...</Button>
         </Grid>
 
         <Separator></Separator>
