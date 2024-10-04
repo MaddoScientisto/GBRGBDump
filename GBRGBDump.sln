@@ -5,15 +5,15 @@ VisualStudioVersion = 17.11.35303.130
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GBRGBDump", "GBRGBDump\GBRGBDump.csproj", "{45120111-B20A-4BF4-869F-EB295A47A860}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Decoder", "GBTools.Decoder\GBTools.Decoder.csproj", "{3CAE273F-BC59-46B9-9B6B-E34797814CCF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Decoder", "GBTools-Decoder\GBTools.Decoder.csproj", "{3CAE273F-BC59-46B9-9B6B-E34797814CCF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Common", "GBTools.Common\GBTools.Common.csproj", "{7A8EE4CE-84DA-41C9-97E4-7A4F9639031A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Common", "GBTools-Common\GBTools.Common.csproj", "{7A8EE4CE-84DA-41C9-97E4-7A4F9639031A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Graphics", "GBTools.Graphics\GBTools.Graphics.csproj", "{7E80ADDE-0D43-4BDE-A572-13BA1B66D1F1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Graphics", "GBTools-Graphics\GBTools.Graphics.csproj", "{7E80ADDE-0D43-4BDE-A572-13BA1B66D1F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Bootstrapper", "GBTools.Bootstrapper\GBTools.Bootstrapper.csproj", "{31CA1A35-463D-4AB5-8947-09C36C93529B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBTools.Bootstrapper", "GBTools-Bootstrapper\GBTools.Bootstrapper.csproj", "{31CA1A35-463D-4AB5-8947-09C36C93529B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBRGBDump.GUI", "GBRGBDump.GUI\GBRGBDump.GUI.csproj", "{ED42E3A3-8319-4A3F-870B-29CA460E515A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GBRGBDump.GUI", "GBRGBDump-GUI\GBRGBDump.GUI.csproj", "{ED42E3A3-8319-4A3F-870B-29CA460E515A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
