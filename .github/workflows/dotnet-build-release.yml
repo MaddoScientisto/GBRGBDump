@@ -1,12 +1,37 @@
 name: Build and Release .NET App
 
 on:
-  #push:
-  #  branches:
-  #    - master
+  push:
+    branches:
+      - master
+      - beta
   workflow_dispatch:
 
 jobs:
+  # GitVersion_v6_cross_job:
+  #   name: GitVersion v6 (cross job)
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     branchName: ${{ steps.version_step.outputs.branchName }}
+  #     fullSemVer: ${{ steps.version_step.outputs.fullSemVer }}
+
+  #     GitVersion_BranchName: ${{ steps.version_step.outputs.GitVersion_BranchName }}
+  #     GitVersion_FullSemVer: ${{ steps.version_step.outputs.GitVersion_FullSemVer }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Install GitVersion
+  #       uses: gittools/actions/gitversion/setup@v3.0.0
+  #       with:
+  #         versionSpec: '6.x'
+
+  #     - name: Determine Version
+  #       id: version_step # step id used as reference for output values
+  #       uses: gittools/actions/gitversion/execute@v3.0.0
+
   build-gbrgbdump:
     runs-on: ubuntu-latest
     strategy:
@@ -16,15 +41,30 @@ jobs:
                 - { runtime: 'linux-x64', output: 'linux-x64' }
                 - { runtime: 'linux-arm', output: 'linux-arm' }
                 - { runtime: 'linux-arm64', output: 'linux-arm64' }
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+        cache: true
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --locked-mode
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.0.0
+      with:
+        versionSpec: '6.x'
+
+    - name: Update Version
+      uses: gittools/actions/gitversion/command@v3.0.0
+      with:
+        arguments: /updateprojectfiles
 
     - name: Build GBRGBDump
       run: |
@@ -39,13 +79,30 @@ jobs:
 
   build-gbrgbdump-gui:
     runs-on: windows-latest
+
     steps:
     - uses: actions/checkout@v3
+      with:
+          fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+        cache: true
+    
+    - name: Restore dependencies
+      run: dotnet restore --locked-mode
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.0.0
+      with:
+        versionSpec: '6.x'
+
+    - name: Update Version
+      uses: gittools/actions/gitversion/command@v3.0.0
+      with:
+        arguments: /updateprojectfiles
 
     - name: Build GBRGBDump.GUI
       run: |
