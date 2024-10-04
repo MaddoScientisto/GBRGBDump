@@ -77,8 +77,8 @@ namespace GBTools.Common
 
     public class FileMetadataWithTiles
     {
-        public FileMetaData Meta { get; set; }
-        public List<string> Tiles { get; set; }
+        public FileMetaData Meta { get; set; } = new FileMetaData();
+        public List<string> Tiles { get; set; } = [];
         
         public bool IsValid => Tiles.Count != 0;
     }

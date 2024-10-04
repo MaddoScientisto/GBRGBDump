@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -128,34 +129,49 @@ namespace GBTools.Bootstrapper
                     // progressInfo.CurrentBank++;
                 }
 
+                var exceptions = new ConcurrentQueue<Exception>();
+                
                 await Parallel.ForEachAsync(itemsToProcess, new ParallelOptions()
                 {
                     MaxDegreeOfParallelism = 8
                 }, async (importParams, token) =>
                 {
-                    var importItems = await _importSavService.ImportSav(importParams);
-
-                    foreach (var item in importItems)
+                    try
                     {
-                        if (!Directory.Exists(outputPath))
+                        var importItems = await _importSavService.ImportSav(importParams);
+
+                        foreach (var item in importItems)
                         {
-                            Directory.CreateDirectory(outputPath);
+                            if (!Directory.Exists(outputPath))
+                            {
+                                Directory.CreateDirectory(outputPath);
+                            }
+
+                            await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
+                                Path.Combine(outputPath, $"{item.FileName}.png"));
                         }
 
-                        await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
-                            Path.Combine(outputPath, $"{item.FileName}.png"));
-                    }
-
-                    if (!options.RgbMerge)
-                    {
-                        return;
-                    }
+                        if (!options.RgbMerge)
+                        {
+                            return;
+                        }
                     
-                    // RGB and HDR Merge
-                    await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType,
-                        options.ChannelOrder);
+                        // RGB and HDR Merge
+                        await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType,
+                            options.ChannelOrder);
+                    }
+                    catch (Exception e)
+                    {
+                        exceptions.Enqueue(e);
+                        Debug.WriteLine(e);
+                    }
                 });
 
+                if (!exceptions.IsEmpty)
+                {
+                    throw new AggregateException(exceptions);
+                }
+                
                 progressInfo.CurrentImage--;
 
                 progress?.Report(progressInfo);
@@ -165,7 +181,8 @@ namespace GBTools.Bootstrapper
             catch (Exception ex)
             {
                 Console.WriteLine($"Error processing file: {ex.Message}");
-                return false;
+                throw;
+                //return false;
             }
         }
     }
