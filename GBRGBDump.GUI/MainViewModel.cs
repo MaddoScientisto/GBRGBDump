@@ -126,6 +126,21 @@ namespace GBRGBDump.GUI
                 }
             }
         }
+        
+        private bool _rgbInterleaved = false;
+        public bool RgbInterleaved
+        {
+            get => _rgbInterleaved;
+            set
+            {
+                if (_rgbInterleaved != value)
+                {
+                    _rgbInterleaved = value;
+                    _settingsService.RgbInterleaved = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         private string _progressCounter;
 
@@ -147,8 +162,8 @@ namespace GBRGBDump.GUI
 
         public ICommand SelectSourceFileCommand { get; }
         public ICommand SelectDestinationPathCommand { get; }
-
         public ICommand OpenDestinationCommand { get; }
+        public ICommand FileDropCommand { get; }
 
         #endregion
 
@@ -177,7 +192,10 @@ namespace GBRGBDump.GUI
             SelectSourceFileCommand = new RelayCommand(SelectSourceFile);
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
             OpenDestinationCommand = new RelayCommand(OpenDestination);
-
+            FileDropCommand = new RelayCommand(OnFileDrop);
+            
+            
+            // Initializations
             _canStart = false;
 
             LoadSettings();
@@ -198,6 +216,11 @@ namespace GBRGBDump.GUI
             //UpdateStartupCondition();
         }
 
+        private string MakeOutputSubFolder(string source, string destination)
+        {
+            return System.IO.Path.Combine(destination, System.IO.Path.GetFileNameWithoutExtension(source));
+        }
+        
         private async Task MergePhotos()
         {
             if (string.IsNullOrWhiteSpace(SourcePath) || string.IsNullOrWhiteSpace(DestinationPath))
@@ -206,8 +229,7 @@ namespace GBRGBDump.GUI
                 return;
             }
 
-            var outputSubFolder =
-                System.IO.Path.Combine(DestinationPath, System.IO.Path.GetFileNameWithoutExtension(SourcePath));
+            var outputSubFolder = MakeOutputSubFolder(SourcePath, DestinationPath); //System.IO.Path.Combine(DestinationPath, System.IO.Path.GetFileNameWithoutExtension(SourcePath));
 
             // Check if the input file exists
             if (!_fileSystemService.FileExists(SourcePath))
@@ -233,18 +255,37 @@ namespace GBRGBDump.GUI
                 var progress = new Progress<ProgressInfo>(ReportProgress);
 
                 // Run Asynchronously to avoid locking the UI thread
-                var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder, new ImportSavOptions()
+                try
                 {
-                  // TODO: Set options
-                  ImportLastSeen = false,
-                  ImportDeleted = true,
-                  ForceMagicCheck = false,
-                  AverageType = DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
-                  ChannelOrder = ChannelOrder.Sequential,
-                  AebStep = 2,
-                  BanksToProcess = -1,
-                  CartIsJp = false
-                }, progress));
+                    var result = await Task.Run(() => _imageTransformService.TransformSav(SourcePath, outputSubFolder,
+                        new ImportSavOptions()
+                        {
+                            // TODO: Set options
+                            ImportLastSeen = false,
+                            ImportDeleted = true,
+                            ForceMagicCheck = false,
+                            AverageType =
+                                DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
+                            ChannelOrder = RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
+                            AebStep = 2,
+                            BanksToProcess = -1,
+                            CartIsJp = false
+                        }, progress));
+                }
+                catch (AggregateException e)
+                {
+                    foreach (var exceptions in e.InnerExceptions)
+                    {
+                        _dialogService.ShowError(e);
+                        Debug.WriteLine(e.Message);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _dialogService.ShowError(e);
+                    Debug.WriteLine(e);
+                    
+                }
 
                 //await _imageTransformService.TransformSav(SourcePath, outputSubFolder);
             }
@@ -260,9 +301,11 @@ namespace GBRGBDump.GUI
             IsWorking = false;
             s.Stop();
             
-            _dialogService.ShowMessage("Done!");
-
             ProgressCounter += $"\r\nTime: {s.Elapsed:g}";
+            
+            // TODO: Play a sound
+            
+            //_dialogService.ShowMessage("Done!");
             //UpdateStartupCondition();
         }
 
@@ -300,13 +343,29 @@ namespace GBRGBDump.GUI
                 return;
             }
 
-            Process.Start("explorer.exe", DestinationPath);
+            var subFolder = MakeOutputSubFolder(SourcePath, DestinationPath);
+            
+            if (string.IsNullOrWhiteSpace(subFolder))
+            {
+                Process.Start("explorer.exe", DestinationPath);
+                return;
+            }
+
+            Process.Start("explorer.exe", subFolder);
         }
 
         private void UpdateStartupCondition()
         {
             CanStart = !string.IsNullOrWhiteSpace(SourcePath) && !string.IsNullOrWhiteSpace(DestinationPath) &&
                        !_isWorking;
+        }
+
+        private void OnFileDrop(object parameter)
+        {
+            if (parameter is string filePath)
+            {
+                SourcePath = filePath;
+            }
         }
     }
 }

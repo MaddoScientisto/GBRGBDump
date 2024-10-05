@@ -3,6 +3,14 @@
     "Container (Dockerfile)": {
       "commandName": "Docker"
     },
+    "Parameterless": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    },
+    "Help": {
+      "commandName": "Project",
+      "commandLineArgs": "-h"
+    },
     "PHOTO Dump": {
       "commandName": "Project",
       "commandLineArgs": "\"C:\\PHOTO-1.lipu.gbc\" \"C:\\temp\\gbcdump7\""
@@ -10,6 +18,10 @@
     "SAV Dump": {
       "commandName": "Project",
       "commandLineArgs": "\"C:\\20240929_133606_GB_C54AC95A_Game Boy Camera.sav\" \"C:\\temp\\gbcdump7\""
+    },
+    "SAV Dump with HDR": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\20240929_133606_GB_C54AC95A_Game Boy Camera.sav\" \"C:\\temp\\gbcdump7\" -f"
     }
   }
 }

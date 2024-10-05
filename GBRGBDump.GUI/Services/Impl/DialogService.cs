@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,12 @@ namespace GBRGBDump.GUI.Services.Impl
         public void ShowMessage(string message)
         {
             MessageBox.Show(message);
+        }
+
+        public void ShowError(Exception ex)
+        {
+            var dem = ex.Demystify();
+            MessageBox.Show($"{dem.Message}\r\n{dem.StackTrace}");
         }
 
         public string OpenFileDialog(string? filter = null)

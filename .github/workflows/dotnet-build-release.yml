@@ -6,6 +6,9 @@ on:
       - master
       - beta
   workflow_dispatch:
+concurrency: production
+permissions: 
+  contents: write
 
 jobs:
   # GitVersion_v6_cross_job:
@@ -30,11 +33,13 @@ jobs:
 
   #     - name: Determine Version
   #       id: version_step # step id used as reference for output values
-  #       uses: gittools/actions/gitversion/execute@v3.0.0
+  #       uses: gittools/actions/gitversion/execute@v3.0.0     
 
   build-gbrgbdump-gui:
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
+    outputs:
+       branchName: ${{ steps.version_step.outputs.branchName }}
+       fullSemVer: ${{ steps.version_step.outputs.fullSemVer }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -54,6 +59,10 @@ jobs:
       uses: gittools/actions/gitversion/setup@v3.0.0
       with:
         versionSpec: '6.x'
+
+    - name: Determine Version
+      id: version_step # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v3.0.0
 
     - name: Update Version
       uses: gittools/actions/gitversion/command@v3.0.0
@@ -120,7 +129,6 @@ jobs:
         if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/')
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
     steps:
@@ -143,12 +151,21 @@ jobs:
     #     tag: ${{ github.run_number }}
     #     title: Release ${{ github.run_number }}
 
+    # - name: Minor version for each merge
+    #   id: AutoTagger
+    #   uses: anothrNick/github-tag-action@1.36.0
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     WITH_V: true
+    #     CUSTOM_TAG: ${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
+
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
-      #env:
-      #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: ./artifacts/**
+        tag_name: ${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
         # upload_url: ${{ steps.create_release.outputs.upload_url }}
         # asset_path: ./artifacts
         # asset_name: Release-Assets.zip

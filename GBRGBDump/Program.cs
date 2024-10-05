@@ -1,99 +1,48 @@
 ﻿using System.Diagnostics;
+using GBRGBDump.Commands;
+using GBRGBDump.Infrastructure;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console.Cli;
 
-if (args.Length < 2)
+namespace GBRGBDump;
+public class Program
 {
-    Console.WriteLine("Please provide an input filename and an output folder.");
-    return;
-}
+    public static int Main(string[] args)
+    {
+        // Create a type registrar and register any dependencies.
+        // A type registrar is an adapter for a DI framework.
+        var serviceCollection = new ServiceCollection();
+        
+        serviceCollection.AddTransient<ImageTransformService>();
+        serviceCollection.AddTransient<IImportSavService, ImportSavService>();
+        serviceCollection.AddTransient<IFileReaderService, FileReaderService>();
+        serviceCollection.AddTransient<IFileWriterService, FileWriterService>();
 
-var serviceCollection = new ServiceCollection();
+        serviceCollection.AddTransient<IApplyFrameService, ApplyFrameService>();
+        serviceCollection.AddTransient<ICharMapService, CharMapService>();
+        serviceCollection.AddTransient<ICompressAndHashService, CompressAndHashService>();
+        serviceCollection.AddTransient<IFileMetaService, FileMetaService>();
+        serviceCollection.AddTransient<ITransformImageService, TransformImageService>();
+        serviceCollection.AddTransient<IParseCustomMetadataService, ParseCustomMetadataService>();
+        serviceCollection.AddTransient<IRandomIdService, RandomIdService>();
+        serviceCollection.AddTransient<IImportSavService, ImportSavService>();
+        serviceCollection.AddTransient<IFrameDataService, FrameDataService>();
 
-serviceCollection.AddTransient<ImageTransformService>();
-serviceCollection.AddTransient<IImportSavService, ImportSavService>();
-serviceCollection.AddTransient<IFileReaderService, FileReaderService>();
-serviceCollection.AddTransient<IFileWriterService, FileWriterService>();
+        serviceCollection.AddTransient<IDecoderService, DecoderService>();
+        serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
-serviceCollection.AddTransient<IApplyFrameService, ApplyFrameService>();
-serviceCollection.AddTransient<ICharMapService, CharMapService>();
-serviceCollection.AddTransient<ICompressAndHashService, CompressAndHashService>();
-serviceCollection.AddTransient<IFileMetaService, FileMetaService>();
-serviceCollection.AddTransient<ITransformImageService, TransformImageService>();
-serviceCollection.AddTransient<IParseCustomMetadataService, ParseCustomMetadataService>();
-serviceCollection.AddTransient<IRandomIdService, RandomIdService>();
-serviceCollection.AddTransient<IImportSavService, ImportSavService>();
-serviceCollection.AddTransient<IFrameDataService, FrameDataService>();
+        serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+        
 
-serviceCollection.AddTransient<IDecoderService, DecoderService>();
-serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
+        var registrar = new TypeRegistrar(serviceCollection);
 
-serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
-
-var serviceProvider = serviceCollection.BuildServiceProvider();
-
-var imageTransformService = serviceProvider.GetRequiredService<ImageTransformService>();
-
-//await imageTransformService.TransformSav(@"C:\photodump-1.gbc", @"C:\temp\gbcdump");
-
-string inputFilename = args[0];
-string outputFolder = args[1];
-
-string outputSubFolder = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(inputFilename));
-
-// Check if the input file exists
-if (!File.Exists(inputFilename))
-{
-    Console.WriteLine($"The file {inputFilename} does not exist.");
-    return;
-}
-
-// Check if the output directory exists, if not, create it
-if (!Directory.Exists(outputSubFolder))
-{
-    Directory.CreateDirectory(outputSubFolder);
-    Console.WriteLine($"Created the directory: {outputSubFolder}");
-}
-
-var progress = new Progress<ProgressInfo>(ReportProgress);
-
-Stopwatch s = new Stopwatch();
-s.Start();
-
-var importParams = new ImportSavOptions()
-{
-    ImportLastSeen = false,
-    ImportDeleted = true,
-    ForceMagicCheck = false,
-    AverageType = AverageTypes.FullBank,
-    AebStep = 2,
-    BanksToProcess = -1,
-    CartIsJp = false
-};
-
-
-var result = await Task.Run(() =>
-    imageTransformService.TransformSav(inputFilename, outputSubFolder, importParams, progress));
-
-//await imageTransformService.TransformSav(inputFilename, outputSubFolder);
-
-//Console.WriteLine("Converted all the images, now merging...");
-
-//var rgbImageProcessingService = serviceProvider.GetRequiredService<IRgbImageProcessingService>();
-
-//await Task.Run(() =>
-//    rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential, progress));
-s.Stop();
-
-Console.WriteLine($"Time Taken: {s.Elapsed:g}");
-//rgbImageProcessingService.ProcessImages(outputSubFolder, outputSubFolder, ChannelOrder.Sequential);
-return;
-
-void ReportProgress(ProgressInfo value)
-{
-    Console.WriteLine(
-        $"Bank: {value.CurrentBank}/{value.TotalBanks} Image: {value.CurrentImage}/{value.TotalImages} Name: {value.CurrentImageName}");
+        // Create a new command app with the registrar
+        // and run it with the provided arguments.
+        var app = new CommandApp<ProcessCommand>(registrar);
+        return app.Run(args);
+    }
 }

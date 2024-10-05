@@ -15,6 +15,7 @@ using Microsoft.Win32;
 using GBTools.Common;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
+using System.Reflection;
 using GBRGBDump.GUI.Services;
 
 namespace GBRGBDump.GUI
@@ -31,11 +32,19 @@ namespace GBRGBDump.GUI
             _settingsService = settingsService;
 
             InitializeComponent();
+            
+            SetVersionInfo();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _settingsService.SaveSettings();
+        }
+        
+        private void SetVersionInfo()
+        {
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            VersionText.Text = $"Version: {version.Major}.{version.Minor}.{version.Build}";
         }
     }
 }

@@ -77,8 +77,8 @@ namespace GBTools.Common
 
     public class FileMetadataWithTiles
     {
-        public FileMetaData Meta { get; set; }
-        public List<string> Tiles { get; set; }
+        public FileMetaData Meta { get; set; } = new FileMetaData();
+        public List<string> Tiles { get; set; } = [];
         
         public bool IsValid => Tiles.Count != 0;
     }
@@ -112,6 +112,8 @@ namespace GBTools.Common
         public bool ImportDeleted { get; set; }
         public bool ForceMagicCheck { get; set; }
         public bool ImportLastSeen { get; set; }
+
+        public bool RgbMerge { get; set; } = true;
         public AverageTypes AverageType { get; set; } = AverageTypes.None;
         public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
         public int BanksToProcess { get; set; }
