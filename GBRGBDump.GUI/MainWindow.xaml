@@ -25,7 +25,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="25"></ColumnDefinition>
+                <ColumnDefinition Width="40"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>
@@ -35,11 +35,11 @@
             </Grid.RowDefinitions>
             <Label Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" FontWeight="Bold">Source File</Label>
             <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Margin="10" x:Name="TxtSourcePath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding SourcePath}"></TextBlock>
-            <Button Grid.Column="2" Grid.Row="1" MaxHeight="25" x:Name="BtnPickSource"  Command="{Binding SelectSourceFileCommand}">...</Button>
+            <Button Grid.Column="2" Grid.Row="1" MaxHeight="25" x:Name="BtnPickSource" Command="{Binding SelectSourceFileCommand}" Margin="4,0,4,0">...</Button>
 
             <Label Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" FontWeight="Bold">Destination Root Folder</Label>
             <TextBlock Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" Margin="10" x:Name="TxtDestinationPath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding DestinationPath}"></TextBlock>
-            <Button Grid.Column="2" Grid.Row="3" MaxHeight="25" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}">...</Button>
+            <Button Grid.Column="2" Grid.Row="3" MaxHeight="25" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}" Margin="4,0,4,0">...</Button>
         </Grid>
         <Separator DockPanel.Dock="Top"></Separator>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
