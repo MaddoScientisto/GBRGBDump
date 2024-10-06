@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="300" 
+        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="320" 
         MaxHeight="680"
         Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
@@ -18,7 +18,7 @@
                FontSize="14"
                FontWeight="Bold"
                DockPanel.Dock="Top"
-               Margin="10"
+               Margin="5"
                >GB Camera Photo Dump and RGB Merge</Label>
         <Separator DockPanel.Dock="Top"></Separator>
         <Grid DockPanel.Dock="Top">
