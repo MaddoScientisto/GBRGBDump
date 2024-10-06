@@ -52,6 +52,13 @@
             <CheckBox IsChecked="{Binding RgbInterleaved}">Use interleaved RGB ordering (RGB-RGB-RGB)</CheckBox>
             <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
             <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
+                <Separator></Separator>
+                <TextBlock>Pre-Dump script</TextBlock>
+                <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
+                    <TextBlock Text="{Binding PreDumpScript.Path}"></TextBlock>
+                </StackPanel>
+                
         </StackPanel>
         <Separator></Separator>
         <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>

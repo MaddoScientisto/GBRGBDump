@@ -8,8 +8,16 @@ using System.Threading.Tasks;
 
 namespace GBRGBDump.GUI
 {
-    public class ViewModelBase : INotifyPropertyChanged
+    public abstract class ViewModelBase<TModel> : INotifyPropertyChanged
     {
+
+        public TModel Model { get; set; }
+
+        public virtual void Initialize(TModel model)
+        {
+            Model = model;
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

@@ -55,6 +55,10 @@ namespace GBRGBDump.GUI
 
             services.AddTransient<MainViewModel>();
 
+            services.AddTransient<RunScriptWindow>();
+            services.AddTransient<RunScriptViewmodel>();
+
+
             services.AddSingleton<MainWindow>();
         }
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +12,50 @@ namespace GBRGBDump.GUI.Services.Impl
 {
     public class DialogService : IDialogService
     {
+        private readonly IServiceProvider _serviceProvider;
+        public DialogService(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
+        public void ShowWindow<TWindow, TViewModel, TModel>() 
+            where TWindow : Window
+            where TViewModel : ViewModelBase<TModel>
+        {
+            var window = _serviceProvider.GetRequiredService<TWindow>();
+            var viewModel = _serviceProvider.GetRequiredService<TViewModel>();
+
+            window.DataContext = viewModel;
+
+            window.Show();
+        }
+
+        public bool? ShowDialog<TWindow, TViewModel, TModel>() 
+            where TWindow : Window
+            where TViewModel : ViewModelBase<TModel>
+        {
+            var window = _serviceProvider.GetRequiredService<TWindow>();
+            var viewModel = _serviceProvider.GetRequiredService<TViewModel>();
+
+            window.DataContext = viewModel;
+
+            return window.ShowDialog();
+        }
+        public TModel? ShowDialog<TWindow, TViewModel, TModel>(TModel model)
+            where TWindow : Window
+            where TViewModel : ViewModelBase<TModel>
+        {
+            var window = _serviceProvider.GetRequiredService<TWindow>();
+            var viewModel = _serviceProvider.GetRequiredService<TViewModel>();
+
+            viewModel.Initialize(model);
+
+            window.DataContext = viewModel;
+
+            bool? dialogResult = window.ShowDialog();
+            return viewModel.Model;
+        }
+
         public void ShowMessage(string message)
         {
             MessageBox.Show(message);

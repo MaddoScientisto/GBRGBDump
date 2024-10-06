@@ -15,7 +15,12 @@ using GBTools.Graphics;
 
 namespace GBRGBDump.GUI
 {
-    public class MainViewModel : ViewModelBase
+    public class MainModel
+    {
+
+    }
+
+    public class MainViewModel : ViewModelBase<MainModel>
     {
         #region Binding Properties
 
@@ -154,6 +159,30 @@ namespace GBRGBDump.GUI
             }
         }
 
+        private RunScriptModel _preDumpScript;
+
+        public RunScriptModel PreDumpScript
+        {
+            get => _preDumpScript;
+            set
+            {
+                _preDumpScript = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private RunScriptModel _postDumpScript;
+
+        public RunScriptModel PostDumpScript
+        {
+            get => _postDumpScript;
+            set
+            {
+                _postDumpScript = value;
+                OnPropertyChanged();
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -164,6 +193,8 @@ namespace GBRGBDump.GUI
         public ICommand SelectDestinationPathCommand { get; }
         public ICommand OpenDestinationCommand { get; }
         public ICommand FileDropCommand { get; }
+
+        public ICommand OpenPreDumpScriptWindowCommand { get; }
 
         #endregion
 
@@ -176,6 +207,15 @@ namespace GBRGBDump.GUI
         private readonly ISettingsService _settingsService;
 
         #endregion
+
+        public override void Initialize(MainModel model)
+        {
+            // TODO: Get these from saved settings or init as new
+            this.PreDumpScript = new RunScriptModel();
+            this.PostDumpScript = new RunScriptModel();
+
+            base.Initialize(model);
+        }
 
         public MainViewModel() { }
         public MainViewModel(ImageTransformService imageTransformService, IDialogService dialogService,
@@ -194,10 +234,13 @@ namespace GBRGBDump.GUI
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
             OpenDestinationCommand = new RelayCommand(OpenDestination);
             FileDropCommand = new RelayCommand(OnFileDrop);
+            OpenPreDumpScriptWindowCommand = new RelayCommand(OpenRunScriptWindow);
             
             
             // Initializations
             _canStart = false;
+
+            this.Initialize(new MainModel());
 
             LoadSettings();
         }
@@ -366,6 +409,17 @@ namespace GBRGBDump.GUI
             if (parameter is string filePath)
             {
                 SourcePath = filePath;
+            }
+        }
+
+        private void OpenRunScriptWindow()
+        {
+            
+            var resultModel = _dialogService.ShowDialog<RunScriptWindow, RunScriptViewmodel, RunScriptModel>(PreDumpScript);
+
+            if (resultModel != null && resultModel.Success)
+            {
+                PreDumpScript = resultModel;
             }
         }
     }
