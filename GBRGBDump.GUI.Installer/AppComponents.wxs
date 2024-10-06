@@ -1,0 +1,11 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
+      <Component>
+        <File Source="GBRGBDump.GUI.exe" />
+		  <File Source="GBRGBDump.GUI.dll.config" />
+		  <File Source="libSkiaSharp.dll" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
