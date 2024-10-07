@@ -6,14 +6,20 @@
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="300"
-        MaxHeight="680"
+        Title="GB Camera Photo Dump and RGB Merge" Height="680" Width="400"
         Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
         behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}">
 
     <DockPanel>
-        
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Exit"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="_?">
+                <MenuItem Header="_About"></MenuItem>
+            </MenuItem>
+        </Menu>
         <Label HorizontalAlignment="Center"
                FontSize="14"
                FontWeight="Bold"
