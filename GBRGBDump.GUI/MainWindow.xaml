@@ -74,14 +74,15 @@
                     <ColumnDefinition></ColumnDefinition>
                     <ColumnDefinition></ColumnDefinition>
                 </Grid.ColumnDefinitions>
-                <StackPanel>
+                <StackPanel Margin="5">
+                    <Label FontWeight="Bold">Settings</Label>
                     <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
                     <CheckBox>Export Deleted</CheckBox>
                     <CheckBox>Check Magic Number</CheckBox>
 
 
                 </StackPanel>
-                <StackPanel Grid.Column="1">
+                <StackPanel Grid.Column="1" Margin="5">
                     <Label FontWeight="Bold">RGB Channel Order</Label>
                     <ComboBox HorizontalAlignment="Left"
                               ItemsSource="{Binding ChannelOrderValues}"
@@ -106,24 +107,26 @@
                 </StackPanel>
             </Grid>
             <Separator></Separator>
-            <StackPanel Orientation="Vertical">
+            <StackPanel Orientation="Vertical" Margin="5">
                 <TextBlock FontWeight="Bold">Pre-Dump script</TextBlock>
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
-                    <TextBlock TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Path}"></TextBlock>
+                    <TextBlock Margin="5,0,0,0" TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Path}"></TextBlock>
                     <TextBlock TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Arguments}"></TextBlock>
                 </StackPanel>
             </StackPanel>
 
             <Separator></Separator>
-            <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
-            <Separator></Separator>
-            <Button Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                <Button Margin="5" Height="40" Width="80" HorizontalAlignment="Center" Command="{Binding MergePhotosCommand}">Start</Button>
+                <Button Margin="5" Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
+            </StackPanel>
+                       
             <Separator></Separator>
         </StackPanel>
 
         <ScrollViewer VerticalAlignment="Stretch" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
-            <TextBlock Text="{Binding ProgressCounter}" TextWrapping="Wrap"></TextBlock>
+            <TextBlock MinHeight="80" Text="{Binding ProgressCounter}" TextWrapping="Wrap"></TextBlock>
         </ScrollViewer>
 
         <StatusBar DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
