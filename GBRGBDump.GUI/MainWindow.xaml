@@ -16,6 +16,14 @@
         <valueConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
     </Window.Resources>
     <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Exit"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="_?">
+                <MenuItem Header="_About"></MenuItem>
+            </MenuItem>
+        </Menu>
         <Label HorizontalAlignment="Center"
                FontSize="14"
                FontWeight="Bold"
