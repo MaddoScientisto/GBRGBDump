@@ -9,6 +9,7 @@
         Title="RunScriptWindow" Height="330" Width="312">
     <DockPanel>
         <StackPanel DockPanel.Dock="Top">
+            <CheckBox IsChecked="{Binding Enabled}">Enabled</CheckBox>
             <controls:LabelTextBox 
                 LabelText="Path" 
                 TextBoxContent="{Binding Path, Mode=TwoWay }"
@@ -30,8 +31,23 @@
                 TextBoxContent="{Binding Arguments, Mode=TwoWay}"
             ></controls:LabelTextBox>
             
-            
+            <CheckBox IsChecked="{Binding FailIfUnsuccessful}">Fail if Unsuccessful</CheckBox>
         </StackPanel>
+        <Separator DockPanel.Dock="Top"></Separator>
+        <TextBlock DockPanel.Dock="Top" TextWrapping="WrapWithOverflow">
+            To run a powershell script set Path to: powershell.exe
+        </TextBlock>
+        <TextBlock DockPanel.Dock="Top" TextWrapping="WrapWithOverflow">
+            Arguments: -ExecutionPolicy Bypass -File "C:\path\to\script.ps1" arguments_go_here
+        </TextBlock>
+        <Separator DockPanel.Dock="Top"></Separator>
+        <TextBlock DockPanel.Dock="Top">
+            To run a cmd script set Path to: cmd.exe
+        </TextBlock>
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
+            Arguments: /k "C:\path\to\executable.exe arguments_go_here"
+        </TextBlock>
+        <Separator DockPanel.Dock="Top"></Separator>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Ok" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50" Height="30" Command="{Binding OkCommand}"/>
             <Button Content="Cancel" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50" Height="30" Command="{Binding CancelCommand}"/>

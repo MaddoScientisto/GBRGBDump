@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GBTools.Common;
+using Newtonsoft.Json;
 
 namespace GBRGBDump.GUI.Services.Impl
 {
@@ -34,6 +35,18 @@ namespace GBRGBDump.GUI.Services.Impl
             model.AverageType = Enum.Parse<AverageTypes>(Properties.Settings.Default.AverageType);
             model.ChannelOrder = Enum.Parse<ChannelOrder>(Properties.Settings.Default.ChannelOrder);
 
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.PreDumpScript))
+            {
+                model.PreDumpScriptModel =
+                    JsonConvert.DeserializeObject<RunScriptModel>(Properties.Settings.Default.PreDumpScript) ?? new RunScriptModel();
+            }
+            
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.PostDumpScript))
+            {
+                model.PostDumpScriptModel =
+                    JsonConvert.DeserializeObject<RunScriptModel>(Properties.Settings.Default.PostDumpScript) ?? new RunScriptModel();
+            }
+
             return model;
         }
 
@@ -52,6 +65,9 @@ namespace GBRGBDump.GUI.Services.Impl
 
             Properties.Settings.Default.AverageType = settings.AverageType.ToString();
             Properties.Settings.Default.ChannelOrder = settings.ChannelOrder.ToString();
+            
+            Properties.Settings.Default.PreDumpScript = JsonConvert.SerializeObject(settings.PreDumpScriptModel);
+            Properties.Settings.Default.PostDumpScript = JsonConvert.SerializeObject(settings.PostDumpScriptModel);
             
             Properties.Settings.Default.Save();
         }

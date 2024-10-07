@@ -12,12 +12,15 @@ namespace GBRGBDump.GUI
 {
     public class RunScriptModel
     {
-        public string Path { get; set; }
-        public string Arguments { get; set; }
+        public bool Enabled { get; set; } = false;
+        public string Path { get; set; } = string.Empty;
+        public string Arguments { get; set; } = string.Empty;
 
-        public string RunLocation { get; set; }
+        public string RunLocation { get; set; } = string.Empty;
 
-        public bool Success { get; set; }
+        public bool FailIfUnsuccessful { get; set; } = true;
+
+        public bool Success { get; set; } = false;
 
         public RunScriptModel Clone()
         {
@@ -26,6 +29,8 @@ namespace GBRGBDump.GUI
                 Path = Path,
                 Arguments = Arguments,
                 RunLocation = RunLocation,
+                Enabled = Enabled,
+                FailIfUnsuccessful = FailIfUnsuccessful,
             };
         }
     }
@@ -34,6 +39,25 @@ namespace GBRGBDump.GUI
     {
         #region Binding Properties
 
+        public bool Enabled
+        {
+            get => Model.Enabled;
+            set
+            {
+                this.Model.Enabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool FailIfUnsuccessful
+        {
+            get => Model.FailIfUnsuccessful;
+            set
+            {
+                this.Model.FailIfUnsuccessful = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string Path
         {

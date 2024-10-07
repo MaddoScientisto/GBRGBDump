@@ -58,6 +58,7 @@ namespace GBRGBDump.GUI
             services.AddTransient<RunScriptWindow>();
             services.AddTransient<RunScriptViewmodel>();
 
+            services.AddTransient<IExecutionService, ExecutionService>();
 
             services.AddSingleton<MainWindow>();
         }

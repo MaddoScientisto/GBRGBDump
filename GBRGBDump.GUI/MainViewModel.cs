@@ -17,14 +17,15 @@ namespace GBRGBDump.GUI
 {
     public class MainModel
     {
-        public string SourcePath { get; set; }
-        public string DestinationPath { get; set; }
-        public bool DoRgbMerge { get; set; } = false;
+        public string SourcePath { get; set; } = string.Empty;
+        public string DestinationPath { get; set; } = string.Empty;
         
         public AverageTypes AverageType { get; set; } = AverageTypes.None;
         public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
-        
-        public bool RememberSettings { get; set; }
+        public bool RememberSettings { get; set; } = true;
+
+        public RunScriptModel PreDumpScriptModel { get; set; } = new RunScriptModel();
+        public RunScriptModel PostDumpScriptModel { get; set; } = new RunScriptModel();
     }
 
     public class MainViewModel : ViewModelBase<MainModel>
@@ -119,6 +120,7 @@ namespace GBRGBDump.GUI
             {
                 Model.ChannelOrder = value;
                 OnPropertyChanged();
+                UpdateStartupCondition();
             }
         }
 
@@ -134,26 +136,22 @@ namespace GBRGBDump.GUI
             }
         }
 
-        private RunScriptModel _preDumpScript;
-
         public RunScriptModel PreDumpScript
         {
-            get => _preDumpScript;
+            get => Model.PreDumpScriptModel;
             set
             {
-                _preDumpScript = value;
+                Model.PreDumpScriptModel = value;
                 OnPropertyChanged();
             }
         }
 
-        private RunScriptModel _postDumpScript;
-
         public RunScriptModel PostDumpScript
         {
-            get => _postDumpScript;
+            get => Model.PostDumpScriptModel;
             set
             {
-                _postDumpScript = value;
+                Model.PostDumpScriptModel = value;
                 OnPropertyChanged();
             }
         }
@@ -180,21 +178,19 @@ namespace GBRGBDump.GUI
         private readonly IFileSystemService _fileSystemService;
         private readonly IRgbImageProcessingService _rgbImageProcessingService;
         private readonly ISettingsService _settingsService;
+        private readonly IExecutionService _executionService;
 
         #endregion
 
         public override void Initialize(MainModel model)
         {
-            // TODO: Get these from saved settings or init as new
-            this.PreDumpScript = new RunScriptModel();
-            this.PostDumpScript = new RunScriptModel();
-
             base.Initialize(model);
+            UpdateStartupCondition();
         }
 
         public MainViewModel() { }
         public MainViewModel(ImageTransformService imageTransformService, IDialogService dialogService,
-            IFileSystemService fileSystemService, IRgbImageProcessingService rgbImageProcessingService, ISettingsService settingsService)
+            IFileSystemService fileSystemService, IRgbImageProcessingService rgbImageProcessingService, ISettingsService settingsService, IExecutionService executionService)
         {
             // Assign Services
             _imageTransformService = imageTransformService;
@@ -202,6 +198,7 @@ namespace GBRGBDump.GUI
             _fileSystemService = fileSystemService;
             _rgbImageProcessingService = rgbImageProcessingService;
             _settingsService = settingsService;
+            _executionService = executionService;
 
             // Assign Commands
             MergePhotosCommand = new AsyncCommand(MergePhotos, () => CanStart);
@@ -257,6 +254,18 @@ namespace GBRGBDump.GUI
                 _dialogService.ShowMessage($"The file {SourcePath} does not exist.");
 
                 return;
+            }
+            
+            // Run the pre-dump script
+            if (Model.PreDumpScriptModel.Enabled)
+            {
+                var scriptResult = await _executionService.RunScriptAsync(Model.PreDumpScriptModel.Path, Model.PreDumpScriptModel.RunLocation, Model.PreDumpScriptModel.Arguments);
+
+                if (!scriptResult && Model.PreDumpScriptModel.FailIfUnsuccessful)
+                {
+                    _dialogService.ShowMessage("There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.");
+                    return;
+                } 
             }
 
             Stopwatch s = new Stopwatch();
@@ -376,7 +385,7 @@ namespace GBRGBDump.GUI
         private void UpdateStartupCondition()
         {
             CanStart = !string.IsNullOrWhiteSpace(SourcePath) && !string.IsNullOrWhiteSpace(DestinationPath) &&
-                       !_isWorking;
+                       !IsWorking;
         }
 
         private void OnFileDrop(object parameter)

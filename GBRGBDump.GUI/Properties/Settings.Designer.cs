@@ -105,5 +105,29 @@ namespace GBRGBDump.GUI.Properties {
                 this["AverageType"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string PreDumpScript {
+            get {
+                return ((string)(this["PreDumpScript"]));
+            }
+            set {
+                this["PreDumpScript"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string PostDumpScript {
+            get {
+                return ((string)(this["PostDumpScript"]));
+            }
+            set {
+                this["PostDumpScript"] = value;
+            }
+        }
     }
 }
