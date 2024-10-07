@@ -86,47 +86,6 @@ namespace GBTools.Bootstrapper
                     };
 
                     itemsToProcess.Add(importParams);
-
-                    // var importItems = await _importSavService.ImportSav(importParams);
-                    //
-                    // progressInfo.TotalImages = importItems.Count;
-                    //
-                    // // Save the results to a local file system folder
-                    // foreach (var item in importItems)
-                    // {
-                    //     progress?.Report(progressInfo);
-                    //     
-                    //
-                    //     //string formattedFileName = totalChunks > 1
-                    //     //    ? $"{item.FileName}_BANK_{chunkIndex:D2}"
-                    //     //    : $"{item.FileName}";
-                    //
-                    //     //string outputFilePath = Path.Combine(outputPath, $"{formattedFileName}.txt"); // Assuming saving as text files
-                    //     //await _fileWriterService.WriteToFile(outputFilePath, item.Tiles);
-                    //     if (!Directory.Exists(outputPath))
-                    //     {
-                    //         Directory.CreateDirectory(outputPath);
-                    //     }
-                    //
-                    //     await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
-                    //         Path.Combine(outputPath, $"{item.FileName}.png"));
-                    //
-                    //     progressInfo.CurrentImage++;
-                    // }
-                    //
-                    // //GC.Collect();
-                    //
-                    // if (options.AverageType != AverageTypes.None)
-                    // {
-                    //     // HDR Merge
-                    //     await _gameboyPrinterService.RenderAndHDRMerge(importItems, outputPath, options.AverageType, options.ChannelOrder);
-                    // }
-                    //
-                    // //GC.Collect();
-                    //
-                    // progress?.Report(progressInfo);
-                    //
-                    // progressInfo.CurrentBank++;
                 }
 
                 var exceptions = new ConcurrentQueue<Exception>();
@@ -146,6 +105,14 @@ namespace GBTools.Bootstrapper
                             {
                                 Directory.CreateDirectory(outputPath);
                             }
+
+                            progress?.Report(new ProgressInfo(){
+                                CurrentBank = item.Bank,
+                                CurrentImage = item.Index,
+                                CurrentImageName = item.FileName,
+                                TotalBanks = totalChunks,
+                                TotalImages = importItems.Count,
+                            });
 
                             await _gameboyPrinterService.RenderAndSaveAsPng(item.Tiles,
                                 Path.Combine(outputPath, $"{item.FileName}.png"));
@@ -174,7 +141,7 @@ namespace GBTools.Bootstrapper
                 
                 progressInfo.CurrentImage--;
 
-                progress?.Report(progressInfo);
+                //progress?.Report(progressInfo);
 
                 return true;
             }
