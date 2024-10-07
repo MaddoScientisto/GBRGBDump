@@ -11,21 +11,21 @@
         <StackPanel DockPanel.Dock="Top">
             <controls:LabelTextBox 
                 LabelText="Path" 
-                TextBoxContent="{Binding Path }"
+                TextBoxContent="{Binding Path, Mode=TwoWay }"
                 ButtonVisibility="Visible"
                 ButtonCommand="{Binding SelectFolderCommand}"
                 CommandParameter="{Binding SelectPathAction}"
                 ></controls:LabelTextBox>
             <controls:LabelTextBox 
                 LabelText="RunLocation" 
-                TextBoxContent="{Binding RunLocation}"
+                TextBoxContent="{Binding RunLocation, Mode=TwoWay}"
                 ButtonVisibility="Visible"
                 ButtonCommand="{Binding SelectFolderCommand}"
                 CommandParameter="{Binding SelectRunLocationAction}"
             ></controls:LabelTextBox>
             <controls:LabelTextBox 
                 LabelText="Arguments" 
-                TextBoxContent="{Binding Arguments}"
+                TextBoxContent="{Binding Arguments, Mode=TwoWay}"
             ></controls:LabelTextBox>
             
             

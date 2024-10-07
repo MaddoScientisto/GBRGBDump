@@ -6,21 +6,37 @@
              xmlns:local="clr-namespace:GBRGBDump.GUI.Controls"
              mc:Ignorable="d"
              d:DesignHeight="50" d:DesignWidth="300">
-    <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />  <!-- For the label -->
+            <RowDefinition Height="Auto" />  <!-- For the textbox and button -->
+        </Grid.RowDefinitions>
+        
         <!-- Label above the TextBox -->
-        <Label Content="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        <Label Grid.Row="0" Content="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}" />
         
         <!-- TextBox with Button inside a Grid -->
-        <Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /> <!-- TextBox takes up remaining space -->
+                <ColumnDefinition Width="Auto" /> <!-- Button with fixed width -->
+            </Grid.ColumnDefinitions>
             <!-- TextBox takes up the remaining space -->
-            <TextBox Text="{Binding TextBoxContent, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox Grid.Column="0"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     MinHeight="30"
+                     MaxHeight="200"
+                     VerticalAlignment="Top"
+                     Text="{Binding TextBoxContent, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
 
             <!-- Optional Button aligned to the right -->
-            <Button Content="..." 
+            <Button Grid.Column="1" Content="..." 
                     Command="{Binding ButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     Visibility="{Binding ButtonVisibility, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    Width="25" HorizontalAlignment="Right" />
+                    Width="25" 
+                    />
         </Grid>
-    </StackPanel>
+    </Grid>
 </UserControl>

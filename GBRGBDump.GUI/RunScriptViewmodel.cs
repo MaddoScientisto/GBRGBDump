@@ -27,7 +27,7 @@ namespace GBRGBDump.GUI
 
         public string Path
         {
-            get { return this.Model.Path; }
+            get => this.Model.Path;
             set
             {
                 this.Model.Path = value;
@@ -37,7 +37,7 @@ namespace GBRGBDump.GUI
 
         public string Arguments
         {
-            get { return this.Model.Arguments; }
+            get => this.Model.Arguments;
             set
             {
                 this.Model.Arguments = value;
@@ -47,7 +47,7 @@ namespace GBRGBDump.GUI
 
         public string RunLocation
         {
-            get { return this.Model.RunLocation; }
+            get => this.Model.RunLocation;
             set
             {
                 this.Model.RunLocation = value;
