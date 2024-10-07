@@ -177,6 +177,7 @@ namespace GBRGBDump.GUI
 
         #endregion
 
+        public MainViewModel() { }
         public MainViewModel(ImageTransformService imageTransformService, IDialogService dialogService,
             IFileSystemService fileSystemService, IRgbImageProcessingService rgbImageProcessingService, ISettingsService settingsService)
         {
