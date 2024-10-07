@@ -4,6 +4,12 @@
              xmlns:local="clr-namespace:GBRGBDump.GUI"
              Startup="OnStartup">
     <Application.Resources>
-         
+        <Style x:Key="GbFont"
+                TargetType="{x:Type Window}">
+            <Setter Property="FontFamily"
+                    Value="./Fonts/#Press Start 2P"/>
+            <!-- <Setter Property="FontSize"
+                    Value="14"/> -->
+        </Style>
     </Application.Resources>
 </Application>

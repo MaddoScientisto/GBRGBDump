@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Content Include="gbrgbdump-logo.ico" />
+    <Resource Include="Fonts\PressStart2P-Regular.ttf"></Resource>
   </ItemGroup>
 
   <ItemGroup>
