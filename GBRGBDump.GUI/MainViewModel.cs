@@ -15,19 +15,32 @@ using GBTools.Graphics;
 
 namespace GBRGBDump.GUI
 {
-    public class MainViewModel : ViewModelBase
+    public class MainModel
+    {
+        public string SourcePath { get; set; } = string.Empty;
+        public string DestinationPath { get; set; } = string.Empty;
+        
+        public AverageTypes AverageType { get; set; } = AverageTypes.None;
+        public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
+        public bool RememberSettings { get; set; } = true;
+
+        public RunScriptModel PreDumpScriptModel { get; set; } = new RunScriptModel();
+        public RunScriptModel PostDumpScriptModel { get; set; } = new RunScriptModel();
+    }
+
+    public class MainViewModel : ViewModelBase<MainModel>
     {
         #region Binding Properties
 
-        private string _sourcePath = string.Empty;
+        //private string _sourcePath = string.Empty;
 
         public string SourcePath
         {
-            get => _sourcePath;
-            set
+            get => Model.SourcePath;
+            private set
             {
-                _sourcePath = value;
-                _settingsService.SourcePath = value;
+                Model.SourcePath = value;
+                //_settingsService.SourcePath = value;
                 OnPropertyChanged();
                 UpdateStartupCondition();
             }
@@ -37,11 +50,11 @@ namespace GBRGBDump.GUI
 
         public string DestinationPath
         {
-            get => _destinationPath;
-            set
+            get => Model.DestinationPath;
+            private set
             {
-                _destinationPath = value;
-                _settingsService.DestinationPath = value;
+                Model.DestinationPath = value;
+                //_settingsService.DestinationPath = value;
                 OnPropertyChanged();
                 UpdateStartupCondition();
             }
@@ -59,55 +72,26 @@ namespace GBRGBDump.GUI
                 UpdateStartupCondition();
             }
         }
+        
+        public IEnumerable<AverageTypes> AverageTypeValues => Enum.GetValues(typeof(AverageTypes)).Cast<AverageTypes>();
 
-        private bool _doRGBMerge = false;
-
-        public bool DoRgbMerge
+        public AverageTypes AverageType
         {
-            get => _doRGBMerge;
+            get => Model.AverageType;
             set
             {
-                _doRGBMerge = value;
-                _settingsService.DoRGBMerge = value;
+                Model.AverageType = value;
                 OnPropertyChanged();
             }
         }
-
-        private bool _doHDR = false;
-
-        public bool DoHDR
-        {
-            get => _doHDR;
-            set
-            {
-                _doHDR = value;
-                _settingsService.DoHDR = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private bool _doFullHDR = false;
-
-        public bool DoFullHDR
-        {
-            get => _doFullHDR;
-            set
-            {
-                _doFullHDR = value;
-                _settingsService.DoFullHDR = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private bool _rememberSettings = false;
-
+        
         public bool RememberSettings
         {
-            get => _rememberSettings;
+            get => Model.RememberSettings;
             set
             {
-                _rememberSettings = value;
-                _settingsService.RememberSettings = value;
+                Model.RememberSettings = value;
+                //_settingsService.RememberSettings = value;
                 OnPropertyChanged();
             }
         }
@@ -127,18 +111,16 @@ namespace GBRGBDump.GUI
             }
         }
         
-        private bool _rgbInterleaved = false;
-        public bool RgbInterleaved
+        public IEnumerable<ChannelOrder> ChannelOrderValues => Enum.GetValues(typeof(ChannelOrder)).Cast<ChannelOrder>();
+
+        public ChannelOrder ChannelOrder
         {
-            get => _rgbInterleaved;
+            get => Model.ChannelOrder;
             set
             {
-                if (_rgbInterleaved != value)
-                {
-                    _rgbInterleaved = value;
-                    _settingsService.RgbInterleaved = value;
-                    OnPropertyChanged();
-                }
+                Model.ChannelOrder = value;
+                OnPropertyChanged();
+                UpdateStartupCondition();
             }
         }
 
@@ -154,6 +136,26 @@ namespace GBRGBDump.GUI
             }
         }
 
+        public RunScriptModel PreDumpScript
+        {
+            get => Model.PreDumpScriptModel;
+            set
+            {
+                Model.PreDumpScriptModel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public RunScriptModel PostDumpScript
+        {
+            get => Model.PostDumpScriptModel;
+            set
+            {
+                Model.PostDumpScriptModel = value;
+                OnPropertyChanged();
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -165,6 +167,8 @@ namespace GBRGBDump.GUI
         public ICommand OpenDestinationCommand { get; }
         public ICommand FileDropCommand { get; }
 
+        public ICommand OpenPreDumpScriptWindowCommand { get; }
+
         #endregion
 
         #region Services
@@ -174,12 +178,19 @@ namespace GBRGBDump.GUI
         private readonly IFileSystemService _fileSystemService;
         private readonly IRgbImageProcessingService _rgbImageProcessingService;
         private readonly ISettingsService _settingsService;
+        private readonly IExecutionService _executionService;
 
         #endregion
 
+        public override void Initialize(MainModel model)
+        {
+            base.Initialize(model);
+            UpdateStartupCondition();
+        }
+
         public MainViewModel() { }
         public MainViewModel(ImageTransformService imageTransformService, IDialogService dialogService,
-            IFileSystemService fileSystemService, IRgbImageProcessingService rgbImageProcessingService, ISettingsService settingsService)
+            IFileSystemService fileSystemService, IRgbImageProcessingService rgbImageProcessingService, ISettingsService settingsService, IExecutionService executionService)
         {
             // Assign Services
             _imageTransformService = imageTransformService;
@@ -187,6 +198,7 @@ namespace GBRGBDump.GUI
             _fileSystemService = fileSystemService;
             _rgbImageProcessingService = rgbImageProcessingService;
             _settingsService = settingsService;
+            _executionService = executionService;
 
             // Assign Commands
             MergePhotosCommand = new AsyncCommand(MergePhotos, () => CanStart);
@@ -194,28 +206,31 @@ namespace GBRGBDump.GUI
             SelectDestinationPathCommand = new RelayCommand(SelectDestinationPath);
             OpenDestinationCommand = new RelayCommand(OpenDestination);
             FileDropCommand = new RelayCommand(OnFileDrop);
+            OpenPreDumpScriptWindowCommand = new RelayCommand(OpenRunScriptWindow);
             
             
             // Initializations
             _canStart = false;
+            
+            this.Initialize(_settingsService.LoadSettings());
 
-            LoadSettings();
+            //LoadSettings();
         }
 
-        private void LoadSettings()
-        {
-            _settingsService.LoadSettings();
-
-            SourcePath = _settingsService.SourcePath;
-            DestinationPath = _settingsService.DestinationPath;
-
-            RememberSettings = _settingsService.RememberSettings;
-
-            DoHDR = _settingsService.DoHDR;
-            DoRgbMerge = _settingsService.DoRGBMerge;
-
-            //UpdateStartupCondition();
-        }
+        // private void LoadSettings()
+        // {
+        //     _settingsService.LoadSettings();
+        //
+        //     SourcePath = _settingsService.SourcePath;
+        //     DestinationPath = _settingsService.DestinationPath;
+        //
+        //     RememberSettings = _settingsService.RememberSettings;
+        //
+        //     DoHDR = _settingsService.DoHDR;
+        //     DoRgbMerge = _settingsService.DoRGBMerge;
+        //
+        //     //UpdateStartupCondition();
+        // }
 
         private string MakeOutputSubFolder(string source, string destination)
         {
@@ -240,6 +255,18 @@ namespace GBRGBDump.GUI
 
                 return;
             }
+            
+            // Run the pre-dump script
+            if (Model.PreDumpScriptModel.Enabled)
+            {
+                var scriptResult = await _executionService.RunScriptAsync(Model.PreDumpScriptModel.Path, Model.PreDumpScriptModel.RunLocation, Model.PreDumpScriptModel.Arguments);
+
+                if (!scriptResult && Model.PreDumpScriptModel.FailIfUnsuccessful)
+                {
+                    _dialogService.ShowMessage("There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.");
+                    return;
+                } 
+            }
 
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -251,7 +278,7 @@ namespace GBRGBDump.GUI
 
             ProgressCounter = string.Empty;
 
-            if (DoRgbMerge)
+            if (ChannelOrder != ChannelOrder.None)
             {
                 var progress = new Progress<ProgressInfo>(ReportProgress);
 
@@ -265,9 +292,9 @@ namespace GBRGBDump.GUI
                             ImportLastSeen = false,
                             ImportDeleted = true,
                             ForceMagicCheck = false,
-                            AverageType =
-                                DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
-                            ChannelOrder = RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
+                            AverageType = AverageType,
+                                // DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
+                            ChannelOrder = ChannelOrder, //RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
                             AebStep = 2,
                             BanksToProcess = -1,
                             CartIsJp = false
@@ -358,7 +385,7 @@ namespace GBRGBDump.GUI
         private void UpdateStartupCondition()
         {
             CanStart = !string.IsNullOrWhiteSpace(SourcePath) && !string.IsNullOrWhiteSpace(DestinationPath) &&
-                       !_isWorking;
+                       !IsWorking;
         }
 
         private void OnFileDrop(object parameter)
@@ -366,6 +393,16 @@ namespace GBRGBDump.GUI
             if (parameter is string filePath)
             {
                 SourcePath = filePath;
+            }
+        }
+
+        private void OpenRunScriptWindow()
+        {
+            var resultModel = _dialogService.ShowDialog<RunScriptWindow, RunScriptViewmodel, RunScriptModel>(PreDumpScript.Clone());
+
+            if (resultModel is { Success: true })
+            {
+                PreDumpScript = resultModel;
             }
         }
     }

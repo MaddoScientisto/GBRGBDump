@@ -1,0 +1,74 @@
+﻿<Window x:Class="GBRGBDump.GUI.RunScriptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GBRGBDump.GUI"
+        xmlns:controls="clr-namespace:GBRGBDump.GUI.Controls"
+        mc:Ignorable="d"
+        ResizeMode="CanResizeWithGrip"
+        SizeToContent="Height"
+        Title="Process Configuration" MaxHeight="600" Width="320">
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Content row takes up all available space -->
+            <RowDefinition Height="*" />
+            <!-- Buttons row is auto-sized -->
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="0">
+            <DockPanel Margin="10">
+                <StackPanel DockPanel.Dock="Top">
+                    <CheckBox IsChecked="{Binding Enabled}" Margin="5">Enabled</CheckBox>
+                    <controls:LabelTextBox
+                        LabelText="Path"
+                        TextBoxContent="{Binding Path, Mode=TwoWay }"
+                        ButtonVisibility="Visible"
+                        ButtonCommand="{Binding SelectFileCommand}"
+                        CommandParameter="{Binding SelectPathAction}">
+                    </controls:LabelTextBox>
+
+                    <controls:LabelTextBox
+                        LabelText="RunLocation"
+                        TextBoxContent="{Binding RunLocation, Mode=TwoWay}"
+                        ButtonVisibility="Visible"
+                        ButtonCommand="{Binding SelectFolderCommand}"
+                        CommandParameter="{Binding SelectRunLocationAction}">
+                    </controls:LabelTextBox>
+
+                    <controls:LabelTextBox
+                        LabelText="Arguments"
+                        TextBoxContent="{Binding Arguments, Mode=TwoWay}">
+                    </controls:LabelTextBox>
+
+                    <CheckBox IsChecked="{Binding FailIfUnsuccessful}" Margin="5">Fail if Unsuccessful</CheckBox>
+                </StackPanel>
+                <Separator DockPanel.Dock="Top"></Separator>
+                <TextBlock DockPanel.Dock="Top" TextWrapping="WrapWithOverflow">
+                    To run a powershell script set Path to: powershell.exe
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Top" TextWrapping="WrapWithOverflow">
+                    Arguments: -ExecutionPolicy Bypass -File "C:\path\to\script.ps1" arguments_go_here
+                </TextBlock>
+                <Separator DockPanel.Dock="Top"></Separator>
+                <TextBlock DockPanel.Dock="Top">
+                    To run a cmd script set Path to: cmd.exe
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
+                    Arguments: /k "C:\path\to\executable.exe arguments_go_here"
+                </TextBlock>
+
+            </DockPanel>
+        </ScrollViewer>
+
+        <!-- OK and Cancel buttons at the bottom, separate from the dock panel -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+            <Button Content="Ok" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50" Height="30"
+                    Command="{Binding OkCommand}" />
+            <Button Content="Cancel" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50"
+                    Height="30" Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </Grid>
+
+</Window>

@@ -8,8 +8,25 @@ using System.Threading.Tasks;
 
 namespace GBRGBDump.GUI
 {
-    public class ViewModelBase : INotifyPropertyChanged
+    public abstract class ViewModelBase<TModel> : INotifyPropertyChanged
     {
+
+        public TModel Model { get; set; }
+        
+        // Delegate to close the dialog and return a dialog result
+        public Func<bool?, bool?> CloseDialog { get; set; }
+
+        protected ViewModelBase()
+        {
+            // Initialize default behavior (can be overwritten)
+            CloseDialog = _ => false;
+        }
+
+        public virtual void Initialize(TModel model)
+        {
+            Model = model;
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

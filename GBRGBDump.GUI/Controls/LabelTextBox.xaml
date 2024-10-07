@@ -1,0 +1,42 @@
+﻿<UserControl x:Class="GBRGBDump.GUI.Controls.LabelTextBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:GBRGBDump.GUI.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="50" d:DesignWidth="300">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />  <!-- For the label -->
+            <RowDefinition Height="Auto" />  <!-- For the textbox and button -->
+        </Grid.RowDefinitions>
+        
+        <!-- Label above the TextBox -->
+        <Label Grid.Row="0" FontWeight="Bold" Content="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        
+        <!-- TextBox with Button inside a Grid -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /> <!-- TextBox takes up remaining space -->
+                <ColumnDefinition Width="Auto" /> <!-- Button with fixed width -->
+            </Grid.ColumnDefinitions>
+            <!-- TextBox takes up the remaining space -->
+            <TextBox Grid.Column="0"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     MinHeight="30"
+                     MaxHeight="200"
+                     VerticalAlignment="Top"
+                     Text="{Binding TextBoxContent, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+
+            <!-- Optional Button aligned to the right -->
+            <Button Grid.Column="1" Content="..." 
+                    Command="{Binding ButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Visibility="{Binding ButtonVisibility, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Width="25" 
+                    />
+        </Grid>
+    </Grid>
+</UserControl>

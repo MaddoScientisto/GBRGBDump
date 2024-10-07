@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -124,8 +125,11 @@ namespace GBTools.Common
 
     public enum AverageTypes
     {
+        [Description("None")]
         None,
+        [Description("Normal HDR")]
         Normal,
+        [Description("HDR across groups")]
         FullBank
     }
 
@@ -156,7 +160,11 @@ namespace GBTools.Common
 
     public enum ChannelOrder
     {
+        [Description("No RGB")]
+        None,
+        [Description("Sequential (RRR GGG BBB)")]
         Sequential, // RRRGGGBBB
+        [Description("Interleaved (RGB RGB RGB)")]
         Interleaved  // RGBRGBRGB
     }
 
