@@ -97,11 +97,15 @@
                 </StackPanel>
             </Grid>
             <Separator></Separator>
-            <TextBlock>Pre-Dump script</TextBlock>
-            <StackPanel Orientation="Horizontal">
-                <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
-                <TextBlock Text="{Binding PreDumpScript.Path}"></TextBlock>
+            <StackPanel Orientation="Vertical">
+                <TextBlock FontWeight="Bold">Pre-Dump script</TextBlock>
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
+                    <TextBlock TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Path}"></TextBlock>
+                    <TextBlock TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Arguments}"></TextBlock>
+                </StackPanel>
             </StackPanel>
+            
             <Separator></Separator>
             <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
             <Separator></Separator>
