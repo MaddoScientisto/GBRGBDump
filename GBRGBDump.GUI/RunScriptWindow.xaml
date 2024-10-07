@@ -4,17 +4,34 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
+        xmlns:controls="clr-namespace:GBRGBDump.GUI.Controls"
         mc:Ignorable="d"
         Title="RunScriptWindow" Height="330" Width="312">
-    <Grid>
-        <Label Content="Path" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-        <TextBox HorizontalAlignment="Center" Margin="0,41,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="283" Text="{Binding Path}"/>
-        <Label Content="Arguments" HorizontalAlignment="Left" Margin="14,64,0,0" VerticalAlignment="Top"/>
-        <TextBox HorizontalAlignment="Center" Margin="0,95,0,0" TextWrapping="Wrap" Text="{Binding Arguments}" VerticalAlignment="Top" Width="284"/>
-        <Label Content="Run Location" HorizontalAlignment="Left" Margin="14,118,0,0" VerticalAlignment="Top"/>
-        <TextBox HorizontalAlignment="Center" TextWrapping="Wrap" Text="{Binding RunLocation}" VerticalAlignment="Center" Width="283"/>
-        <Button Content="Ok" HorizontalAlignment="Left" Margin="221,271,0,0" VerticalAlignment="Top" Command="{Binding OkCommand}"/>
-        <Button Content="Cancel" HorizontalAlignment="Left" Margin="258,271,0,0" VerticalAlignment="Top" Command="{Binding CancelCommand}"/>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <controls:LabelTextBox 
+                LabelText="Path" 
+                TextBoxContent="{Binding Path }"
+                ButtonVisibility="Visible"
+                ButtonCommand="{Binding SelectFolderCommand}"
+                ></controls:LabelTextBox>
+            <controls:LabelTextBox 
+                LabelText="RunLocation" 
+                TextBoxContent="{Binding RunLocation}"
+                ButtonVisibility="Visible"
+                ButtonCommand="{Binding SelectFolderCommand}"
+            ></controls:LabelTextBox>
+            <controls:LabelTextBox 
+                LabelText="Arguments" 
+                TextBoxContent="{Binding Arguments}"
+            ></controls:LabelTextBox>
+            
+            
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
+            <Button Content="Ok" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Command="{Binding OkCommand}"/>
+            <Button Content="Cancel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Command="{Binding CancelCommand}"/>
+        </StackPanel>
 
-    </Grid>
+    </DockPanel>
 </Window>

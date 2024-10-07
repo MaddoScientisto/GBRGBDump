@@ -1,6 +1,7 @@
 ﻿using GBRGBDump.GUI.Commands;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,6 +56,8 @@ namespace GBRGBDump.GUI
 
         public ICommand OkCommand { get; }
         public ICommand CancelCommand { get; }
+        
+        public ICommand SelectFolderCommand { get; }
 
         #endregion
 
@@ -67,16 +70,22 @@ namespace GBRGBDump.GUI
         {
             this.OkCommand = new RelayCommand(Ok);
             this.CancelCommand = new RelayCommand(Cancel);
+            this.SelectFolderCommand = new RelayCommand(SelectFolder);
         }
 
-        public void Ok()
+        private void SelectFolder()
+        {
+            Debug.WriteLine("Selected Folder");
+        }
+
+        private void Ok()
         {
             this.Model.Success = true;
 
             // TODO: Raise event to close dialog
         }
 
-        public void Cancel()
+        private void Cancel()
         {
             this.Model.Success = false;
             
