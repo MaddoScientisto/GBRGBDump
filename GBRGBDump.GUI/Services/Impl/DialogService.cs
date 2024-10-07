@@ -50,6 +50,14 @@ namespace GBRGBDump.GUI.Services.Impl
 
             viewModel.Initialize(model);
 
+            // Pass a function that closes the window to the view model
+            viewModel.CloseDialog = (result) =>
+            {
+                window.DialogResult = result;  // Set the dialog result
+                window.Close();                // Close the window
+                return result;
+            };
+            
             window.DataContext = viewModel;
 
             bool? dialogResult = window.ShowDialog();

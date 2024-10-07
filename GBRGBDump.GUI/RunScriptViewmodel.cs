@@ -108,15 +108,13 @@ namespace GBRGBDump.GUI
         private void Ok()
         {
             this.Model.Success = true;
-
-            // TODO: Raise event to close dialog
+            CloseDialog?.Invoke(true);
         }
 
         private void Cancel()
         {
             this.Model.Success = false;
-            
-            // TODO: Raise event to close dialog
+            CloseDialog?.Invoke(false);
         }
     }
 }

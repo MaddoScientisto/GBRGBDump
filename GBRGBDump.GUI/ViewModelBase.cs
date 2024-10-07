@@ -12,6 +12,15 @@ namespace GBRGBDump.GUI
     {
 
         public TModel Model { get; set; }
+        
+        // Delegate to close the dialog and return a dialog result
+        public Func<bool?, bool?> CloseDialog { get; set; }
+
+        protected ViewModelBase()
+        {
+            // Initialize default behavior (can be overwritten)
+            CloseDialog = _ => false;
+        }
 
         public virtual void Initialize(TModel model)
         {
