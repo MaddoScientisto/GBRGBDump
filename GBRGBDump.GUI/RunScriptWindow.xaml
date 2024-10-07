@@ -13,9 +13,10 @@
                 LabelText="Path" 
                 TextBoxContent="{Binding Path, Mode=TwoWay }"
                 ButtonVisibility="Visible"
-                ButtonCommand="{Binding SelectFolderCommand}"
+                ButtonCommand="{Binding SelectFileCommand}"
                 CommandParameter="{Binding SelectPathAction}"
                 ></controls:LabelTextBox>
+            
             <controls:LabelTextBox 
                 LabelText="RunLocation" 
                 TextBoxContent="{Binding RunLocation, Mode=TwoWay}"
@@ -23,6 +24,7 @@
                 ButtonCommand="{Binding SelectFolderCommand}"
                 CommandParameter="{Binding SelectRunLocationAction}"
             ></controls:LabelTextBox>
+            
             <controls:LabelTextBox 
                 LabelText="Arguments" 
                 TextBoxContent="{Binding Arguments, Mode=TwoWay}"
@@ -30,9 +32,9 @@
             
             
         </StackPanel>
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
-            <Button Content="Ok" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Command="{Binding OkCommand}"/>
-            <Button Content="Cancel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Command="{Binding CancelCommand}"/>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ok" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50" Height="30" Command="{Binding OkCommand}"/>
+            <Button Content="Cancel" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Width="50" Height="30" Command="{Binding CancelCommand}"/>
         </StackPanel>
 
     </DockPanel>
