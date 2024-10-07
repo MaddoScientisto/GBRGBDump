@@ -6,20 +6,20 @@
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="320" 
+        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="320"
         MaxHeight="680"
         Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
-        behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}"
-        >
+        behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}">
 
     <DockPanel>
         <Label HorizontalAlignment="Center"
                FontSize="14"
                FontWeight="Bold"
                DockPanel.Dock="Top"
-               Margin="5"
-               >GB Camera Photo Dump and RGB Merge</Label>
+               Margin="5">
+            GB Camera Photo Dump and RGB Merge
+        </Label>
         <Separator DockPanel.Dock="Top"></Separator>
         <Grid DockPanel.Dock="Top">
             <Grid.ColumnDefinitions>
@@ -34,48 +34,58 @@
                 <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
             <Label Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" FontWeight="Bold">Source File</Label>
-            <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Margin="10" x:Name="TxtSourcePath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding SourcePath}"></TextBlock>
-            <Button Grid.Column="2" Grid.Row="1" MaxHeight="25" x:Name="BtnPickSource" Command="{Binding SelectSourceFileCommand}" Margin="4,0,4,0">...</Button>
+            <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Margin="10" x:Name="TxtSourcePath"
+                       HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding SourcePath}">
+            </TextBlock>
+            <Button Grid.Column="2" Grid.Row="1" MaxHeight="25" x:Name="BtnPickSource"
+                    Command="{Binding SelectSourceFileCommand}" Margin="4,0,4,0">
+                ...
+            </Button>
 
             <Label Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" FontWeight="Bold">Destination Root Folder</Label>
-            <TextBlock Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" Margin="10" x:Name="TxtDestinationPath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding DestinationPath}"></TextBlock>
-            <Button Grid.Column="2" Grid.Row="3" MaxHeight="25" x:Name="BtnPickDestination"  Command="{Binding SelectDestinationPathCommand}" Margin="4,0,4,0">...</Button>
+            <TextBlock Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" Margin="10" x:Name="TxtDestinationPath"
+                       HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding DestinationPath}">
+            </TextBlock>
+            <Button Grid.Column="2" Grid.Row="3" MaxHeight="25" x:Name="BtnPickDestination"
+                    Command="{Binding SelectDestinationPathCommand}" Margin="4,0,4,0">
+                ...
+            </Button>
         </Grid>
         <Separator DockPanel.Dock="Top"></Separator>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
-            
-        <StackPanel>
-            <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
-            <CheckBox>Export Deleted</CheckBox>
-            <CheckBox>Check Magic Number</CheckBox>
-            <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
-            <CheckBox IsChecked="{Binding RgbInterleaved}">Use interleaved RGB ordering (RGB-RGB-RGB)</CheckBox>
-            <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
-            <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
+
+            <StackPanel>
+                <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
+                <CheckBox>Export Deleted</CheckBox>
+                <CheckBox>Check Magic Number</CheckBox>
+                <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
+                <CheckBox IsChecked="{Binding RgbInterleaved}">Use interleaved RGB ordering (RGB-RGB-RGB)</CheckBox>
+                <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
+                <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
                 <Separator></Separator>
                 <TextBlock>Pre-Dump script</TextBlock>
                 <StackPanel Orientation="Horizontal">
                     <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
                     <TextBlock Text="{Binding PreDumpScript.Path}"></TextBlock>
                 </StackPanel>
-                
+
+            </StackPanel>
+            <Separator></Separator>
+            <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
+            <Separator></Separator>
+            <Button Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
+            <Separator></Separator>
         </StackPanel>
-        <Separator></Separator>
-        <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
-        <Separator></Separator>
-        <Button Height="20" Width="80" Command="{Binding OpenDestinationCommand}" FontSize="9">Open Destination</Button>
-        <Separator></Separator>
-    </StackPanel>
-        
+
         <ScrollViewer VerticalAlignment="Stretch" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
             <TextBlock Text="{Binding ProgressCounter}" TextWrapping="Wrap"></TextBlock>
         </ScrollViewer>
-        
+
         <StatusBar DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
             <TextBlock x:Name="VersionText"></TextBlock>
         </StatusBar>
-        
+
     </DockPanel>
-    
-    
+
+
 </Window>
