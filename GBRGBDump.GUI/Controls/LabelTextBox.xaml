@@ -16,7 +16,9 @@
             <TextBox Text="{Binding TextBoxContent, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" />
 
             <!-- Optional Button aligned to the right -->
-            <Button Content="..." Command="{Binding ButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            <Button Content="..." 
+                    Command="{Binding ButtonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     Visibility="{Binding ButtonVisibility, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     Width="25" HorizontalAlignment="Right" />
         </Grid>

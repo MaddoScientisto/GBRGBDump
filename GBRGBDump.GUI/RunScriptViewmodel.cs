@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GBRGBDump.GUI.Services;
 
 namespace GBRGBDump.GUI
 {
@@ -58,6 +59,8 @@ namespace GBRGBDump.GUI
         public ICommand CancelCommand { get; }
         
         public ICommand SelectFolderCommand { get; }
+        public Action<string> SelectPathAction { get; }
+        public Action<string> SelectRunLocationAction { get; }
 
         #endregion
 
@@ -66,16 +69,30 @@ namespace GBRGBDump.GUI
             base.Initialize(model);
         }
 
-        public RunScriptViewmodel()
+        private readonly IDialogService _dialogService;
+        
+        public RunScriptViewmodel(IDialogService dialogService)
         {
             this.OkCommand = new RelayCommand(Ok);
             this.CancelCommand = new RelayCommand(Cancel);
             this.SelectFolderCommand = new RelayCommand(SelectFolder);
+            
+            SelectPathAction = (path) => Path = path;
+            SelectRunLocationAction = (location) => RunLocation = location;
+            
+            _dialogService = dialogService;
         }
 
-        private void SelectFolder()
+        private void SelectFolder(object parameter)
         {
-            Debug.WriteLine("Selected Folder");
+            if (parameter is Action<string> setFolderPath)
+            {
+                var path = _dialogService.OpenFolderDialog();
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    setFolderPath(path);
+                } 
+            }
         }
 
         private void Ok()

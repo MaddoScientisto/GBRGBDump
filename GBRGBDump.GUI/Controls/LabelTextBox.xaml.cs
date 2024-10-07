@@ -50,4 +50,13 @@ public partial class LabelTextBox : UserControl
         get => (ICommand)GetValue(ButtonCommandProperty);
         set => SetValue(ButtonCommandProperty, value);
     }
+    
+    public static readonly DependencyProperty CommandParameterProperty = DependencyProperty.Register(
+        nameof(CommandParameter), typeof(object), typeof(LabelTextBox), new PropertyMetadata(null));
+
+    public object CommandParameter
+    {
+        get => GetValue(CommandParameterProperty);
+        set => SetValue(CommandParameterProperty, value);
+    }
 }

@@ -14,12 +14,14 @@
                 TextBoxContent="{Binding Path }"
                 ButtonVisibility="Visible"
                 ButtonCommand="{Binding SelectFolderCommand}"
+                CommandParameter="{Binding SelectPathAction}"
                 ></controls:LabelTextBox>
             <controls:LabelTextBox 
                 LabelText="RunLocation" 
                 TextBoxContent="{Binding RunLocation}"
                 ButtonVisibility="Visible"
                 ButtonCommand="{Binding SelectFolderCommand}"
+                CommandParameter="{Binding SelectRunLocationAction}"
             ></controls:LabelTextBox>
             <controls:LabelTextBox 
                 LabelText="Arguments" 
