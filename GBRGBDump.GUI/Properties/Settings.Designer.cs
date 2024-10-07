@@ -73,30 +73,6 @@ namespace GBRGBDump.GUI.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool RGBMerge {
-            get {
-                return ((bool)(this["RGBMerge"]));
-            }
-            set {
-                this["RGBMerge"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool HDR {
-            get {
-                return ((bool)(this["HDR"]));
-            }
-            set {
-                this["HDR"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool RememberSettings {
             get {
                 return ((bool)(this["RememberSettings"]));
@@ -108,25 +84,25 @@ namespace GBRGBDump.GUI.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool DoFullHDR {
+        [global::System.Configuration.DefaultSettingValueAttribute("Sequential")]
+        public string ChannelOrder {
             get {
-                return ((bool)(this["DoFullHDR"]));
+                return ((string)(this["ChannelOrder"]));
             }
             set {
-                this["DoFullHDR"] = value;
+                this["ChannelOrder"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool RGBInterleaved {
+        [global::System.Configuration.DefaultSettingValueAttribute("None")]
+        public string AverageType {
             get {
-                return ((bool)(this["RGBInterleaved"]));
+                return ((string)(this["AverageType"]));
             }
             set {
-                this["RGBInterleaved"] = value;
+                this["AverageType"] = value;
             }
         }
     }

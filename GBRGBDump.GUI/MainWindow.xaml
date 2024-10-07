@@ -5,13 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GBRGBDump.GUI"
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
+        xmlns:valueConverters="clr-namespace:GBRGBDump.GUI.ValueConverters"
         mc:Ignorable="d"
         Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="320"
         MaxHeight="680"
         Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
         behaviors:DragDropBehavior.DropCommand="{Binding FileDropCommand}">
-
+    <Window.Resources>
+        <valueConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
+    </Window.Resources>
     <DockPanel>
         <Label HorizontalAlignment="Center"
                FontSize="14"
@@ -53,22 +56,51 @@
         </Grid>
         <Separator DockPanel.Dock="Top"></Separator>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
+                    <CheckBox>Export Deleted</CheckBox>
+                    <CheckBox>Check Magic Number</CheckBox>
+                    
+                    
+                    
 
-            <StackPanel>
-                <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
-                <CheckBox>Export Deleted</CheckBox>
-                <CheckBox>Check Magic Number</CheckBox>
-                <CheckBox IsChecked="{Binding DoRgbMerge}">RGB Merge</CheckBox>
-                <CheckBox IsChecked="{Binding RgbInterleaved}">Use interleaved RGB ordering (RGB-RGB-RGB)</CheckBox>
-                <CheckBox IsChecked="{Binding DoHDR}">Average Results</CheckBox>
-                <CheckBox IsChecked="{Binding DoFullHDR}">Average SubResults</CheckBox>
-                <Separator></Separator>
-                <TextBlock>Pre-Dump script</TextBlock>
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
-                    <TextBlock Text="{Binding PreDumpScript.Path}"></TextBlock>
                 </StackPanel>
-
+                <StackPanel Grid.Column="1">
+                    <Label FontWeight="Bold">RGB Channel Order</Label>
+                    <ComboBox HorizontalAlignment="Left"
+                              ItemsSource="{Binding ChannelOrderValues}"
+                              SelectedItem="{Binding ChannelOrder, Mode=TwoWay}"
+                    >
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"></TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Label FontWeight="Bold">HDR Type</Label>
+                    <ComboBox HorizontalAlignment="Left"
+                              ItemsSource="{Binding AverageTypeValues}"
+                              SelectedItem="{Binding AverageType, Mode=TwoWay}"
+                              >
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"></TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    
+                </StackPanel>
+            </Grid>
+            <Separator></Separator>
+            <TextBlock>Pre-Dump script</TextBlock>
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding OpenPreDumpScriptWindowCommand}">Edit</Button>
+                <TextBlock Text="{Binding PreDumpScript.Path}"></TextBlock>
             </StackPanel>
             <Separator></Separator>
             <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>

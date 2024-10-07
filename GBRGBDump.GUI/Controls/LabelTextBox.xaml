@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
         
         <!-- Label above the TextBox -->
-        <Label Grid.Row="0" Content="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        <Label Grid.Row="0" FontWeight="Bold" Content="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}" />
         
         <!-- TextBox with Button inside a Grid -->
         <Grid Grid.Row="1">

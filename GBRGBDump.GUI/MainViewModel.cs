@@ -17,22 +17,29 @@ namespace GBRGBDump.GUI
 {
     public class MainModel
     {
-
+        public string SourcePath { get; set; }
+        public string DestinationPath { get; set; }
+        public bool DoRgbMerge { get; set; } = false;
+        
+        public AverageTypes AverageType { get; set; } = AverageTypes.None;
+        public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
+        
+        public bool RememberSettings { get; set; }
     }
 
     public class MainViewModel : ViewModelBase<MainModel>
     {
         #region Binding Properties
 
-        private string _sourcePath = string.Empty;
+        //private string _sourcePath = string.Empty;
 
         public string SourcePath
         {
-            get => _sourcePath;
-            set
+            get => Model.SourcePath;
+            private set
             {
-                _sourcePath = value;
-                _settingsService.SourcePath = value;
+                Model.SourcePath = value;
+                //_settingsService.SourcePath = value;
                 OnPropertyChanged();
                 UpdateStartupCondition();
             }
@@ -42,11 +49,11 @@ namespace GBRGBDump.GUI
 
         public string DestinationPath
         {
-            get => _destinationPath;
-            set
+            get => Model.DestinationPath;
+            private set
             {
-                _destinationPath = value;
-                _settingsService.DestinationPath = value;
+                Model.DestinationPath = value;
+                //_settingsService.DestinationPath = value;
                 OnPropertyChanged();
                 UpdateStartupCondition();
             }
@@ -64,55 +71,26 @@ namespace GBRGBDump.GUI
                 UpdateStartupCondition();
             }
         }
+        
+        public IEnumerable<AverageTypes> AverageTypeValues => Enum.GetValues(typeof(AverageTypes)).Cast<AverageTypes>();
 
-        private bool _doRGBMerge = false;
-
-        public bool DoRgbMerge
+        public AverageTypes AverageType
         {
-            get => _doRGBMerge;
+            get => Model.AverageType;
             set
             {
-                _doRGBMerge = value;
-                _settingsService.DoRGBMerge = value;
+                Model.AverageType = value;
                 OnPropertyChanged();
             }
         }
-
-        private bool _doHDR = false;
-
-        public bool DoHDR
-        {
-            get => _doHDR;
-            set
-            {
-                _doHDR = value;
-                _settingsService.DoHDR = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private bool _doFullHDR = false;
-
-        public bool DoFullHDR
-        {
-            get => _doFullHDR;
-            set
-            {
-                _doFullHDR = value;
-                _settingsService.DoFullHDR = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private bool _rememberSettings = false;
-
+        
         public bool RememberSettings
         {
-            get => _rememberSettings;
+            get => Model.RememberSettings;
             set
             {
-                _rememberSettings = value;
-                _settingsService.RememberSettings = value;
+                Model.RememberSettings = value;
+                //_settingsService.RememberSettings = value;
                 OnPropertyChanged();
             }
         }
@@ -132,18 +110,15 @@ namespace GBRGBDump.GUI
             }
         }
         
-        private bool _rgbInterleaved = false;
-        public bool RgbInterleaved
+        public IEnumerable<ChannelOrder> ChannelOrderValues => Enum.GetValues(typeof(ChannelOrder)).Cast<ChannelOrder>();
+
+        public ChannelOrder ChannelOrder
         {
-            get => _rgbInterleaved;
+            get => Model.ChannelOrder;
             set
             {
-                if (_rgbInterleaved != value)
-                {
-                    _rgbInterleaved = value;
-                    _settingsService.RgbInterleaved = value;
-                    OnPropertyChanged();
-                }
+                Model.ChannelOrder = value;
+                OnPropertyChanged();
             }
         }
 
@@ -239,26 +214,26 @@ namespace GBRGBDump.GUI
             
             // Initializations
             _canStart = false;
+            
+            this.Initialize(_settingsService.LoadSettings());
 
-            this.Initialize(new MainModel());
-
-            LoadSettings();
+            //LoadSettings();
         }
 
-        private void LoadSettings()
-        {
-            _settingsService.LoadSettings();
-
-            SourcePath = _settingsService.SourcePath;
-            DestinationPath = _settingsService.DestinationPath;
-
-            RememberSettings = _settingsService.RememberSettings;
-
-            DoHDR = _settingsService.DoHDR;
-            DoRgbMerge = _settingsService.DoRGBMerge;
-
-            //UpdateStartupCondition();
-        }
+        // private void LoadSettings()
+        // {
+        //     _settingsService.LoadSettings();
+        //
+        //     SourcePath = _settingsService.SourcePath;
+        //     DestinationPath = _settingsService.DestinationPath;
+        //
+        //     RememberSettings = _settingsService.RememberSettings;
+        //
+        //     DoHDR = _settingsService.DoHDR;
+        //     DoRgbMerge = _settingsService.DoRGBMerge;
+        //
+        //     //UpdateStartupCondition();
+        // }
 
         private string MakeOutputSubFolder(string source, string destination)
         {
@@ -294,7 +269,7 @@ namespace GBRGBDump.GUI
 
             ProgressCounter = string.Empty;
 
-            if (DoRgbMerge)
+            if (ChannelOrder != ChannelOrder.None)
             {
                 var progress = new Progress<ProgressInfo>(ReportProgress);
 
@@ -308,9 +283,9 @@ namespace GBRGBDump.GUI
                             ImportLastSeen = false,
                             ImportDeleted = true,
                             ForceMagicCheck = false,
-                            AverageType =
-                                DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
-                            ChannelOrder = RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
+                            AverageType = AverageType,
+                                // DoHDR ? DoFullHDR ? AverageTypes.FullBank : AverageTypes.Normal : AverageTypes.None,
+                            ChannelOrder = ChannelOrder, //RgbInterleaved ? ChannelOrder.Interleaved : ChannelOrder.Sequential,
                             AebStep = 2,
                             BanksToProcess = -1,
                             CartIsJp = false
