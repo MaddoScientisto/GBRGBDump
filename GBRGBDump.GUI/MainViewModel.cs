@@ -251,7 +251,7 @@ namespace GBRGBDump.GUI
         {
             if (string.IsNullOrWhiteSpace(SourcePath) || string.IsNullOrWhiteSpace(DestinationPath))
             {
-                _dialogService.ShowMessage("Please the source and destination paths");
+                _dialogService.ShowMessage("Please the source and destination paths", "Error");
                 return;
             }
 
@@ -261,7 +261,7 @@ namespace GBRGBDump.GUI
             if (!_fileSystemService.FileExists(SourcePath))
             {
                 //Console.WriteLine($"The file {inputFilename} does not exist.");
-                _dialogService.ShowMessage($"The file {SourcePath} does not exist.");
+                _dialogService.ShowMessage($"The file {SourcePath} does not exist.", "Error");
 
                 return;
             }
@@ -273,7 +273,7 @@ namespace GBRGBDump.GUI
 
                 if (!scriptResult && Model.PreDumpScriptModel.FailIfUnsuccessful)
                 {
-                    _dialogService.ShowMessage("There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.");
+                    _dialogService.ShowMessage("There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.", "Error");
                     return;
                 } 
             }
@@ -433,7 +433,7 @@ namespace GBRGBDump.GUI
 
         private void ShowAbout()
         {
-            _dialogService.ShowMessage("App by MaddoScientisto");
+            _dialogService.ShowMessage("App by MaddoScientisto", "About");
         }
     }
 }

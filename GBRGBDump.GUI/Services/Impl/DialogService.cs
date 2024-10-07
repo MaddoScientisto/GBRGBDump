@@ -64,9 +64,9 @@ namespace GBRGBDump.GUI.Services.Impl
             return viewModel.Model;
         }
 
-        public void ShowMessage(string message)
+        public void ShowMessage(string message, string caption)
         {
-            MessageBox.Show(message);
+            MessageBox.Show(message, caption);
         }
 
         public void ShowError(Exception ex)
@@ -75,7 +75,7 @@ namespace GBRGBDump.GUI.Services.Impl
             MessageBox.Show($"{dem.Message}\r\n{dem.StackTrace}");
         }
 
-        public string OpenFileDialog(string? filter = null)
+        public string? OpenFileDialog(string? filter = null)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (!string.IsNullOrWhiteSpace(filter))
@@ -90,7 +90,7 @@ namespace GBRGBDump.GUI.Services.Impl
             return null;
         }
 
-        public string OpenFolderDialog(string? lastFolder = null)
+        public string? OpenFolderDialog(string? lastFolder = null)
         {
             OpenFolderDialog openFolderDialog = new OpenFolderDialog();
 

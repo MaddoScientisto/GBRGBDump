@@ -9,10 +9,10 @@ namespace GBRGBDump.GUI.Services
 {
     public interface IDialogService
     {
-        void ShowMessage(string message);
+        void ShowMessage(string message, string caption);
         void ShowError(Exception ex);
-        string OpenFileDialog(string? filter = null);
-        string OpenFolderDialog(string? lastFolder = null);
+        string? OpenFileDialog(string? filter = null);
+        string? OpenFolderDialog(string? lastFolder = null);
 
         void ShowWindow<TWindow, TViewModel, TModel>()
             where TWindow : Window
