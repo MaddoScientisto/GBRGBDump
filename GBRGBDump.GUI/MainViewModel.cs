@@ -414,10 +414,9 @@ namespace GBRGBDump.GUI
 
         private void OpenRunScriptWindow()
         {
-            
-            var resultModel = _dialogService.ShowDialog<RunScriptWindow, RunScriptViewmodel, RunScriptModel>(PreDumpScript);
+            var resultModel = _dialogService.ShowDialog<RunScriptWindow, RunScriptViewmodel, RunScriptModel>(PreDumpScript.Clone());
 
-            if (resultModel != null && resultModel.Success)
+            if (resultModel is { Success: true })
             {
                 PreDumpScript = resultModel;
             }

@@ -18,6 +18,16 @@ namespace GBRGBDump.GUI
         public string RunLocation { get; set; }
 
         public bool Success { get; set; }
+
+        public RunScriptModel Clone()
+        {
+            return new RunScriptModel()
+            {
+                Path = Path,
+                Arguments = Arguments,
+                RunLocation = RunLocation,
+            };
+        }
     }
 
     public class RunScriptViewmodel : ViewModelBase<RunScriptModel>
