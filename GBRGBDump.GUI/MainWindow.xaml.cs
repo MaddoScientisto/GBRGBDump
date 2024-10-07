@@ -38,7 +38,7 @@ namespace GBRGBDump.GUI
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _settingsService.SaveSettings();
+            _settingsService.SaveSettings((this.DataContext as MainViewModel).Model);
         }
         
         private void SetVersionInfo()

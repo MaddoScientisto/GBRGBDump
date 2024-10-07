@@ -8,17 +8,17 @@ namespace GBRGBDump.GUI.Services
 {
     public interface ISettingsService
     {
-        string SourcePath { get; set; }
-        string DestinationPath { get; set; }
-        bool RememberSettings { get; set; }
+        // string SourcePath { get; set; }
+        // string DestinationPath { get; set; }
+        // bool RememberSettings { get; set; }
+        //
+        // bool DoRGBMerge { get; set; }
+        // bool DoHDR { get; set; }
+        // bool DoFullHDR { get; set; }
+        //
+        // bool RgbInterleaved { get; set; }
 
-        bool DoRGBMerge { get; set; }
-        bool DoHDR { get; set; }
-        bool DoFullHDR { get; set; }
-        
-        bool RgbInterleaved { get; set; }
-
-        void LoadSettings();
-        void SaveSettings();
+        MainModel LoadSettings();
+        void SaveSettings(MainModel settings);
     }
 }
