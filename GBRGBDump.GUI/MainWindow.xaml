@@ -7,7 +7,9 @@
         xmlns:behaviors="clr-namespace:GBRGBDump.GUI.Behaviors"
         xmlns:valueConverters="clr-namespace:GBRGBDump.GUI.ValueConverters"
         mc:Ignorable="d"
-        Title="GB Camera Photo Dump and RGB Merge" Height="500" Width="320"
+        Title="GB Camera Photo Dump and RGB Merge" Width="320"
+        ResizeMode="CanResizeWithGrip"
+        SizeToContent="Height"
         MaxHeight="680"
         Closing="Window_Closing"
         d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=True}"
@@ -18,10 +20,13 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_Exit"></MenuItem>
+                <!-- <MenuItem Header="_Load Settings" Command="{Binding LoadSettingsCommand}"></MenuItem> -->
+                <MenuItem Header="_Save Settings" Command="{Binding SaveSettingsCommand}"></MenuItem>
+                <Separator></Separator>
+                <MenuItem Header="_Exit" Command="{Binding ExitCommand}"></MenuItem>
             </MenuItem>
             <MenuItem Header="_?">
-                <MenuItem Header="_About"></MenuItem>
+                <MenuItem Header="_About" Command="{Binding AboutCommand}"></MenuItem>
             </MenuItem>
         </Menu>
         <Label HorizontalAlignment="Center"
@@ -73,17 +78,14 @@
                     <CheckBox IsChecked="{Binding RememberSettings}">Remember Settings</CheckBox>
                     <CheckBox>Export Deleted</CheckBox>
                     <CheckBox>Check Magic Number</CheckBox>
-                    
-                    
-                    
+
 
                 </StackPanel>
                 <StackPanel Grid.Column="1">
                     <Label FontWeight="Bold">RGB Channel Order</Label>
                     <ComboBox HorizontalAlignment="Left"
                               ItemsSource="{Binding ChannelOrderValues}"
-                              SelectedItem="{Binding ChannelOrder, Mode=TwoWay}"
-                    >
+                              SelectedItem="{Binding ChannelOrder, Mode=TwoWay}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"></TextBlock>
@@ -93,15 +95,14 @@
                     <Label FontWeight="Bold">HDR Type</Label>
                     <ComboBox HorizontalAlignment="Left"
                               ItemsSource="{Binding AverageTypeValues}"
-                              SelectedItem="{Binding AverageType, Mode=TwoWay}"
-                              >
+                              SelectedItem="{Binding AverageType, Mode=TwoWay}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}"></TextBlock>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    
+
                 </StackPanel>
             </Grid>
             <Separator></Separator>
@@ -113,7 +114,7 @@
                     <TextBlock TextWrapping="WrapWithOverflow" Text="{Binding PreDumpScript.Arguments}"></TextBlock>
                 </StackPanel>
             </StackPanel>
-            
+
             <Separator></Separator>
             <Button Height="40" Width="80" Command="{Binding MergePhotosCommand}">Start</Button>
             <Separator></Separator>

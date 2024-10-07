@@ -168,6 +168,13 @@ namespace GBRGBDump.GUI
         public ICommand FileDropCommand { get; }
 
         public ICommand OpenPreDumpScriptWindowCommand { get; }
+        
+        public ICommand ExitCommand { get; }
+        
+        public ICommand SaveSettingsCommand { get; }
+        
+        public ICommand LoadSettingsCommand { get; }
+        public ICommand AboutCommand { get; }
 
         #endregion
 
@@ -207,7 +214,10 @@ namespace GBRGBDump.GUI
             OpenDestinationCommand = new RelayCommand(OpenDestination);
             FileDropCommand = new RelayCommand(OnFileDrop);
             OpenPreDumpScriptWindowCommand = new RelayCommand(OpenRunScriptWindow);
-            
+            ExitCommand = new RelayCommand(DoExit);
+            LoadSettingsCommand = new RelayCommand(LoadSettings);
+            SaveSettingsCommand = new RelayCommand(SaveSettings);
+            AboutCommand = new RelayCommand(ShowAbout);
             
             // Initializations
             _canStart = false;
@@ -404,6 +414,26 @@ namespace GBRGBDump.GUI
             {
                 PreDumpScript = resultModel;
             }
+        }
+
+        private void DoExit()
+        {
+            CloseDialog?.Invoke(true);
+        }
+
+        private void LoadSettings()
+        {
+            this.Model = _settingsService.LoadSettings();
+        }
+
+        private void SaveSettings()
+        {
+            _settingsService.SaveSettings(this.Model);
+        }
+
+        private void ShowAbout()
+        {
+            _dialogService.ShowMessage("App by MaddoScientisto");
         }
     }
 }

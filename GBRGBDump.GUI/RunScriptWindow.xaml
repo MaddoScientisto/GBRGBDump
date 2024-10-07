@@ -30,7 +30,7 @@
                     </controls:LabelTextBox>
 
                     <controls:LabelTextBox
-                        LabelText="RunLocation"
+                        LabelText="Working Directory"
                         TextBoxContent="{Binding RunLocation, Mode=TwoWay}"
                         ButtonVisibility="Visible"
                         ButtonCommand="{Binding SelectFolderCommand}"
