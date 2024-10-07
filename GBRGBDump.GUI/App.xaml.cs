@@ -66,7 +66,18 @@ namespace GBRGBDump.GUI
         private void OnStartup(object sender, StartupEventArgs e)
         {
             var mainWindow = _serviceProvider.GetService<MainWindow>();
-            mainWindow.DataContext = _serviceProvider.GetService<MainViewModel>();
+            if (mainWindow == null) throw new NullReferenceException();
+            
+            var viewModel = _serviceProvider.GetService<MainViewModel>();
+            if (viewModel == null) throw new NullReferenceException();
+            
+            viewModel.CloseDialog = (result) =>
+            {
+                mainWindow.Close();                // Close the window
+                return result;
+            };
+            mainWindow.DataContext = viewModel;
+            
             mainWindow.Show();
         }
     }
