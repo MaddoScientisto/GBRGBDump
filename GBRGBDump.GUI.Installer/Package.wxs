@@ -1,0 +1,10 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="GBRGBDump.GUI.Installer" Manufacturer="Maddo" Version="1.0.0.0" UpgradeCode="fa0d787c-531d-4eca-a89b-aef7fffce76c">
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+	  <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="Main">
+      <ComponentGroupRef Id="AppComponents" />
+    </Feature>
+  </Package>
+</Wix>
