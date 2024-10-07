@@ -8,7 +8,7 @@
             "name": "C#: GBRGBDump.GUI Debug",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/<relative-path-to-project-folder>GBRGBDump.GUI.csproj"
+            "projectPath": "${workspaceFolder}/GBRGBDump.GUI/GBRGBDump.GUI.csproj"
         }
 
     ]
