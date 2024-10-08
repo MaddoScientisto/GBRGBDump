@@ -318,7 +318,7 @@
         }
       }
     },
-    "net8.0-windows7.0/linux-arm": {
+    "net8.0-windows7.0/win-x64": {
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
         "resolved": "1.0.2592.51",

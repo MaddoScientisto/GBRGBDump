@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +19,12 @@
     <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
     <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />
     <ProjectReference Include="..\GBTools.Graphics\GBTools.Graphics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="packages.lock.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

@@ -66,7 +66,7 @@
         }
       }
     },
-    "net8.0/linux-arm": {
+    "net8.0/win-x64": {
       "SkiaSharp.NativeAssets.macOS": {
         "type": "Transitive",
         "resolved": "2.88.8",

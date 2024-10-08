@@ -73,6 +73,17 @@ jobs:
       run: |
         dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
 
+    - name: Build GBRGBDump WebUi
+      run: |
+        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64--self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
+
+    - name: Upload WebUi Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBRGBDump-webui-win-x64
+        path: publish/GBRGBDump-webui/win-x64/**
+        if-no-files-found: error
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -125,22 +136,11 @@ jobs:
       run: |
         dotnet publish ./GBRGBDump.Web/GBRGBDump.Web.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-web/${{ matrix.output }}
 
-    - name: Build GBRGBDump WebUi
-      run: |
-        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/${{ matrix.output }}
-
-    - name: Upload Artifact
+    - name: Upload Web Artifact
       uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-web-${{ matrix.output }}
         path: publish/GBRGBDump-web/${{ matrix.output }}/**
-        if-no-files-found: error
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: GBRGBDump-webui-${{ matrix.output }}
-        path: publish/GBRGBDump-webui/${{ matrix.output }}/**
         if-no-files-found: error
 
     - name: Upload Artifact
