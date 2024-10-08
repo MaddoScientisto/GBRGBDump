@@ -39,15 +39,6 @@
         "resolved": "5.0.0",
         "contentHash": "5NecZgXktdGg34rh1OenY1rFNDCI8xSjFr+Z4OU4cU06AQHUdRnIIEeWENu3Wl4YowbzkymAIMvi3WyK9U53pQ=="
       },
-      "gbrgbdump.web.shared": {
-        "type": "Project",
-        "dependencies": {
-          "GBTools.Bootstrapper": "[1.0.0, )",
-          "GBTools.Common": "[1.0.0, )",
-          "GBTools.Decoder": "[1.0.0, )",
-          "GBTools.Graphics": "[1.0.0, )"
-        }
-      },
       "gbtools.bootstrapper": {
         "type": "Project",
         "dependencies": {
