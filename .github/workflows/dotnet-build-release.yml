@@ -75,7 +75,7 @@ jobs:
 
     - name: Build GBRGBDump WebUi
       run: |
-        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64--self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
+        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
 
     - name: Upload WebUi Artifact
       uses: actions/upload-artifact@v4
