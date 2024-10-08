@@ -1,15 +1,18 @@
-﻿@using GBTools.Bootstrapper
+﻿@using GBRGBDump.Web.Shared.Services
 @using GBTools.Common
+@using GBTools.Bootstrapper
+@using Microsoft.AspNetCore.Components.Web
 @inject ImageTransformService ImageTransformService
+@inject IFileDialogService FileDialogService
 
-<PageTitle>Home</PageTitle>
-
-<p>Asdf</p>
+<PageTitle>GB Dump and RGB Merge Tool</PageTitle>
 
 <p>Input</p>
 <input @bind="inputPath" />
+<button @onclick="SelectInput">...</button>
 <p>Output</p>
 <input @bind="outputPath" />
+<button @onclick="SelectOutput">...</button>
 
 <button @onclick="Exececute">Execute</button>
 
@@ -48,5 +51,15 @@
     private void ReportProgress(ProgressInfo value)
     {
         // do nothing
+    }
+
+    private void SelectInput()
+    {
+        inputPath = FileDialogService.OpenFileDialog();
+    }
+
+    private void SelectOutput()
+    {
+        outputPath = FileDialogService.OpenFolderDialog();
     }
 }

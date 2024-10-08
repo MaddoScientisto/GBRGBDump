@@ -1,4 +1,6 @@
 using GBRGBDump.Web.Components;
+using GBRGBDump.Web.Services.Impl;
+using GBRGBDump.Web.Shared.Services;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
@@ -36,6 +38,9 @@ namespace GBRGBDump.Web
             builder.Services.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
             builder.Services.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+
+            // Web services
+            builder.Services.AddTransient<IFileDialogService, FileDialogService>();
 
             var app = builder.Build();
 

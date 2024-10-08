@@ -8,6 +8,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using GBRGBDump.Services.Impl;
+using GBRGBDump.Web.Shared.Services;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
@@ -24,6 +26,7 @@ namespace GBRGBDump.Web.GUI
         public MainWindow()
         {
             InitializeComponent();
+
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddWpfBlazorWebView();
 
@@ -46,6 +49,9 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
             serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+
+            // Web services
+            serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
 
             Resources.Add("services", serviceCollection.BuildServiceProvider());
         }
