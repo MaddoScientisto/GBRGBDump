@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GBTools.Bootstrapper\GBTools.Bootstrapper.csproj" />
+    <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
+    <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />
+    <ProjectReference Include="..\GBTools.Graphics\GBTools.Graphics.csproj" />
+  </ItemGroup>
+
+</Project>
