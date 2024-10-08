@@ -27,6 +27,11 @@ namespace GBRGBDump.GUI
             Model = model;
         }
 
+        public virtual async Task OnInitializedAsync()
+        {
+            
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

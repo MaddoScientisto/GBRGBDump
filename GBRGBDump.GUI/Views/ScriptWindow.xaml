@@ -1,0 +1,84 @@
+﻿<Window x:Class="GBRGBDump.GUI.Views.ScriptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GBRGBDump.GUI.Views"
+        xmlns:valueConverters="clr-namespace:GBRGBDump.GUI.ValueConverters"
+        mc:Ignorable="d"
+        Title="ScriptWindow" Height="450" Width="800">
+    <Window.Resources>
+        <valueConverters:LogCollectionToTextConverter x:Key="CollectionToTextConverter" />
+        <Style x:Key="ConsoleTextBox" TargetType="{x:Type TextBox}">
+            <!--<Setter Property="Background" Value="Black"></Setter>
+            <Setter Property="Foreground" Value="White"></Setter>-->
+            <Setter Property="FontFamily" Value="Lucida Console"></Setter>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer RenderTransformOrigin="0.5,0.5" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.RenderTransform>
+                                <ScaleTransform ScaleY="-1"/>
+                            </ScrollViewer.RenderTransform>
+                            <TextBox Text="{TemplateBinding Text}" RenderTransformOrigin="0.5,0.5">
+                                <TextBox.RenderTransform>
+                                    <ScaleTransform ScaleY="-1"/>
+                                </TextBox.RenderTransform>
+                            </TextBox>
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Real-time Output -->
+        <TextBox Grid.Row="0" 
+                 Style="{StaticResource ConsoleTextBox}"
+                 Background="Black"
+                 FontFamily="Lucida Console"
+                 Foreground="White"
+                 IsReadOnly="True" 
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap" >
+            <TextBox.Text>
+                <MultiBinding Converter="{StaticResource CollectionToTextConverter}">
+                    <Binding Path="OutputLines" Mode="OneWay"/>
+                    <Binding Path="OutputLines.Count" Mode="OneWay" />
+                </MultiBinding>
+            </TextBox.Text>
+        </TextBox>
+
+        <!-- Real-time Errors -->
+        <TextBox Grid.Row="1" 
+                 Style="{StaticResource ConsoleTextBox}"
+                 IsReadOnly="True" 
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap" 
+                 Background="Black"
+                 FontFamily="Lucida Console"
+                 Foreground="Red">
+            <TextBox.Text>
+                <MultiBinding Converter="{StaticResource CollectionToTextConverter}">
+                    <Binding Path="ErrorLines" Mode="OneWay"/>
+                    <Binding Path="ErrorLines.Count" Mode="OneWay" />
+                </MultiBinding>
+            </TextBox.Text>
+        </TextBox>
+
+        <!-- Input Field -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
+            <TextBox Width="400" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" Background="White" Foreground="Black" FontFamily="Lucida Console" />
+            <Button Content="Send" Command="{Binding SendInputCommand}" Margin="5,0,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>

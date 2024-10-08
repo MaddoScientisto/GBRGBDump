@@ -24,5 +24,9 @@ namespace GBRGBDump.GUI.Services
         TModel? ShowDialog<TWindow, TViewModel, TModel>(TModel model)
             where TWindow : Window
             where TViewModel : ViewModelBase<TModel>;
+
+        Task<(bool result, TModel model)> ShowDialogAsync<TWindow, TViewModel, TModel>(TModel model)
+            where TWindow : Window
+            where TViewModel : ViewModelBase<TModel>;
     }
 }

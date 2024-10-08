@@ -64,6 +64,34 @@ namespace GBRGBDump.GUI.Services.Impl
             return viewModel.Model;
         }
 
+        public async Task<(bool result, TModel model)> ShowDialogAsync<TWindow, TViewModel, TModel>(TModel model)
+            where TWindow : Window
+            where TViewModel : ViewModelBase<TModel>
+        {
+            var window = _serviceProvider.GetRequiredService<TWindow>();
+            var viewModel = _serviceProvider.GetRequiredService<TViewModel>();
+
+            // Pass a function that closes the window to the view model
+            viewModel.CloseDialog = (result) =>
+            {
+                window.DialogResult = result;  // Set the dialog result
+                window.Close();                // Close the window
+                return result;
+            };
+
+            viewModel.Initialize(model);
+
+            window.DataContext = viewModel;
+
+            window.Loaded += async (s, e) =>
+            {
+                await viewModel.OnInitializedAsync();
+            };
+
+            var dialogResult = window.ShowDialog() ?? false;
+            return (dialogResult, viewModel.Model);
+        }
+
         public void ShowMessage(string message, string caption)
         {
             MessageBox.Show(message, caption);

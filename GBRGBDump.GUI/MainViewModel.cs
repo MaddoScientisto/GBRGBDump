@@ -9,9 +9,11 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using GBRGBDump.GUI.Commands;
 using GBRGBDump.GUI.Services;
+using GBRGBDump.GUI.Views;
 using GBTools.Common.Services;
 using GBTools.Common;
 using GBTools.Graphics;
+using GBRGBDump.GUI.ViewModels;
 
 namespace GBRGBDump.GUI
 {
@@ -249,9 +251,30 @@ namespace GBRGBDump.GUI
         
         private async Task MergePhotos()
         {
+            // Run the pre-dump script
+            if (Model.PreDumpScriptModel.Enabled)
+            {
+                 var (result, model) = await _dialogService.ShowDialogAsync<ScriptWindow, ScriptViewModel, ScriptModel>(new ScriptModel()
+                {
+                    Path = Model.PreDumpScriptModel.Path, 
+                    RunLocation = Model.PreDumpScriptModel.RunLocation,
+                    Arguments = Model.PreDumpScriptModel.Arguments,
+                });
+
+                //var scriptResult = await _executionService.RunScriptAsync(Model.PreDumpScriptModel.Path, Model.PreDumpScriptModel.RunLocation, Model.PreDumpScriptModel.Arguments);
+
+                if (!result && Model.PreDumpScriptModel.FailIfUnsuccessful)
+                {
+                    _dialogService.ShowMessage($"There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.\r\nThis is the output:\r\n{model.Output}", "Error");
+                    return;
+                }
+
+                this.SourcePath = model.Output;
+            }
+
             if (string.IsNullOrWhiteSpace(SourcePath) || string.IsNullOrWhiteSpace(DestinationPath))
             {
-                _dialogService.ShowMessage("Please the source and destination paths", "Error");
+                _dialogService.ShowMessage("Please select the source and destination paths", "Error");
                 return;
             }
 
@@ -264,18 +287,6 @@ namespace GBRGBDump.GUI
                 _dialogService.ShowMessage($"The file {SourcePath} does not exist.", "Error");
 
                 return;
-            }
-            
-            // Run the pre-dump script
-            if (Model.PreDumpScriptModel.Enabled)
-            {
-                var scriptResult = await _executionService.RunScriptAsync(Model.PreDumpScriptModel.Path, Model.PreDumpScriptModel.RunLocation, Model.PreDumpScriptModel.Arguments);
-
-                if (!scriptResult && Model.PreDumpScriptModel.FailIfUnsuccessful)
-                {
-                    _dialogService.ShowMessage("There was an error while running the Pre-Dump script and the script is set to fail if unsuccessful, aborting operation.", "Error");
-                    return;
-                } 
             }
 
             Stopwatch s = new Stopwatch();
@@ -383,7 +394,7 @@ namespace GBRGBDump.GUI
 
             var subFolder = MakeOutputSubFolder(SourcePath, DestinationPath);
             
-            if (string.IsNullOrWhiteSpace(subFolder))
+            if (string.IsNullOrWhiteSpace(subFolder) || !Path.Exists(subFolder))
             {
                 Process.Start("explorer.exe", DestinationPath);
                 return;

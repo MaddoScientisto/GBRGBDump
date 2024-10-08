@@ -3,6 +3,8 @@ using System.Data;
 using System.Windows;
 using GBRGBDump.GUI.Services;
 using GBRGBDump.GUI.Services.Impl;
+using GBRGBDump.GUI.ViewModels;
+using GBRGBDump.GUI.Views;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Common.Services;
@@ -57,6 +59,9 @@ namespace GBRGBDump.GUI
 
             services.AddTransient<RunScriptWindow>();
             services.AddTransient<RunScriptViewmodel>();
+
+            services.AddTransient<ScriptWindow>();
+            services.AddTransient<ScriptViewModel>();
 
             services.AddTransient<IExecutionService, ExecutionService>();
 
