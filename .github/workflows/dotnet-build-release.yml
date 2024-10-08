@@ -121,58 +121,33 @@ jobs:
       run: |
         dotnet publish ./GBRGBDump/GBRGBDump.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump/${{ matrix.output }}
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: GBRGBDump-${{ matrix.output }}
-        path: publish/GBRGBDump/${{ matrix.output }}/**
-        if-no-files-found: error
-
-  build-server:
-    runs-on: ubuntu-latest
-    needs: build-gbrgbdump-gui
-    strategy:
-        matrix:
-            include:
-                #- { runtime: 'win-x64', output: 'win-x64' }
-                - { runtime: 'linux-x64', output: 'linux-x64' }
-                - { runtime: 'linux-arm', output: 'linux-arm' }
-                - { runtime: 'linux-arm64', output: 'linux-arm64' }
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-        cache: true
-        cache-dependency-path: '**/packages.lock.json'
-
-    - name: Restore dependencies
-      run: dotnet restore --locked-mode
-
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3.0.0
-      with:
-        versionSpec: '6.x'
-
-    - name: Update Version
-      uses: gittools/actions/gitversion/command@v3.0.0
-      with:
-        arguments: /updateprojectfiles
-
-    - name: Build GBRGBDump
+    - name: Build GBRGBDump Web
       run: |
         dotnet publish ./GBRGBDump.Web/GBRGBDump.Web.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-web/${{ matrix.output }}
+
+    - name: Build GBRGBDump WebUi
+      run: |
+        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/${{ matrix.output }}
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-web-${{ matrix.output }}
         path: publish/GBRGBDump-web/${{ matrix.output }}/**
+        if-no-files-found: error
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBRGBDump-webui-${{ matrix.output }}
+        path: publish/GBRGBDump-webui/${{ matrix.output }}/**
+        if-no-files-found: error
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBRGBDump-${{ matrix.output }}
+        path: publish/GBRGBDump/${{ matrix.output }}/**
         if-no-files-found: error
 
   publish-release:
