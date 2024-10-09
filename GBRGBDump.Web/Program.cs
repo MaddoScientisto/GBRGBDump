@@ -1,5 +1,6 @@
 using GBRGBDump.Web.Components;
 using GBRGBDump.Web.Services.Impl;
+using GBRGBDump.Web.Shared.Pages;
 using GBRGBDump.Web.Shared.Services;
 using GBTools.Bootstrapper;
 using GBTools.Common;
@@ -61,6 +62,7 @@ namespace GBRGBDump.Web
             app.UseAntiforgery();
 
             app.MapRazorComponents<App>()
+                .AddAdditionalAssemblies(typeof(SharedPages).Assembly)
                 .AddInteractiveServerRenderMode();
 
             app.Run();

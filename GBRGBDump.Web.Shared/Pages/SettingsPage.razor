@@ -1,7 +1,10 @@
-﻿@using GBRGBDump.Web.Shared.Services
+﻿@page "/settings"
+@using GBRGBDump.Web.Shared.Services
 @using Microsoft.AspNetCore.Components.Web
 @inject IFileDialogService FileDialogService
+@inject NavigationManager Navigation
 
+<button class="btn btn-secondary" @onclick="GoBack">Back</button>
 <PageTitle>Settings</PageTitle>
 
 <p>Input</p>
@@ -24,5 +27,10 @@
     private async Task SelectOutput()
     {
         outputPath = FileDialogService.OpenFolderDialog();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("");
     }
 }
