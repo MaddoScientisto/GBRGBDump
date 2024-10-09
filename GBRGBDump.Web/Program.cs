@@ -43,7 +43,7 @@ namespace GBRGBDump.Web
             // Web services
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
 
-            builder.Services.AddFileSystemAccessService();
+            //builder.Services.AddFileSystemAccessService();
 
             var app = builder.Build();
 

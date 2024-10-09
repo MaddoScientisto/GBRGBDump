@@ -1,0 +1,28 @@
+﻿@using GBRGBDump.Web.Shared.Services
+@using Microsoft.AspNetCore.Components.Web
+@inject IFileDialogService FileDialogService
+
+<PageTitle>Settings</PageTitle>
+
+<p>Input</p>
+<input @bind="inputPath" />
+<button @onclick="SelectInput">...</button>
+<p>Output</p>
+<input @bind="outputPath" />
+<button class="btn btn-primary" @onclick="SelectOutput">...</button>
+
+@code {
+    private string? inputPath;
+    private string? outputPath;
+    private bool? cartIsJp;
+
+    private async Task SelectInput()
+    {
+        inputPath = FileDialogService.OpenFileDialog();
+    }
+
+    private async Task SelectOutput()
+    {
+        outputPath = FileDialogService.OpenFolderDialog();
+    }
+}
