@@ -12,34 +12,39 @@ namespace GBRGBDump.Services.Impl
     {
         public string? OpenFileDialog(string? filter = null)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            if (!string.IsNullOrWhiteSpace(filter))
-            {
-                openFileDialog.Filter = filter;
-            }
+            
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    openFileDialog.Filter = filter;
+                }
 
-            if (openFileDialog.ShowDialog() == true)
-            {
-                return openFileDialog.FileName;
-            }
-            return null;
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    return openFileDialog.FileName;
+                }
+
+                return null;
+            
         }
 
         public string? OpenFolderDialog(string? lastFolder = null)
         {
-            OpenFolderDialog openFolderDialog = new OpenFolderDialog();
+            
+                OpenFolderDialog openFolderDialog = new OpenFolderDialog();
 
-            if (!string.IsNullOrWhiteSpace(lastFolder))
-            {
-                openFolderDialog.InitialDirectory = lastFolder;
-            }
+                if (!string.IsNullOrWhiteSpace(lastFolder))
+                {
+                    openFolderDialog.InitialDirectory = lastFolder;
+                }
 
-            if (openFolderDialog.ShowDialog() == true)
-            {
-                return openFolderDialog.FolderName;
-            }
+                if (openFolderDialog.ShowDialog() == true)
+                {
+                    return openFolderDialog.FolderName;
+                }
 
-            return null;
+                return null;
+            
         }
     }
 }

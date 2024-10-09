@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="KristofferStrube.Blazor.FileSystemAccess" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GBRGBDump.Web.Shared\GBRGBDump.Web.Shared.csproj" />
     <ProjectReference Include="..\GBTools.Bootstrapper\GBTools.Bootstrapper.csproj" />
     <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />

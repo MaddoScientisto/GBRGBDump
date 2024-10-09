@@ -5,6 +5,7 @@ using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;
+using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GBRGBDump.Web
@@ -41,6 +42,8 @@ namespace GBRGBDump.Web
 
             // Web services
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
+
+            builder.Services.AddFileSystemAccessService();
 
             var app = builder.Build();
 

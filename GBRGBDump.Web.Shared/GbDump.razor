@@ -53,13 +53,13 @@
         // do nothing
     }
 
-    private void SelectInput()
+    private async Task SelectInput()
     {
-        inputPath = FileDialogService.OpenFileDialog();
+        inputPath = await FileDialogService.OpenFileDialog();
     }
 
-    private void SelectOutput()
+    private async Task SelectOutput()
     {
-        outputPath = FileDialogService.OpenFolderDialog();
+        outputPath = await FileDialogService.OpenFolderDialog();
     }
 }
