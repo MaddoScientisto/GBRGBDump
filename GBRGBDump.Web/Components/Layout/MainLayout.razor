@@ -1,9 +1,20 @@
 ﻿@inherits LayoutComponentBase
+@inject IHostEnvironment HostEnvironment
 
-@Body
+<ErrorBoundary>
+    @Body
+</ErrorBoundary>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
+<div id="blazor-error-ui" data-nosnippet>
+    @if (HostEnvironment.IsProduction())
+    {
+        <span>An error has occurred.</span>
+    }
+    else
+    {
+        <span>An unhandled exception occurred.</span>
+    }
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+

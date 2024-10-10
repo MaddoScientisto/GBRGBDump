@@ -1,3 +1,6 @@
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using GBRGBDump.Web.Components;
 using GBRGBDump.Web.Services.Impl;
 using GBRGBDump.Web.Shared.Pages;
@@ -7,7 +10,6 @@ using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
 using GBTools.Graphics;
-using KristofferStrube.Blazor.FileSystemAccess;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GBRGBDump.Web
@@ -19,7 +21,7 @@ namespace GBRGBDump.Web
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddRazorComponents()
+            builder.Services.AddRazorComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
             .AddInteractiveServerComponents();
 
             builder.Services.AddTransient<ImageTransformService>();
@@ -46,6 +48,8 @@ namespace GBRGBDump.Web
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
             builder.Services.AddTransient<IEnvironmentService, EnvironmentService>();
             builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+
+            builder.Services.AddBlazorise().AddBootstrap5Providers().AddFontAwesomeIcons();
 
             //builder.Services.AddFileSystemAccessService();
 

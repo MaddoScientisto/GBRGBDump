@@ -1,4 +1,19 @@
-﻿@page "/"
-@rendermode InteractiveServer
+﻿@* @page "/" *@
+@rendermode InteractiveServer 
+@inject NavigationManager Navigation
 
-<GbDump></GbDump>
+@* <GbDump></GbDump> *@
+
+<Heading>GB RGB Dump</Heading>
+
+<Button Color="Color.Primary" Clicked="GoToSettings"><Icon Name="@("fa-gear")"></Icon></Button>
+
+
+
+@code {
+
+    void GoToSettings()
+    {
+        Navigation.NavigateTo("/settings");
+    }
+}
