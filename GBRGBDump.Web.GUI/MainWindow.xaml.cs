@@ -8,6 +8,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using GBRGBDump.Services.Impl;
 using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
@@ -55,6 +58,11 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+
+            serviceCollection
+                .AddBlazorise()
+                .AddBootstrap5Providers()
+                .AddFontAwesomeIcons();
 
             Resources.Add("services", serviceCollection.BuildServiceProvider());
         }

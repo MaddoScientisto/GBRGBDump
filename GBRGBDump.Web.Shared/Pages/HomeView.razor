@@ -1,0 +1,15 @@
+﻿@page "/"
+@inject NavigationManager Navigation
+<Heading>GB RGB Dump</Heading>
+
+<Button Color="Color.Primary" Clicked="GoToSettings"><Icon Name="@("fa-gear")"></Icon></Button>
+
+
+
+@code {
+
+    void GoToSettings()
+    {
+        Navigation.NavigateTo("/settings");
+    }
+}
