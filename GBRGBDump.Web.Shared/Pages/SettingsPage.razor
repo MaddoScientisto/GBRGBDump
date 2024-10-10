@@ -1,66 +1,97 @@
 ﻿@page "/settings"
-@using GBRGBDump.Web.Shared.Models
-@using GBRGBDump.Web.Shared.Services
-@using GBTools.Common
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.Forms
+@using System.Xml.Linq
+
 @inject IFileDialogService FileDialogService
 @inject IEnvironmentService LocalEnvironment
 @inject NavigationManager Navigation
 @inject ISettingsService SettingsService
 
-<button class="btn btn-secondary" @onclick="GoBack">Back</button>
+<Button Color="Color.Danger" Clicked="GoBack">
+    <Icon Name="@("fa-arrow-left")"></Icon>
+</Button>
+
 <PageTitle>Settings</PageTitle>
 
-<EditForm Model="Model" OnValidSubmit="Submit" FormName="SettingsForm">
-    <div>
-        <label>Input File Path:
-            <InputText @bind-Value="Model!.InputPath"></InputText>
-            @if (LocalEnvironment.IsDesktop)
-            {
-                <button @onclick="SelectInput">..</button>
-            }
-        </label>
-    </div>
-    <div>
-        <label>Output Directory Path:
-            <InputText @bind-Value="Model!.OutputPath"></InputText>
-            @if (LocalEnvironment.IsDesktop)
-            {
-                <button @onclick="SelectOutput">...</button>
-            }
-        </label>
-    </div>
-    <div>
-        <label>
-            RGB Merge Mode
-            <InputSelect @bind-Value="Model!.ChannelOrder">
-                <option checked="@(Model!.ChannelOrder == ChannelOrder.None)">None</option>
-                <option checked="@(Model!.ChannelOrder == ChannelOrder.Sequential)">Sequential</option>
-                <option checked="@(Model!.ChannelOrder == ChannelOrder.Interleaved)">Interleaved</option>
-            </InputSelect>
-        </label>
-    </div>
-    <div>
-        <label>
-            HDR Type
-            <InputSelect @bind-Value="Model!.AverageType">
-                <option checked="@(Model!.AverageType == AverageTypes.None)">None</option>
-                <option checked="@(Model!.AverageType == AverageTypes.Normal)">Normal</option>
-                <option checked="@(Model!.AverageType == AverageTypes.FullBank)" value="@AverageTypes.FullBank">Full Bank</option>
-            </InputSelect>
-        </label>
-    </div>
-    <div>
-        <button type="submit">Save</button>
-    </div>
-</EditForm>
+<Card Padding="Padding.Is0.OnMobile">
+    <CardHeader Padding="Padding.Is1.OnMobile">Settings</CardHeader>
+    @*     <CardBody>
+        Set settings here, they will be saved to a json file.
+    </CardBody> *@
+    <CardBody Margin="Margin.Is0.OnMobile" Padding="Padding.Is0.OnMobile">
+        <Fields Padding="Padding.Is0.OnMobile" Margin="Margin.Is0.OnMobile">
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Input File Path</FieldLabel>
+                <FieldBody Margin="Margin.Is0.OnMobile">
+                    <Addons>
+                        <Addon AddonType="AddonType.Body">
+                            <TextEdit @bind-Text="@Model!.InputPath">
+                                
+                            </TextEdit>
+                        </Addon>
+                        @if (LocalEnvironment.IsDesktop)
+                        {
+                            <Addon AddonType="AddonType.End">
+                                <Button Color="Color.Secondary" Clicked="SelectInput">...</Button>
+                            </Addon>
+                        }
+                    </Addons>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Insert a valid path from the host machine. This is ignored in scripted mode and the value is obtained from the script result.</FieldHelp>
 
+                </FieldBody>
+            </Field>
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Output Folder Path</FieldLabel>
+                <FieldBody>
+                    <Addons>
+                        <Addon AddonType="AddonType.Body">
+                            <TextEdit @bind-Text="@Model!.OutputPath">
+                                
+                            </TextEdit>
+                        </Addon>
+                        @if (LocalEnvironment.IsDesktop)
+                        {
+                            <Addon AddonType="AddonType.End">
+                                <Button Color="Color.Secondary" Clicked="SelectOutput">...</Button>
+                            </Addon>
+                        }
+                    </Addons>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Insert a valid path from the host machine</FieldHelp>
+
+                </FieldBody>
+            </Field>
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel >RGB Merge Mode</FieldLabel>
+                <FieldBody>
+                    <Select @bind-SelectedValue="@Model!.ChannelOrder">
+                        <SelectItem Value="ChannelOrder.None">None</SelectItem>
+                        <SelectItem Value="ChannelOrder.Sequential">Sequential (RRR GGG BBB)</SelectItem>
+                        <SelectItem Value="ChannelOrder.Interleaved">Interleaved (RGB RGB RGB)</SelectItem>
+                    </Select>
+                </FieldBody>
+            </Field>
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel>HDR Type</FieldLabel>
+                <FieldBody Margin="Margin.Is0.OnMobile">
+                    <Select @bind-SelectedValue="@Model!.AverageType">
+                        <SelectItem Value="AverageTypes.None">None</SelectItem>
+                        <SelectItem Value="AverageTypes.Normal">Normal</SelectItem>
+                        <SelectItem Value="AverageTypes.FullBank">Full</SelectItem>
+                    </Select>
+                    <FieldHelp Display="Display.None.Block.OnMobile">This is ignored if RGB Merge is set to None.</FieldHelp>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Full Mode does an extra Average step between both groups in a bank.</FieldHelp>
+                </FieldBody>
+            </Field>
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is1.OnMobile">
+                <Button Color="Color.Success" Clicked="Submit">Save</Button>
+            </Field>
+        </Fields>
+
+    </CardBody>
+</Card>
 
 @code {
 
-    [SupplyParameterFromForm]
-    private SettingsModel? Model { get; set; }
+    [SupplyParameterFromForm] private SettingsModel? Model { get; set; }
 
     protected override void OnInitialized() =>
         Model ??= SettingsService.LoadSettings() ?? new()
@@ -74,21 +105,29 @@
     {
         SettingsService.SaveSettings(Model!);
         Navigation.NavigateTo("/");
-
     }
 
     private async Task SelectInput()
     {
-        Model!.InputPath = FileDialogService.OpenFileDialog();
+        var selectedPath = FileDialogService.OpenFileDialog();
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+        {
+            Model!.InputPath = selectedPath;
+        }
     }
 
     private async Task SelectOutput()
     {
-        Model!.OutputPath = FileDialogService.OpenFolderDialog();
+        var selectedPath = FileDialogService.OpenFolderDialog();
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+        {
+            Model!.OutputPath = selectedPath;
+        }
     }
 
     private void GoBack()
     {
         Navigation.NavigateTo("/");
     }
+
 }
