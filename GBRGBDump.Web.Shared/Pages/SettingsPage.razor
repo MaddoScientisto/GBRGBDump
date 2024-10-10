@@ -1,36 +1,94 @@
 ﻿@page "/settings"
+@using GBRGBDump.Web.Shared.Models
 @using GBRGBDump.Web.Shared.Services
+@using GBTools.Common
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
 @inject IFileDialogService FileDialogService
+@inject IEnvironmentService LocalEnvironment
 @inject NavigationManager Navigation
+@inject ISettingsService SettingsService
 
 <button class="btn btn-secondary" @onclick="GoBack">Back</button>
 <PageTitle>Settings</PageTitle>
 
-<p>Input</p>
-<input @bind="inputPath" />
-<button @onclick="SelectInput">...</button>
-<p>Output</p>
-<input @bind="outputPath" />
-<button class="btn btn-primary" @onclick="SelectOutput">...</button>
+<EditForm Model="Model" OnValidSubmit="Submit" FormName="SettingsForm">
+    <div>
+        <label>Input File Path:
+            <InputText @bind-Value="Model!.InputPath"></InputText>
+            @if (LocalEnvironment.IsDesktop)
+            {
+                <button @onclick="SelectInput">..</button>
+            }
+        </label>
+    </div>
+    <div>
+        <label>Output Directory Path:
+            <InputText @bind-Value="Model!.OutputPath"></InputText>
+            @if (LocalEnvironment.IsDesktop)
+            {
+                <button @onclick="SelectOutput">...</button>
+            }
+        </label>
+    </div>
+    <div>
+        <label>
+            RGB Merge Mode
+            <InputSelect @bind-Value="Model!.ChannelOrder">
+                <option checked="@(Model!.ChannelOrder == ChannelOrder.None)">None</option>
+                <option checked="@(Model!.ChannelOrder == ChannelOrder.Sequential)">Sequential</option>
+                <option checked="@(Model!.ChannelOrder == ChannelOrder.Interleaved)">Interleaved</option>
+            </InputSelect>
+        </label>
+    </div>
+    <div>
+        <label>
+            HDR Type
+            <InputSelect @bind-Value="Model!.AverageType">
+                <option checked="@(Model!.AverageType == AverageTypes.None)">None</option>
+                <option checked="@(Model!.AverageType == AverageTypes.Normal)">Normal</option>
+                <option checked="@(Model!.AverageType == AverageTypes.FullBank)" value="@AverageTypes.FullBank">Full Bank</option>
+            </InputSelect>
+        </label>
+    </div>
+    <div>
+        <button type="submit">Save</button>
+    </div>
+</EditForm>
+
 
 @code {
-    private string? inputPath;
-    private string? outputPath;
-    private bool? cartIsJp;
+
+    [SupplyParameterFromForm]
+    private SettingsModel? Model { get; set; }
+
+    protected override void OnInitialized() =>
+        Model ??= SettingsService.LoadSettings() ?? new()
+        {
+            // Set defaults here
+            ChannelOrder = ChannelOrder.Sequential,
+            AverageType = AverageTypes.Normal
+        };
+
+    private void Submit()
+    {
+        SettingsService.SaveSettings(Model!);
+        Navigation.NavigateTo("/");
+
+    }
 
     private async Task SelectInput()
     {
-        inputPath = FileDialogService.OpenFileDialog();
+        Model!.InputPath = FileDialogService.OpenFileDialog();
     }
 
     private async Task SelectOutput()
     {
-        outputPath = FileDialogService.OpenFolderDialog();
+        Model!.OutputPath = FileDialogService.OpenFolderDialog();
     }
 
     private void GoBack()
     {
-        Navigation.NavigateTo("");
+        Navigation.NavigateTo("/");
     }
 }

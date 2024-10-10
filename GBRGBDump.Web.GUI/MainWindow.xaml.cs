@@ -10,6 +10,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using GBRGBDump.Services.Impl;
 using GBRGBDump.Web.Shared.Services;
+using GBRGBDump.Web.Shared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Decoder;
@@ -52,6 +53,8 @@ namespace GBRGBDump.Web.GUI
 
             // Web services
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
+            serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
+            serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
 
             Resources.Add("services", serviceCollection.BuildServiceProvider());
         }

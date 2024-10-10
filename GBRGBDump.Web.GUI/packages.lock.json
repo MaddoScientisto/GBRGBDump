@@ -273,7 +273,8 @@
           "GBTools.Bootstrapper": "[1.0.0, )",
           "GBTools.Common": "[1.0.0, )",
           "GBTools.Decoder": "[1.0.0, )",
-          "GBTools.Graphics": "[1.0.0, )"
+          "GBTools.Graphics": "[1.0.0, )",
+          "Newtonsoft.Json": "[13.0.3, )"
         }
       },
       "gbtools.bootstrapper": {
