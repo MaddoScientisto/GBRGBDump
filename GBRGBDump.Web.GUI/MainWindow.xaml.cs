@@ -58,6 +58,7 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+            serviceCollection.AddTransient<IFileSystemService, LocalFileSystemService>();
 
             serviceCollection
                 .AddBlazorise()

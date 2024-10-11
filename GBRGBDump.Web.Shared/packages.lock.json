@@ -26,6 +26,30 @@
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1"
         }
       },
+      "Blazorise.SpinKit": {
+        "type": "Direct",
+        "requested": "[1.6.1, )",
+        "resolved": "1.6.1",
+        "contentHash": "o2zBqiBEj+bO+ZpCF6ZSzO14FX6NujMuqNjNVpvU5iX0vNFJXp6xLalL0dcI7XyHxPjYlIckDiu1u2UCY/8Ktw==",
+        "dependencies": {
+          "Blazorise": "1.6.1",
+          "Microsoft.AspNetCore.Components": "8.0.8",
+          "Microsoft.AspNetCore.Components.Web": "8.0.8",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.1"
+        }
+      },
+      "Blazorise.TreeView": {
+        "type": "Direct",
+        "requested": "[1.6.1, )",
+        "resolved": "1.6.1",
+        "contentHash": "thETSOphq8Lw7X1H1lOQtEt9eaC/Zvc+dukmgAix9GPjLHlar8vTIAe0mo0bJ/4RvJHG1sahpP6MXHeNmFafGA==",
+        "dependencies": {
+          "Blazorise": "1.6.1",
+          "Microsoft.AspNetCore.Components": "8.0.8",
+          "Microsoft.AspNetCore.Components.Web": "8.0.8",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.1"
+        }
+      },
       "Newtonsoft.Json": {
         "type": "Direct",
         "requested": "[13.0.3, )",

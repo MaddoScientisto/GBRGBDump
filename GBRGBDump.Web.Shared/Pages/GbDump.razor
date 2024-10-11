@@ -1,0 +1,98 @@
+﻿@page "/processing"
+@using System.Diagnostics
+@using GBRGBDump.Web.Shared.Services
+@using GBTools.Common
+@using GBTools.Bootstrapper
+@using Microsoft.AspNetCore.Components.Web
+@inject ImageTransformService ImageTransformService
+@inject IFileDialogService FileDialogService
+@inject NavigationManager Navigation
+@inject ISettingsService SettingsService
+@inject IFileSystemService FileSystemService
+
+<NavLink href="/">Back</NavLink>
+
+<NavLink href="/settings">Settings</NavLink>
+<NavLink href="/folders">Browser</NavLink>
+
+<p>Loading from @Model!.InputPath into @Model!.OutputPath</p>
+
+<Button Color="Color.Danger" Clicked="Exececute" Disabled="@_isProcessing">Execute</Button>
+
+@if (_isProcessing)
+{
+    <SpinKit Type="SpinKitType.Circle"></SpinKit>
+}
+
+
+<p>@_lastReport</p>
+
+@code
+{
+
+    [SupplyParameterFromForm] private SettingsModel? Model { get; set; }
+
+    protected override void OnInitialized() =>
+        Model ??= SettingsService.LoadSettings() ?? new()
+            {
+                // Set defaults here
+                ChannelOrder = ChannelOrder.Sequential,
+                AverageType = AverageTypes.Normal
+            };
+
+    private bool? cartIsJp;
+    private string _lastReport = string.Empty;
+
+    private bool _isProcessing = false;
+
+    private async Task Exececute()
+    {
+        if (string.IsNullOrWhiteSpace(Model!.InputPath) || string.IsNullOrWhiteSpace(Model!.OutputPath)) return; // TODO: Warn
+
+        var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+
+        FileSystemService.CreateDirectory(outputSubFolder);
+
+        var importParams = new ImportSavOptions()
+        {
+            ImportLastSeen = false,
+            ImportDeleted = true,
+            ForceMagicCheck = false,
+            AverageType = Model!.AverageType,
+            AebStep = 2,
+            BanksToProcess = -1,
+            CartIsJp = cartIsJp ?? false,
+            ChannelOrder = Model.ChannelOrder,
+            RgbMerge = true
+        };
+
+        var progress = new Progress<ProgressInfo>(ReportProgress);
+
+        _lastReport = String.Empty;
+
+        _isProcessing = true;
+
+        Stopwatch s = new Stopwatch();
+        s.Start();
+
+        var result = await Task.Run(() =>
+            ImageTransformService.TransformSav(Model.InputPath, outputSubFolder, importParams, progress));
+
+        s.Stop();
+
+        _lastReport += $"/r/n{s.Elapsed:g}";
+        _isProcessing = false;
+    }
+
+
+    private void NavigateToConfig()
+    {
+        Navigation.NavigateTo("/settings");
+    }
+
+    private void ReportProgress(ProgressInfo value)
+    {
+        _lastReport = $"{value.CurrentImageName}";
+    }
+
+}

@@ -1,0 +1,27 @@
+﻿@inject IFileSystemService FileSystemService
+<Figure Size="FigureSize.Is128x128">
+    <FigureImage Source="@PreviewImage"></FigureImage>
+</Figure>
+@code {
+
+    [Parameter]
+    public string Path { get; set; }
+
+    string PreviewImage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //PreviewImage = await FileSystemService.ImageToBase64Async(Path);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await UpdateImageAsync();
+    }
+
+    private async Task UpdateImageAsync()
+    {
+        PreviewImage = await FileSystemService.ImageToBase64Async(Path);
+    }
+
+}

@@ -48,6 +48,7 @@ namespace GBRGBDump.Web
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
             builder.Services.AddTransient<IEnvironmentService, EnvironmentService>();
             builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+            builder.Services.AddTransient<IFileSystemService, LocalFileSystemService>();
 
             builder.Services.AddBlazorise().AddBootstrap5Providers().AddFontAwesomeIcons();
 
