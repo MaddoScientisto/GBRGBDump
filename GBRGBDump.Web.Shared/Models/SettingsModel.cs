@@ -12,9 +12,11 @@ namespace GBRGBDump.Web.Shared.Models
         public string? InputPath { get; set; }
         public string? OutputPath { get; set; }
 
-        public bool IsCartJp { get; set; }
-
         public AverageTypes AverageType { get; set; } = AverageTypes.None;
         public ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
+
+        public ScriptModel PreScript { get; set; } = new();
+
+        public ScriptModel PostScript { get; set; } = new();
     }
 }
