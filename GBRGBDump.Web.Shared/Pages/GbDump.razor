@@ -39,7 +39,7 @@
 
 @foreach (var error in ErrorLines)
 {
-    <p>@error</p>
+    <p style="color: red">@error</p>
 }
 
 @code
@@ -58,7 +58,8 @@
 
         ExecutionService.OutputReceived += (sender, output) =>
         {
-            InvokeAsync(() => { 
+            InvokeAsync(() =>
+            {
                 OutputLines.Add(output);
                 StateHasChanged();
             });
@@ -85,62 +86,85 @@
 
     private async Task Exececute()
     {
-        // Execute Script
-        if (Model!.PreScript.Enabled)
+        OutputLines.Clear();
+        ErrorLines.Clear();
+
+        await InvokeAsync(() => StateHasChanged());
+
+        try
         {
-            var prescript = Model!.PreScript;
-
-            OutputLines.Clear();
-            ErrorLines.Clear();
-
-            var res =  await ExecutionService.RunScriptAsync(prescript.Path, prescript.RunLocation, prescript.Arguments);
-
-            if (!res && prescript.FailOnError)
+            _isProcessing = true;
+            // Execute Script
+            if (Model!.PreScript.Enabled)
             {
-                Debug.WriteLine("Script failed");
-                _lastReport = "Script has failed";
-                return;
+                var prescript = Model!.PreScript;
+
+                var res = await ExecutionService.RunScriptAsync(prescript.Path, prescript.RunLocation, prescript.Arguments);
+
+                if (!res && prescript.FailOnError)
+                {
+                    Debug.WriteLine("Script failed");
+                    _lastReport = "Script has failed";
+                    return;
+                }
+
+                Model.InputPath = OutputLines.Last();
+
+                OutputLines.Add("Done with script!");
+
+                await InvokeAsync(() => StateHasChanged());
             }
 
-            Model.InputPath = OutputLines.Last();
+            if (string.IsNullOrWhiteSpace(Model!.InputPath) || string.IsNullOrWhiteSpace(Model!.OutputPath))
+            {
+                ErrorLines.Add("Please specify both input and output paths");
+                return;
+            }; 
+
+            var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+
+            FileSystemService.CreateDirectory(outputSubFolder);
+
+            var importParams = new ImportSavOptions()
+                {
+                    ImportLastSeen = false,
+                    ImportDeleted = true,
+                    ForceMagicCheck = false,
+                    AverageType = Model!.AverageType,
+                    AebStep = 2,
+                    BanksToProcess = -1,
+                    CartIsJp = cartIsJp ?? false,
+                    ChannelOrder = Model.ChannelOrder,
+                    RgbMerge = true
+                };
+
+            var progress = new Progress<ProgressInfo>(ReportProgress);
+
+            _lastReport = String.Empty;
+
+           
+
+            Stopwatch s = new Stopwatch();
+            s.Start();
+
+            var result = await Task.Run(() =>
+                ImageTransformService.TransformSav(Model.InputPath, outputSubFolder, importParams, progress));
+
+            s.Stop();
+
+            _lastReport += $"/r/n{s.Elapsed:g}";
 
         }
+        catch (Exception e)
+        {
+            ErrorLines.Add(e.ToString());
+            Debug.WriteLine(e);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
 
-        if (string.IsNullOrWhiteSpace(Model!.InputPath) || string.IsNullOrWhiteSpace(Model!.OutputPath)) return; // TODO: Warn
-
-        var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
-
-        FileSystemService.CreateDirectory(outputSubFolder);
-
-        var importParams = new ImportSavOptions()
-            {
-                ImportLastSeen = false,
-                ImportDeleted = true,
-                ForceMagicCheck = false,
-                AverageType = Model!.AverageType,
-                AebStep = 2,
-                BanksToProcess = -1,
-                CartIsJp = cartIsJp ?? false,
-                ChannelOrder = Model.ChannelOrder,
-                RgbMerge = true
-            };
-
-        var progress = new Progress<ProgressInfo>(ReportProgress);
-
-        _lastReport = String.Empty;
-
-        _isProcessing = true;
-
-        Stopwatch s = new Stopwatch();
-        s.Start();
-
-        var result = await Task.Run(() =>
-            ImageTransformService.TransformSav(Model.InputPath, outputSubFolder, importParams, progress));
-
-        s.Stop();
-
-        _lastReport += $"/r/n{s.Elapsed:g}";
-        _isProcessing = false;
     }
 
 
