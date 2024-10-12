@@ -90,6 +90,9 @@
         {
             var prescript = Model!.PreScript;
 
+            OutputLines.Clear();
+            ErrorLines.Clear();
+
             var res =  await ExecutionService.RunScriptAsync(prescript.Path, prescript.RunLocation, prescript.Arguments);
 
             if (!res && prescript.FailOnError)

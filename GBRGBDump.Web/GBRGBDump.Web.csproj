@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="settings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Blazorise.Bootstrap5" Version="1.6.1" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.6.1" />
   </ItemGroup>

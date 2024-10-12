@@ -11,6 +11,7 @@ using GBTools.Common;
 using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GBRGBDump.Web
@@ -58,6 +59,11 @@ namespace GBRGBDump.Web
             //builder.Services.AddFileSystemAccessService();
 
             var app = builder.Build();
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
