@@ -4,11 +4,13 @@
 @using GBTools.Common
 @using GBTools.Bootstrapper
 @using Microsoft.AspNetCore.Components.Web
+@using System.Collections.ObjectModel
 @inject ImageTransformService ImageTransformService
 @inject IFileDialogService FileDialogService
 @inject NavigationManager Navigation
 @inject ISettingsService SettingsService
-@inject IFileSystemService FileSystemService
+@inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
+@inject IExecutionService ExecutionService
 
 <NavLink href="/">Back</NavLink>
 
@@ -16,6 +18,10 @@
 <NavLink href="/folders">Browser</NavLink>
 
 <p>Loading from @Model!.InputPath into @Model!.OutputPath</p>
+@if (Model!.PreScript.Enabled)
+{
+    <p>Scripts enabled: @Model!.PreScript.Path @Model!.PreScript.Arguments executing in @Model!.PreScript.RunLocation</p>
+}
 
 <Button Color="Color.Danger" Clicked="Exececute" Disabled="@_isProcessing">Execute</Button>
 
@@ -24,21 +30,53 @@
     <SpinKit Type="SpinKitType.Circle"></SpinKit>
 }
 
-
 <p>@_lastReport</p>
+
+@foreach (var output in OutputLines)
+{
+    <p>@output</p>
+}
+
+@foreach (var error in ErrorLines)
+{
+    <p>@error</p>
+}
 
 @code
 {
 
     [SupplyParameterFromForm] private SettingsModel? Model { get; set; }
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         Model ??= SettingsService.LoadSettings() ?? new()
             {
                 // Set defaults here
                 ChannelOrder = ChannelOrder.Sequential,
                 AverageType = AverageTypes.Normal
             };
+
+        ExecutionService.OutputReceived += (sender, output) =>
+        {
+            InvokeAsync(() => { 
+                OutputLines.Add(output);
+                StateHasChanged();
+            });
+        };
+
+        ExecutionService.ErrorReceived += (sender, error) =>
+        {
+            InvokeAsync(() =>
+            {
+                ErrorLines.Add(error);
+                StateHasChanged();
+            });
+        };
+    }
+
+
+    ObservableCollection<string> OutputLines { get; set; } = new ObservableCollection<string>();
+    ObservableCollection<string> ErrorLines { get; set; } = new ObservableCollection<string>();
 
     private bool? cartIsJp;
     private string _lastReport = string.Empty;
@@ -47,6 +85,24 @@
 
     private async Task Exececute()
     {
+        // Execute Script
+        if (Model!.PreScript.Enabled)
+        {
+            var prescript = Model!.PreScript;
+
+            var res =  await ExecutionService.RunScriptAsync(prescript.Path, prescript.RunLocation, prescript.Arguments);
+
+            if (!res && prescript.FailOnError)
+            {
+                Debug.WriteLine("Script failed");
+                _lastReport = "Script has failed";
+                return;
+            }
+
+            Model.InputPath = OutputLines.Last();
+
+        }
+
         if (string.IsNullOrWhiteSpace(Model!.InputPath) || string.IsNullOrWhiteSpace(Model!.OutputPath)) return; // TODO: Warn
 
         var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
@@ -54,17 +110,17 @@
         FileSystemService.CreateDirectory(outputSubFolder);
 
         var importParams = new ImportSavOptions()
-        {
-            ImportLastSeen = false,
-            ImportDeleted = true,
-            ForceMagicCheck = false,
-            AverageType = Model!.AverageType,
-            AebStep = 2,
-            BanksToProcess = -1,
-            CartIsJp = cartIsJp ?? false,
-            ChannelOrder = Model.ChannelOrder,
-            RgbMerge = true
-        };
+            {
+                ImportLastSeen = false,
+                ImportDeleted = true,
+                ForceMagicCheck = false,
+                AverageType = Model!.AverageType,
+                AebStep = 2,
+                BanksToProcess = -1,
+                CartIsJp = cartIsJp ?? false,
+                ChannelOrder = Model.ChannelOrder,
+                RgbMerge = true
+            };
 
         var progress = new Progress<ProgressInfo>(ReportProgress);
 
@@ -93,6 +149,7 @@
     private void ReportProgress(ProgressInfo value)
     {
         _lastReport = $"{value.CurrentImageName}";
+        StateHasChanged();
     }
 
 }

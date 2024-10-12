@@ -16,6 +16,7 @@ using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
+using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,12 +54,13 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IGameboyPrinterService, GameboyPrinterService>();
 
             serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
+            serviceCollection.AddTransient<IExecutionService, ExecutionService>();
 
             // Web services
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
-            serviceCollection.AddTransient<IFileSystemService, LocalFileSystemService>();
+            serviceCollection.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
 
             serviceCollection
                 .AddBlazorise()

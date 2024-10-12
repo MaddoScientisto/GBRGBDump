@@ -10,8 +10,6 @@
     <Icon Name="@("fa-arrow-left")"></Icon>
 </Button>
 
-<PageTitle>Settings</PageTitle>
-
 <Card Padding="Padding.Is0.OnMobile">
     <CardHeader Padding="Padding.Is1.OnMobile">Settings</CardHeader>
     @*     <CardBody>
@@ -81,12 +79,73 @@
                     <FieldHelp Display="Display.None.Block.OnMobile">Full Mode does an extra Average step between both groups in a bank.</FieldHelp>
                 </FieldBody>
             </Field>
-            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is1.OnMobile">
-                <Button Color="Color.Success" Clicked="Submit">Save</Button>
-            </Field>
+            
         </Fields>
 
     </CardBody>
+    @* Pre-Processing Script *@
+    <CardHeader Padding="Padding.Is1.OnMobile">Pre-Processing Script</CardHeader>
+    <CardBody Margin="Margin.Is0.OnMobile" Padding="Padding.Is0.OnMobile">
+        <Fields Padding="Padding.Is0.OnMobile" Margin="Margin.Is0.OnMobile">
+            @* Enabled *@
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+               @*  <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Enabled</FieldLabel> *@
+                <FieldBody>
+                    <Switch TValue="bool" @bind-Checked="@Model!.PreScript.Enabled" >Enabled</Switch>
+                </FieldBody>
+            </Field>
+
+            @* Fail on error *@
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                @*  <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Enabled</FieldLabel> *@
+                <FieldBody>
+                    <Switch TValue="bool" @bind-Checked="@Model!.PreScript.FailOnError">Fail on Error</Switch>
+                </FieldBody>
+            </Field>
+
+            @* Path *@
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Path</FieldLabel>
+                <FieldBody Margin="Margin.Is0.OnMobile">
+                    <TextEdit @bind-Text="@Model!.PreScript.Path" Padding="Padding.Is1.OnMobile">
+
+                    </TextEdit>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Help Description here</FieldHelp>
+
+                </FieldBody>
+            </Field>
+            
+            @* Run Location *@
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Run Location</FieldLabel>
+                <FieldBody Margin="Margin.Is0.OnMobile">
+                    <TextEdit @bind-Text="@Model!.PreScript.RunLocation" Padding="Padding.Is1.OnMobile">
+
+                    </TextEdit>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Help Description here</FieldHelp>
+
+                </FieldBody>
+            </Field>
+
+            @* Arguments *@
+            <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+                <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Arguments</FieldLabel>
+                <FieldBody Margin="Margin.Is0.OnMobile">
+                    <TextEdit @bind-Text="@Model!.PreScript.Arguments" Padding="Padding.Is1.OnMobile">
+
+                    </TextEdit>
+                    <FieldHelp Display="Display.None.Block.OnMobile">Help Description here</FieldHelp>
+
+                </FieldBody>
+            </Field>
+        </Fields>
+    </CardBody>
+    <CardFooter>
+        <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is1.OnMobile">
+            <Button Color="Color.Success" Clicked="Submit">Save</Button>
+        </Field>
+    </CardFooter>
+
 </Card>
 
 @code {
