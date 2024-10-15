@@ -10,6 +10,9 @@ concurrency: production
 permissions: 
   contents: write
 
+env:
+  NuGetDirectory: ${{ github.workspace}}/nuget
+
 jobs:
   # GitVersion_v6_cross_job:
   #   name: GitVersion v6 (cross job)
@@ -40,6 +43,10 @@ jobs:
     outputs:
        branchName: ${{ steps.version_step.outputs.branchName }}
        fullSemVer: ${{ steps.version_step.outputs.fullSemVer }}
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: true
+      NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -51,6 +58,10 @@ jobs:
         dotnet-version: '8.0.x'
         cache: true
         cache-dependency-path: '**/packages.lock.json'
+
+    - name: Add NuGet package source
+      run : |
+        dotnet nuget add source --username MaddoScientisto --password ${{ env.NUGET_APIKEY }} --store-password-in-clear-text --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"    
     
     - name: Restore dependencies
       run: dotnet restore --locked-mode
@@ -69,6 +80,8 @@ jobs:
       with:
         arguments: /updateprojectfiles
 
+    # Build Executables
+
     - name: Build GBRGBDump.GUI
       run: |
         dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
@@ -76,6 +89,19 @@ jobs:
     - name: Build GBRGBDump WebUi
       run: |
         dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
+
+    # Build NuGet Packages
+    - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}
+
+    # Upload NuGet Packages Artifacts
+    - name: Upload NuGet Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget
+        path: ${{ env.NuGetDirectory }}/*.nupkg
+        if-no-files-found: error
+
+    # Upload Artifacts
 
     - name: Upload WebUi Artifact
       uses: actions/upload-artifact@v4
@@ -102,7 +128,8 @@ jobs:
                 - { runtime: 'linux-x64', output: 'linux-x64' }
                 - { runtime: 'linux-arm', output: 'linux-arm' }
                 - { runtime: 'linux-arm64', output: 'linux-arm64' }
-
+    env:
+      NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -117,6 +144,10 @@ jobs:
 
     - name: Restore dependencies
       run: dotnet restore --locked-mode
+
+    - name: Add NuGet package source
+      run : |
+        dotnet nuget add source --username MaddoScientisto --password ${{ env.NUGET_APIKEY }} --store-password-in-clear-text --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3.0.0
@@ -153,6 +184,9 @@ jobs:
   publish-release:
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
+    env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NUGET_APIKEY: ${{ secrets.NUGET_APIKEY }}
     steps:
     - uses: dawidd6/action-download-artifact@v6
       with:
@@ -160,6 +194,8 @@ jobs:
         skip_unpack: true
         if_no_artifact_found: fail
         workflow_conclusion: ""
+        name: ^(?!.*\.nupkg$).*
+        name_is_regexp: true
     # Debug step
     - name: Display structure of downloaded files
       run: ls -R
@@ -183,8 +219,7 @@ jobs:
 
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       with:
         files: ./artifacts/**
         tag_name: ${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
@@ -192,3 +227,27 @@ jobs:
         # asset_path: ./artifacts
         # asset_name: Release-Assets.zip
         # asset_content_type: application/zip
+
+    - name: Add NuGet package source
+      run : |
+        dotnet nuget add source --username MaddoScientisto --password ${{ env.NUGET_APIKEY }} --store-password-in-clear-text --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"
+
+    - name: Download the nuget artifacts
+      uses: dawidd6/action-download-artifact@v6
+      with:
+        path: nuget
+        skip_unpack: false
+        if_no_artifact_found: fail
+        workflow_conclusion: ""
+        name: .*\.nupkg$
+        name_is_regexp: true
+
+    # Publish packages
+    - name: Publish NuGet package
+      run: |
+        for file in $(find "nuget" -type f -name "*.nupkg"); do
+          dotnet nuget push "$file" --api-key "${{ env.NUGET_APIKEY }}" --source maddo-github --skip-duplicate
+        done
+
+
+    

@@ -6,8 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-	  <RootNamespace>GBRGBDump</RootNamespace>
+	  <RootNamespace>GBRGBDump.WebGui</RootNamespace>
 	  <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+	  <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

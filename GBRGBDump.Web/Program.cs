@@ -1,11 +1,11 @@
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
-using GBRGBDump.Web.Components;
 using GBRGBDump.Web.Services.Impl;
 using GBRGBDump.Web.Shared.Pages;
 using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
+using GBRGBDump.WebServer.Components;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Common.Services;

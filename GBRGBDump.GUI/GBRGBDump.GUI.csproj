@@ -8,7 +8,13 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>gbrgbdump-logo.ico</ApplicationIcon>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+	  <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+	<PropertyGroup>
+		<PackageReadmeFile>Readme.md</PackageReadmeFile>
+	</PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>embedded</DebugType>

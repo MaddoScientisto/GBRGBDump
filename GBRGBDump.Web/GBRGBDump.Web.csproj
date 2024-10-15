@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	  <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+	  <RootNamespace>GBRGBDump.WebServer</RootNamespace>
+	  <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +25,10 @@
     <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
     <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />
     <ProjectReference Include="..\GBTools.Graphics\GBTools.Graphics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>
