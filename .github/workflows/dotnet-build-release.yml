@@ -12,6 +12,7 @@ permissions:
 
 env:
   NuGetDirectory: ${{ github.workspace}}/nuget
+  NUGET_OWNER: MaddoScientisto
 
 jobs:
   # GitVersion_v6_cross_job:
@@ -61,7 +62,7 @@ jobs:
 
     - name: Add NuGet package source
       run : |
-        dotnet nuget add source --username MaddoScientisto --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"    
+        dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"    
     
     - name: Restore dependencies
       run: dotnet restore --locked-mode
@@ -147,7 +148,7 @@ jobs:
 
     - name: Add NuGet package source
       run : |
-        dotnet nuget add source --username MaddoScientisto --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"
+        dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3.0.0
@@ -230,7 +231,7 @@ jobs:
 
     - name: Add NuGet package source
       run : |
-        dotnet nuget add source --username MaddoScientisto --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/OWNER/index.json"
+        dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"
 
     - name: Download the nuget artifacts
       uses: dawidd6/action-download-artifact@v6
