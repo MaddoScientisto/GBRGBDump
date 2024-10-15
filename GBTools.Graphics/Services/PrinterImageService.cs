@@ -31,8 +31,6 @@ public class PrinterImageService()
 
         var canvas = new Image<Rgba32>(1, 1);
 
-        //Bitmap canvas = new Bitmap(1, 1); // TODO: Dispose
-
         var bufferStart = 0;
         var ptr = 0;
         var idx = 0;
@@ -71,7 +69,6 @@ public class PrinterImageService()
                                 exposure))
                         {
                             canvases.Add(CanvasToBase64(canvas));
-                            //canvas = new Bitmap(1, 1);
                             canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
                         }
 
@@ -91,7 +88,6 @@ public class PrinterImageService()
                                 0xE4, 0Xff);
 
                             canvases.Add(CanvasToBase64(canvas));
-                            //canvas = new Bitmap(1, 1);
                             canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
 
                             bufferStart = ptr;
@@ -114,7 +110,6 @@ public class PrinterImageService()
                 if (canvas.Height > 1)
                 {
                     canvases.Add(CanvasToBase64(canvas));
-                    //canvas = new Bitmap(1, 1);
                     canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
                 }
             }
@@ -131,7 +126,6 @@ public class PrinterImageService()
         var canvasHeight = 1;
         var canvasWidth = 1;
 
-
         // Create a new palette (just like the Uint8Array in JavaScript)
         byte[] pal = new byte[4];
         pal[0] = (byte)((exposure * ((palette >> 0) & 0x03)) / 3);
@@ -147,54 +141,11 @@ public class PrinterImageService()
         int newCanvasHeight = ((canvasHeight >> 3) << 3) +
                               ((Math.Max(0, imageEnd - imageStart) / (TILE_SIZE * imageTileWidth)) >> 0) * 8;
 
-
-        // Create a Bitmap to simulate the canvas
-        //Bitmap canvas = new Bitmap(imageTileWidth * 8, newCanvasHeight);
         canvas.Mutate(x =>
             x
                 .Resize(imageTileWidth * 8, newCanvasHeight)
                 .Clear(SixLabors.ImageSharp.Color.Transparent)
         );
-
-        //canvas = new Bitmap(canvas, imageTileWidth * 8, newCanvasHeight);
-
-        // Use Graphics to draw
-        //using (Graphics g = Graphics.FromImage(canvas))
-        //{
-        //    g.Clear(Color.Transparent); // Initialize with transparent color
-        //}
-
-        // Lock the bitmap data to directly manipulate pixel values
-        // BitmapData bitmapData = canvas.LockBits(new Rectangle(0, 0, canvas.Width, canvas.Height),ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-        //IntPtr ptr = bitmapData.Scan0;
-        //int bytes = Math.Abs(bitmapData.Stride) * canvas.Height;
-        //byte[] writeData = new byte[bytes];
-        //System.Runtime.InteropServices.Marshal.Copy(ptr, writeData, 0, bytes);
-
-        //for (int i = imageStart; i < imageEnd;)
-        //{
-        //    for (int t = 0; t < 8; t++)
-        //    {
-        //        byte b1 = imageData[i++];
-        //        byte b2 = imageData[i++];
-        //        for (int b = 0; b < 8; b++)
-        //        {
-        //            int offset = (((tile_y << 3) + t) * canvas.Width + (tile_x << 3) + b) << 2;
-        //            int color_index = ((b1 >> (7 - b)) & 1) | (((b2 >> (7 - b)) & 1) << 1);
-
-        //            writeData[offset + 0] = writeData[offset + 1] =
-        //                writeData[offset + 2] = (byte)(0xFF - pal[color_index]); // Grayscale
-        //            writeData[offset + 3] = 0xFF; // Alpha channel
-        //        }
-        //    }
-
-        //    tile_x += 1;
-        //    if (tile_x >= imageTileWidth)
-        //    {
-        //        tile_x = 0;
-        //        tile_y++;
-        //    }
-        //}
 
         // Iterate through the image data and modify the canvas pixels
         for (int i = imageStart; i < imageEnd;)
@@ -228,17 +179,6 @@ public class PrinterImageService()
                 tile_y++;
             }
         }
-
-        // Copy modified data back to the bitmap
-        //System.Runtime.InteropServices.Marshal.Copy(writeData, 0, ptr, bytes);
-        //canvas.UnlockBits(bitmapData);
-
-        //// Convert the bitmap to a Base64 string
-        //using MemoryStream ms = new MemoryStream();
-        //canvas.Save(ms, ImageFormat.Png);
-        //byte[] imageBytes = ms.ToArray();
-
-        //return Convert.ToBase64String(imageBytes);
 
         return ((margin & 0x0f) != 0);
     }
