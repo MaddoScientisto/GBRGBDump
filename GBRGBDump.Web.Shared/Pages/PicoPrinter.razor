@@ -22,7 +22,26 @@
     </Row>
 
     <Row>
-        <Button Clicked="ProcessGbPrinterData" Color="Color.Danger" Disabled="@CannotExecute" Loading="@IsProcessing">Get from GB Printer</Button>
+        <Buttons Role="ButtonsRole.Toolbar">
+            <Buttons Margin="Margin.Is2.FromEnd">
+                <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
+                <Button Color="Color.Info"><Icon Name="IconName.HandPaper"/> Tear</Button>
+                <Button Color="Color.Secondary"><Icon Name="IconName.CheckDouble"/> Select All</Button>
+            </Buttons>
+            <Buttons>
+                <Button Color="Color.Danger"><Icon Name="IconName.Delete" /> Delete</Button>
+            </Buttons>
+            <Buttons Margin="Margin.Is2.OnX">
+                <Button Color="Color.Primary">Average</Button>
+                <Button Color="Color.Primary">RGB</Button>
+            </Buttons>
+        </Buttons>
+        
+        
+
+        
+
+        
     </Row>
     <Row>
         <CardDeck>
