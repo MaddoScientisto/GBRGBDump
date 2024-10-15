@@ -6,26 +6,37 @@
 @inject PrinterImageService PrinterImageService
 @inject ISettingsService SettingsService
 
-<NavLink href="/">Back</NavLink>
-<NavLink href="/settings">Settings</NavLink>
+<Container Fluid>
+    <Row>
+        <NavLink href="/">Back</NavLink>
+        <NavLink href="/settings">Settings</NavLink>
+    </Row>
+    <Row>
+        <h3>PicoPrinter</h3>
+    </Row>
+    <Row>
+        @if (string.IsNullOrWhiteSpace(Model!.PrinterAddress))
+        {
+            <Alert Color="Color.Danger" Visible>
+                <AlertDescription>No printer address specified, please add it to the settings</AlertDescription>
+            </Alert>
+        }
+        <ErrorViewer ErrorText="@_errorText"></ErrorViewer>
+    </Row>
+    
+    <Row>
+        <Button Clicked="ProcessGbPrinterData" Color="Color.Danger" Disabled="@CannotExecute" Loading="@IsProcessing">Get from GB Printer</Button>
+    </Row>
+    <Row>
+        <div class="image-grid">
+            @foreach (var image in _images)
+            {
+                <Base64ImagePreview ImageData="@image"></Base64ImagePreview>
+            }
+        </div>
 
-<h3>PicoPrinter</h3>
-
-@if (string.IsNullOrWhiteSpace(Model!.PrinterAddress))
-{
-    <Alert Color="Color.Danger" Visible>
-        <AlertDescription>No printer address specified, please add it to the settings</AlertDescription>
-    </Alert>
-}
-
-<Button Clicked="ProcessGbPrinterData" Color="Color.Danger" Disabled="@CannotExecute" Loading="@IsProcessing">Get from GB Printer</Button>
-
-<ErrorViewer ErrorText="@_errorText"></ErrorViewer>
-
-@foreach (var image in _images)
-{
-    <Base64ImagePreview ImageData="@image"></Base64ImagePreview>
-}
+    </Row>
+</Container>
 
 @code {
     ObservableCollection<string> _images = [];

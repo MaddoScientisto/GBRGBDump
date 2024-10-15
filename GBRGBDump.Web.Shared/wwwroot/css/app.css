@@ -46,3 +46,16 @@ a, .btn-link {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px; /* Space between grid items */
+    padding: 10px; /* Padding around the grid */
+}
+
+    .image-grid img {
+        width: 100%;
+        height: auto; /* Maintain aspect ratio */
+        display: block; /* Removes bottom space in images */
+    }
