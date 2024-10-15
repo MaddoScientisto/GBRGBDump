@@ -12,6 +12,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Blazorise.Bootstrap5" Version="1.6.1" />
+    <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.6.1" />
+    <PackageReference Include="Blazorise.SpinKit" Version="1.6.1" />
+    <PackageReference Include="Blazorise.TreeView" Version="1.6.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GBTools.Bootstrapper\GBTools.Bootstrapper.csproj" />
     <ProjectReference Include="..\GBTools.Common\GBTools.Common.csproj" />
     <ProjectReference Include="..\GBTools.Decoder\GBTools.Decoder.csproj" />

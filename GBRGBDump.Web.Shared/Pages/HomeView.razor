@@ -1,14 +1,13 @@
-﻿@* @page "/" *@
-@rendermode InteractiveServer 
+﻿@page "/"
 @inject NavigationManager Navigation
-
-@* <GbDump></GbDump> *@
 
 <Heading>GB RGB Dump</Heading>
 
 <Button Color="Color.Primary" Clicked="GoToSettings"><Icon Name="@("fa-gear")"></Icon></Button>
 
+<NavLink href="/processing">Processing</NavLink>
 
+<NavLink href="/folders">Browser</NavLink>
 
 @code {
 

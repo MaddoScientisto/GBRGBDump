@@ -1,10 +1,17 @@
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using GBRGBDump.Web.Components;
 using GBRGBDump.Web.Services.Impl;
+using GBRGBDump.Web.Shared.Pages;
 using GBRGBDump.Web.Shared.Services;
+using GBRGBDump.Web.Shared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
+using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GBRGBDump.Web
@@ -16,7 +23,7 @@ namespace GBRGBDump.Web
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddRazorComponents()
+            builder.Services.AddRazorComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
             .AddInteractiveServerComponents();
 
             builder.Services.AddTransient<ImageTransformService>();
@@ -39,10 +46,24 @@ namespace GBRGBDump.Web
 
             builder.Services.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
 
+            builder.Services.AddTransient<IExecutionService, ExecutionService>();
+
             // Web services
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
+            builder.Services.AddTransient<IEnvironmentService, EnvironmentService>();
+            builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+            builder.Services.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+
+            builder.Services.AddBlazorise().AddBootstrap5Providers().AddFontAwesomeIcons();
+
+            //builder.Services.AddFileSystemAccessService();
 
             var app = builder.Build();
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -58,6 +79,7 @@ namespace GBRGBDump.Web
             app.UseAntiforgery();
 
             app.MapRazorComponents<App>()
+                .AddAdditionalAssemblies(typeof(SharedPages).Assembly)
                 .AddInteractiveServerRenderMode();
 
             app.Run();

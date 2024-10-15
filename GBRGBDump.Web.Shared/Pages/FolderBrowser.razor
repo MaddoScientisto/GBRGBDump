@@ -1,0 +1,93 @@
+﻿@page "/folders"
+@using GBRGBDump.Web.Shared.Services.Impl
+@inject ISettingsService SettingsService
+@inject NavigationManager Navigation
+@inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
+
+<NavLink href="/">Back</NavLink>
+<Button Clicked="ShowPreview">Preview</Button>
+
+@if (showPreview && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image)
+{
+    <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
+}
+
+
+<TreeView Nodes="Items"
+          GetChildNodes="@(item => item.Children)"
+          HasChildNodes="@(item => item.Children?.Any() == true)"
+          @bind-SelectedNode="selectedNode"
+          @bind-ExpandedNodes="expandedNodes">
+    <NodeContent>
+        @switch (context.Type)
+        {
+            case ItemType.File:
+                <Icon Name="IconName.File"/>
+                break;
+            case ItemType.Image:
+                <Icon Name="IconName.Image"/>
+                @* <div>
+                    <Figure Size="FigureSize.Is16x16">
+                        <FigureImage Source=""></FigureImage>
+                    </Figure>
+                </div> *@
+                break;
+            case ItemType.Rom:
+                <Icon Name="IconName.Gamepad"/>
+                break;
+            case ItemType.Sav:
+                <Icon Name="IconName.CompactDisc"/>
+                break;
+            case ItemType.Folder:
+                <Icon Name="IconName.Folder"/>
+                break;
+            default:
+                <Icon Name="IconName.File"/>
+                break;
+        }
+        @context.Text
+    </NodeContent>
+</TreeView>
+
+@code {
+
+    private SettingsModel? Settings { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Settings ??= SettingsService.LoadSettings() ?? new()
+        {
+            // Set defaults here
+            ChannelOrder = ChannelOrder.Sequential,
+            AverageType = AverageTypes.Normal
+        };
+
+        if (string.IsNullOrWhiteSpace(Settings.OutputPath))
+        {
+            return;
+        }
+
+        var fileSystem = FileSystemService.GetFileSystemEntries(Settings.OutputPath);
+
+        var builder = new PathToHierarchy();
+        var root = builder.BuildHierarchy(fileSystem.ToList());
+
+        Items = [root];
+    }
+
+
+    IEnumerable<Item> Items = new[]
+    {
+        new Item { Text = "Test" }
+    };
+
+    IList<Item> expandedNodes = new List<Item>();
+    Item selectedNode;
+
+    bool showPreview = false;
+
+    void ShowPreview()
+    {
+        showPreview = true;
+    }
+}
