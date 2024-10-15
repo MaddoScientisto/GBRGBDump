@@ -4,8 +4,7 @@
 @inject NavigationManager Navigation
 @inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 
-<NavLink href="/">Back</NavLink>
-<Button Clicked="ShowPreview">Preview</Button>
+<Button Clicked="ShowPreview" Color="Color.Primary">Preview</Button>
 
 @if (showPreview && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image)
 {

@@ -1,6 +1,16 @@
-﻿@inherits LayoutComponentBase
+﻿@using GBRGBDump.WebShared.Pages
+@inherits LayoutComponentBase
+<Layout>
+    <LayoutHeader>
+        <NavigationBar />
+    </LayoutHeader>
+    <LayoutContent>
+        <ErrorBoundary>
+            @Body
+        </ErrorBoundary>
+    </LayoutContent>
+</Layout>
 
-@Body
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.

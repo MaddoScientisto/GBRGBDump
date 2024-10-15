@@ -1,9 +1,17 @@
-﻿@inherits LayoutComponentBase
+﻿@using GBRGBDump.WebShared.Pages
+@inherits LayoutComponentBase
 @inject IHostEnvironment HostEnvironment
 
-<ErrorBoundary>
-    @Body
-</ErrorBoundary>
+<Layout>
+    <LayoutHeader>
+        <NavigationBar />
+    </LayoutHeader>
+    <LayoutContent>
+        <ErrorBoundary>
+            @Body
+        </ErrorBoundary>
+    </LayoutContent>
+</Layout>
 
 <div id="blazor-error-ui" data-nosnippet>
     @if (HostEnvironment.IsProduction())

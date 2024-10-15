@@ -12,11 +12,6 @@
 @inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 @inject IExecutionService ExecutionService
 
-<NavLink href="/">Back</NavLink>
-
-<NavLink href="/settings">Settings</NavLink>
-<NavLink href="/folders">Browser</NavLink>
-
 <p>Loading from @Model!.InputPath into @Model!.OutputPath</p>
 @if (Model!.PreScript.Enabled)
 {

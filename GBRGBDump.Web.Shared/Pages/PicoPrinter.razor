@@ -7,10 +7,7 @@
 @inject ISettingsService SettingsService
 
 <Container Fluid>
-    <Row>
-        <NavLink href="/">Back</NavLink>
-        <NavLink href="/settings">Settings</NavLink>
-    </Row>
+
     <Row>
         <h3>PicoPrinter</h3>
     </Row>
@@ -23,23 +20,68 @@
         }
         <ErrorViewer ErrorText="@_errorText"></ErrorViewer>
     </Row>
-    
+
     <Row>
         <Button Clicked="ProcessGbPrinterData" Color="Color.Danger" Disabled="@CannotExecute" Loading="@IsProcessing">Get from GB Printer</Button>
     </Row>
     <Row>
-        <div class="image-grid">
+        <CardDeck>
             @foreach (var image in _images)
             {
-                <Base64ImagePreview ImageData="@image"></Base64ImagePreview>
+                <Card>
+                    <CardImage Source="@image.DataSource" Style="image-rendering: pixelated;" @onclick="() => OnPictureClick(image)"></CardImage>
+                    <CardBody Padding="Padding.Is1">
+                        <CardText>Image @image.Name</CardText>
+
+                        <Button Size="Size.Small"
+                                Margin="Margin.Is2.FromTop"
+                                Padding="Padding.Is0" 
+                                Color="Color.Primary" Outline><Icon Name="IconName.Download" /></Button>
+                        <Button Size="Size.Small"
+                                Margin="Margin.Is2.FromTop"
+                                Padding="Padding.Is0" 
+                                Color="Color.Danger" Outline><Icon Name="IconName.Delete" /></Button>
+                    </CardBody>
+                </Card>
             }
-        </div>
+        </CardDeck>
+        @*  <div class="gallery">
+            @foreach (var image in _images)
+            {
+                @* <div class="gallery-item">
+                    <img @onclick="() => OnPictureClick(image)" src="@image" alt="image caption"/>
+                    <div class="caption">Name</div>
+                    <div class="button-row">
+                        <Button>test</Button>
+                        <Button>test 2</Button>
+                    </div>
+                </div> *@
+        @*}
+        </div> *@
 
     </Row>
 </Container>
 
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>@ImagePreview.Name</ModalTitle>
+            <CloseButton/>
+        </ModalHeader>
+        <ModalBody>
+            <Card>
+                <CardImage Source="@ImagePreview.DataSource" Style="image-rendering: pixelated;"></CardImage>
+                <CardBody>
+                    <Button Color="Color.Primary"><Icon Name="IconName.Download" /></Button>
+                    <Button Color="Color.Danger"><Icon Name="IconName.Delete" /></Button>
+                </CardBody>
+            </Card>
+        </ModalBody>
+    </ModalContent>
+</Modal>
+
 @code {
-    ObservableCollection<string> _images = [];
+    ObservableCollection<GbImageContainer> _images = [];
     private bool IsProcessing { get; set; } = false;
 
     private string _errorText = String.Empty;
@@ -47,6 +89,10 @@
     private SettingsModel? Model { get; set; }
 
     private bool CannotExecute => IsProcessing || string.IsNullOrWhiteSpace(Model!.PrinterAddress);
+
+    private Modal modalRef;
+
+    private GbImageContainer? ImagePreview { get; set; } = new GbImageContainer();
 
     protected override void OnInitialized()
     {
@@ -84,7 +130,7 @@
 
         // You can now continue processing `resData` and `processedData` as needed
 
-        return resData;  // or perform further processing here and return as necessary
+        return resData; // or perform further processing here and return as necessary
     }
 
     private async Task ProcessGbPrinterData()
@@ -98,7 +144,12 @@
 
             var processedData = await PrinterImageService.GetImages(data);
 
-            _images = new ObservableCollection<string>(processedData.Select(x => $"data:image/png;base64,{x}"));
+            _images = new ObservableCollection<GbImageContainer>(processedData.Select((x, index) => new GbImageContainer()
+            {
+                Base64Png = x,
+                Name = index.ToString(),
+                Id = index
+            }));
         }
         catch (Exception e)
         {
@@ -110,6 +161,25 @@
         {
             IsProcessing = false;
         }
+    }
+
+    private async Task OnPictureClick(GbImageContainer picture)
+    {
+        ImagePreview = picture;
+        await modalRef.Show();
+    }
+
+
+    public class GbImageContainer
+    {
+        public string Base64Png { get; set; } = string.Empty;
+
+        public string DataSource => $"data:image/png;base64,{Base64Png}";
+
+        public string Name { get; set; } = string.Empty;
+        public int Id { get; set; }
+
+        public bool IsSelected { get; set; } = false;
     }
 
 }

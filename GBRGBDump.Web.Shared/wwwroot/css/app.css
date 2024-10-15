@@ -47,15 +47,48 @@ a, .btn-link {
         top: 0.5rem;
     }
 
-.image-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    /*grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));*/
     gap: 10px; /* Space between grid items */
+    justify-content: center;
     padding: 10px; /* Padding around the grid */
 }
 
-    .image-grid img {
-        width: 100%;
-        height: auto; /* Maintain aspect ratio */
-        display: block; /* Removes bottom space in images */
+/* Div wrapping each image, caption, and buttons */
+.gallery-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #ddd;
+    padding: 10px;
+    background-color: #f9f9f9;
+    width: fit-content;
+}
+
+    /* Style for the image */
+    .gallery-item img {
+        image-rendering: pixelated; /* Nearest neighbor filtering */
+        width: auto;
+        height: auto;
+        max-width: 100%; /* Ensures image doesn't overflow */
+        object-fit: contain;
     }
+
+/* Caption style */
+.caption {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+    text-align: center;
+    width: 100%;
+}
+
+/* Button row style */
+.button-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
