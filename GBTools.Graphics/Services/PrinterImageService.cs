@@ -24,9 +24,6 @@ public class PrinterImageService()
     const int TILE_HEIGHT = 8;
     const int TILE_WIDTH = 8;
 
-    const string imageBinPath = "/download";
-    const string resetPath = "/reset";
-
     public async Task<List<string>> GetImages(byte[] resData)
     {
         var size = resData.Length;
@@ -43,82 +40,85 @@ public class PrinterImageService()
 
         var canvases = new List<string>();
 
-        while (idx < size)
+        await Task.Run(() =>
         {
-            string lastImage = string.Empty;
-
-            var command = resData[idx++];
-            switch (command)
+            while (idx < size)
             {
-                case COMMAND_INIT:
-                    break;
-                case COMMAND_PRINT:
+                string lastImage = string.Empty;
+
+                var command = resData[idx++];
+                switch (command)
+                {
+                    case COMMAND_INIT:
+                        break;
+                    case COMMAND_PRINT:
 
 
-                    if ((len = resData[idx++] | (resData[idx++] << 8)) != 4)
-                    {
+                        if ((len = resData[idx++] | (resData[idx++] << 8)) != 4)
+                        {
+                            idx = size;
+                            break;
+                        }
+
+                        var sheets = resData[idx++];
+                        var margins = resData[idx++];
+                        var palette = resData[idx++];
+                        var exposure = (byte)Math.Min(0xFF, 0x80 + resData[idx++]);
+
+                        palette = (palette != 0) ? palette : (byte)0xE4;
+
+                        if (Render(ref canvas, processedData, bufferStart, ptr, PRINTER_WIDTH, sheets, margins, palette,
+                                exposure))
+                        {
+                            canvases.Add(CanvasToBase64(canvas));
+                            //canvas = new Bitmap(1, 1);
+                            canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
+                        }
+
+                        bufferStart = ptr;
+
+                        break;
+                    case COMMAND_TRANSFER:
+                        {
+                            len = resData[idx++] | (resData[idx++] << 8);
+                            var currentImageStart = ptr;
+
+                            ptr = Decode(false, resData, size, len, idx, processedData, ptr);
+
+                            idx += len;
+
+                            Render(ref canvas, processedData, currentImageStart, ptr, CAMERA_WIDTH, 1, 0x03,
+                                0xE4, 0Xff);
+
+                            canvases.Add(CanvasToBase64(canvas));
+                            //canvas = new Bitmap(1, 1);
+                            canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
+
+                            bufferStart = ptr;
+
+                            break;
+                        }
+                    case COMMAND_DATA:
+                        {
+                            var compression = resData[idx++];
+                            len = resData[idx++] | (resData[idx++] << 8);
+                            ptr = Decode(compression != 0, resData, size, len, idx, processedData, ptr);
+                            idx += len;
+                            break;
+                        }
+                    default:
                         idx = size;
                         break;
-                    }
+                }
 
-                    var sheets = resData[idx++];
-                    var margins = resData[idx++];
-                    var palette = resData[idx++];
-                    var exposure = (byte)Math.Min(0xFF, 0x80 + resData[idx++]);
-
-                    palette = (palette != 0) ? palette : (byte)0xE4;
-
-                    if (Render(ref canvas, processedData, bufferStart, ptr, PRINTER_WIDTH, sheets, margins, palette,
-                            exposure))
-                    {
-                        canvases.Add(CanvasToBase64(canvas));
-                        //canvas = new Bitmap(1, 1);
-                        canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
-                    }
-
-                    bufferStart = ptr;
-
-                    break;
-                case COMMAND_TRANSFER:
+                if (canvas.Height > 1)
                 {
-                    len = resData[idx++] | (resData[idx++] << 8);
-                    var currentImageStart = ptr;
-
-                    ptr = Decode(false, resData, size, len, idx, processedData, ptr);
-
-                    idx += len;
-
-                    Render(ref canvas, processedData, currentImageStart, ptr, CAMERA_WIDTH, 1, 0x03,
-                        0xE4, 0Xff);
-
                     canvases.Add(CanvasToBase64(canvas));
                     //canvas = new Bitmap(1, 1);
                     canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
-
-                    bufferStart = ptr;
-
-                    break;
                 }
-                case COMMAND_DATA:
-                {
-                    var compression = resData[idx++];
-                    len = resData[idx++] | (resData[idx++] << 8);
-                    ptr = Decode(compression != 0, resData, size, len, idx, processedData, ptr);
-                    idx += len;
-                    break;
-                }
-                default:
-                    idx = size;
-                    break;
             }
-
-            if (canvas.Height > 1)
-            {
-                canvases.Add(CanvasToBase64(canvas));
-                //canvas = new Bitmap(1, 1);
-                canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
-            }
-        }
+        });
 
         canvas.Dispose();
 
