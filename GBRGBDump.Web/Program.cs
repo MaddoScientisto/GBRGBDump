@@ -11,6 +11,7 @@ using GBTools.Common;
 using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
+using GBTools.Graphics.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,13 +25,13 @@ namespace GBRGBDump.Web
 
             // Add services to the container.
             builder.Services.AddRazorComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
-            .AddInteractiveServerComponents();
+                .AddInteractiveServerComponents();
 
             builder.Services.AddTransient<ImageTransformService>();
             builder.Services.AddTransient<IImportSavService, ImportSavService>();
             builder.Services.AddTransient<IFileReaderService, FileReaderService>();
             builder.Services.AddTransient<IFileWriterService, FileWriterService>();
-            
+
             builder.Services.AddTransient<IApplyFrameService, ApplyFrameService>();
             builder.Services.AddTransient<ICharMapService, CharMapService>();
             builder.Services.AddTransient<ICompressAndHashService, CompressAndHashService>();
@@ -48,11 +49,15 @@ namespace GBRGBDump.Web
 
             builder.Services.AddTransient<IExecutionService, ExecutionService>();
 
+            builder.Services.AddTransient<PrinterImageService>();
+
             // Web services
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
             builder.Services.AddTransient<IEnvironmentService, EnvironmentService>();
-            builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+            builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>(); 
             builder.Services.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+
+            builder.Services.AddHttpClient();
 
             builder.Services.AddBlazorise().AddBootstrap5Providers().AddFontAwesomeIcons();
 

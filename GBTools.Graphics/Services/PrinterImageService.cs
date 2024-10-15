@@ -28,7 +28,7 @@ public class PrinterImageService()
         var size = resData.Length;
         var processedData = new byte[(int)Math.Max(1024 * 1024, size)];
 
-        var canvas = new Image<Rgba32>(1, 1);
+        using var canvas = new Image<Rgba32>(1, 1);
 
         var bufferStart = 0;
         var ptr = 0;
@@ -62,7 +62,7 @@ public class PrinterImageService()
 
                         palette = (palette != 0) ? palette : (byte)0xE4;
 
-                        if (Render(ref canvas, processedData, bufferStart, ptr, PRINTER_WIDTH, sheets, margins, palette,
+                        if (Render(canvas, processedData, bufferStart, ptr, PRINTER_WIDTH, sheets, margins, palette,
                                 exposure))
                         {
                             canvases.Add(CanvasToBase64(canvas));
@@ -81,7 +81,7 @@ public class PrinterImageService()
 
                             idx += len;
 
-                            Render(ref canvas, processedData, currentImageStart, ptr, CAMERA_WIDTH, 1, 0x03,
+                            Render(canvas, processedData, currentImageStart, ptr, CAMERA_WIDTH, 1, 0x03,
                                 0xE4, 0Xff);
 
                             canvases.Add(CanvasToBase64(canvas));
@@ -112,12 +112,10 @@ public class PrinterImageService()
             }
         });
 
-        canvas.Dispose();
-
         return canvases;
     }
 
-    private bool Render(ref Image<Rgba32> canvas, byte[] imageData, int imageStart, int imageEnd, int imageTileWidth, int sheets,
+    private bool Render(Image<Rgba32> canvas, byte[] imageData, int imageStart, int imageEnd, int imageTileWidth, int sheets,
         byte margin, byte palette, byte exposure)
     {
         var canvasHeight = 1;
@@ -185,7 +183,7 @@ public class PrinterImageService()
         using MemoryStream ms = new MemoryStream();
         canvas.Save(ms, new PngEncoder() { FilterMethod = PngFilterMethod.None });
         byte[] imageBytes = ms.ToArray();
-
+        
         return Convert.ToBase64String(imageBytes);
     }
 

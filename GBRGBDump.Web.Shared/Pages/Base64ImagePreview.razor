@@ -1,0 +1,10 @@
+﻿
+<Figure Size="FigureSize.Is128x128">
+    <FigureImage Source="@ImageData"></FigureImage>
+</Figure>
+@* <img src="data:image/png;base64,@ImageData" /> *@
+
+@code {
+    [Parameter]
+    public string ImageData { get; set; }
+}

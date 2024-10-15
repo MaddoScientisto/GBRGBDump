@@ -1,0 +1,104 @@
+﻿@page "/printer"
+@using System.Collections.ObjectModel
+@using System.Diagnostics
+@using GBTools.Graphics.Services
+@inject HttpClient _client
+@inject PrinterImageService PrinterImageService
+@inject ISettingsService SettingsService
+
+<NavLink href="/">Back</NavLink>
+<NavLink href="/settings">Settings</NavLink>
+
+<h3>PicoPrinter</h3>
+
+@if (string.IsNullOrWhiteSpace(Model!.PrinterAddress))
+{
+    <Alert Color="Color.Danger" Visible>
+        <AlertDescription>No printer address specified, please add it to the settings</AlertDescription>
+    </Alert>
+}
+
+<Button Clicked="ProcessGbPrinterData" Color="Color.Danger" Disabled="@CannotExecute" Loading="@IsProcessing">Get from GB Printer</Button>
+
+<ErrorViewer ErrorText="@_errorText"></ErrorViewer>
+
+@foreach (var image in _images)
+{
+    <Base64ImagePreview ImageData="@image"></Base64ImagePreview>
+}
+
+@code {
+    ObservableCollection<string> _images = [];
+    private bool IsProcessing { get; set; } = false;
+
+    private string _errorText = String.Empty;
+
+    private SettingsModel? Model { get; set; }
+
+    private bool CannotExecute => IsProcessing || string.IsNullOrWhiteSpace(Model!.PrinterAddress);
+
+    protected override void OnInitialized()
+    {
+        Model ??= SettingsService.LoadSettings() ?? new()
+        {
+            // Set defaults here
+            ChannelOrder = ChannelOrder.Sequential,
+            AverageType = AverageTypes.Normal
+        };
+    }
+
+    private async Task<byte[]> ProcessDataAsync(string imageBinPath)
+    {
+        // Fetch the binary data from the provided path
+        var res = await _client.GetAsync(imageBinPath);
+
+        // Ensure the request was successful
+        res.EnsureSuccessStatusCode();
+
+        // Read the response body as a stream
+        var resBodyStream = await res.Content.ReadAsStreamAsync();
+
+        // Retrieve the response size (content length)
+        var dataSize = res.Content.Headers.ContentLength ?? 0;
+
+        // Read the stream into a byte array (equivalent to Uint8Array in JavaScript)
+        byte[] resData;
+        using var memoryStream = new MemoryStream();
+        await resBodyStream.CopyToAsync(memoryStream);
+        resData = memoryStream.ToArray();
+
+        // Initialize processed_data as a new byte array, similar to Uint8Array in JavaScript
+        //int bufferSize = (int)Math.Max(1024 * 1024, dataSize);
+        //byte[] processedData = new byte[bufferSize];
+
+        // You can now continue processing `resData` and `processedData` as needed
+
+        return resData;  // or perform further processing here and return as necessary
+    }
+
+    private async Task ProcessGbPrinterData()
+    {
+        IsProcessing = true;
+        _errorText = string.Empty;
+
+        try
+        {
+            var data = await ProcessDataAsync($"{Model!.PrinterAddress}/download");
+
+            var processedData = await PrinterImageService.GetImages(data);
+
+            _images = new ObservableCollection<string>(processedData.Select(x => $"data:image/png;base64,{x}"));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            Debug.WriteLine(e);
+            _errorText = e.ToString();
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+}

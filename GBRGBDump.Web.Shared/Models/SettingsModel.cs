@@ -18,5 +18,7 @@ namespace GBRGBDump.Web.Shared.Models
         public ScriptModel PreScript { get; set; } = new();
 
         public ScriptModel PostScript { get; set; } = new();
+
+        public string? PrinterAddress { get; set; }
     }
 }

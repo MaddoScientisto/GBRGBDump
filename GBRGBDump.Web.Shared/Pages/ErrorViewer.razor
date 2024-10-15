@@ -1,0 +1,13 @@
+﻿@if (!string.IsNullOrWhiteSpace(ErrorText))
+{
+    @* <p style="color: red;">@ErrorText</p> *@
+    <Alert Color="Color.Danger" Visible>
+        <AlertMessage>Error</AlertMessage>
+        <AlertDescription>@ErrorText</AlertDescription>
+    </Alert>
+}
+
+
+@code {
+    [Parameter] public string ErrorText { get; set; }
+}

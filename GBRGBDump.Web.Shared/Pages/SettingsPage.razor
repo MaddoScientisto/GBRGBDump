@@ -23,7 +23,7 @@
                     <Addons>
                         <Addon AddonType="AddonType.Body">
                             <TextEdit @bind-Text="@Model!.InputPath" Padding="Padding.Is1.OnMobile">
-                                
+
                             </TextEdit>
                         </Addon>
                         @if (LocalEnvironment.IsDesktop)
@@ -43,7 +43,7 @@
                     <Addons>
                         <Addon AddonType="AddonType.Body">
                             <TextEdit @bind-Text="@Model!.OutputPath" Padding="Padding.Is1.OnMobile">
-                                
+
                             </TextEdit>
                         </Addon>
                         @if (LocalEnvironment.IsDesktop)
@@ -79,7 +79,7 @@
                     <FieldHelp Display="Display.None.Block.OnMobile">Full Mode does an extra Average step between both groups in a bank.</FieldHelp>
                 </FieldBody>
             </Field>
-            
+
         </Fields>
 
     </CardBody>
@@ -89,9 +89,9 @@
         <Fields Padding="Padding.Is0.OnMobile" Margin="Margin.Is0.OnMobile">
             @* Enabled *@
             <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
-               @*  <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Enabled</FieldLabel> *@
+                @*  <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Enabled</FieldLabel> *@
                 <FieldBody>
-                    <Switch TValue="bool" @bind-Checked="@Model!.PreScript.Enabled" >Enabled</Switch>
+                    <Switch TValue="bool" @bind-Checked="@Model!.PreScript.Enabled">Enabled</Switch>
                 </FieldBody>
             </Field>
 
@@ -114,7 +114,7 @@
 
                 </FieldBody>
             </Field>
-            
+
             @* Run Location *@
             <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
                 <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Run Location</FieldLabel>
@@ -139,6 +139,21 @@
                 </FieldBody>
             </Field>
         </Fields>
+    </CardBody>
+    @* Pico GB Printer*@
+    <CardHeader Padding="Padding.Is1.OnMobile">Pico GB Printer</CardHeader>
+    <CardBody Margin="Margin.Is0.OnMobile" Padding="Padding.Is0.OnMobile">
+        @* Printer web path *@
+        <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is0.OnMobile">
+            <FieldLabel Margin="Margin.Is0.OnMobile" TextSize="TextSize.Small.OnMobile.Default.OnTablet">Web Address</FieldLabel>
+            <FieldBody Margin="Margin.Is0.OnMobile">
+                <TextEdit @bind-Text="@Model!.PrinterAddress" Padding="Padding.Is1.OnMobile">
+
+                </TextEdit>
+                <FieldHelp Display="Display.None.Block.OnMobile">Insert here the address for the pico gb printer web interface, generally http://192.168.7.1</FieldHelp>
+
+            </FieldBody>
+        </Field>
     </CardBody>
     <CardFooter>
         <Field ColumnSize="ColumnSize.Is6.OnDesktop.Is12.OnMobile" Margin="Margin.Is1.OnMobile">

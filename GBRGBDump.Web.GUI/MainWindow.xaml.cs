@@ -19,6 +19,7 @@ using GBTools.Common;
 using GBTools.Common.Services;
 using GBTools.Decoder;
 using GBTools.Graphics;
+using GBTools.Graphics.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GBRGBDump.Web.GUI
@@ -56,11 +57,17 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IRgbImageProcessingService, RgbImageProcessingService>();
             serviceCollection.AddTransient<IExecutionService, ExecutionService>();
 
+            serviceCollection.AddTransient<PrinterImageService>();
+
             // Web services
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+
+            
             serviceCollection.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+
+            serviceCollection.AddHttpClient();
 
             serviceCollection
                 .AddBlazorise()
