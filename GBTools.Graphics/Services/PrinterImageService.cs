@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Processing;
 namespace GBTools.Graphics.Services;
 public class PrinterImageService()
 {
-
     const int COMMAND_INIT = 0x01;
     const int COMMAND_PRINT = 0x02;
     const int COMMAND_DATA = 0x04;
@@ -42,8 +41,6 @@ public class PrinterImageService()
         {
             while (idx < size)
             {
-                string lastImage = string.Empty;
-
                 var command = resData[idx++];
                 switch (command)
                 {
