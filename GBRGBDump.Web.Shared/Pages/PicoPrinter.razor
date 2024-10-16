@@ -109,8 +109,8 @@
             <Card>
                 <CardImage Source="@ImagePreview.DataSource" Style="image-rendering: pixelated;"></CardImage>
                 <CardBody>
-                    <Button Color="Color.Primary"><Icon Name="IconName.Download" /></Button>
-                    <Button Color="Color.Danger"><Icon Name="IconName.Delete" /></Button>
+                    <Button Color="Color.Primary" @onclick="() => Download(ImagePreview)"><Icon Name="IconName.Download" /></Button>
+                    <Button Color="Color.Danger" @onclick="() => Delete(ImagePreview)"><Icon Name="IconName.Delete" /></Button>
                 </CardBody>
             </Card>
         </ModalBody>
