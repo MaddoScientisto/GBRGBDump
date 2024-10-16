@@ -5,6 +5,7 @@
 @inject HttpClient _client
 @inject PrinterImageService PrinterImageService
 @inject ISettingsService SettingsService
+@inject ImageProcessingService ImageProcessingService
 
 <Container Fluid>
 
@@ -32,8 +33,8 @@
                 <Button Color="Color.Danger" Clicked="Delete"><Icon Name="IconName.Delete" /> Delete</Button>
             </Buttons>
             <Buttons Margin="Margin.Is2.OnX">
-                <Button Color="Color.Primary">Average</Button>
-                <Button Color="Color.Primary">RGB</Button>
+                <Button Color="Color.Primary" Clicked="Average">Average</Button>
+                <Button Color="Color.Primary" Clicked="RGBMerge">RGB</Button>
             </Buttons>
         </Buttons>
         
@@ -299,6 +300,71 @@
         await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
     }
 
+    private async Task Average()
+    {
+        try
+        {
+            var imagesToAverage = _images.Where(x => x.IsSelected);
+
+            var averagedImage = await ImageProcessingService.AverageAsync(imagesToAverage.Select(x => x.Base64Png).ToList());
+
+            _images.Add(new GbImageContainer()
+            {
+                Base64Png = averagedImage,
+                Id = _images.Count,
+                Name = $"{imagesToAverage.First().Name} HDR {_images.Count}"
+            });
+
+            ImagePreview = _images.Last();
+            await modalRef.Show();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _errorText = e.ToString();
+        }
+        
+    }
+
+    private async Task RGBMerge()
+    {
+        _errorText = String.Empty;
+
+        try
+        {
+            var imagesToMerge = _images.Where(x => x.IsSelected);
+
+            if (imagesToMerge.Count() % 3 != 0)
+            {
+                _errorText = "Error: The selected images are not a multiple of 3";
+                return;
+            }
+
+            var mergedImages = await ImageProcessingService.RGBMergeAsync(imagesToMerge.Select(x => x.Base64Png).ToList(), ChannelOrder.Sequential); // TODO: Configure channel order
+
+            var date = DateTime.Now;
+
+            int i = 0;
+            foreach (var image in mergedImages)
+            {
+                _images.Add(new GbImageContainer()
+                {
+                    Base64Png = image,
+                    Id = _images.Count,
+                    Name = $"{date:s} {_images.Count} RGB {i}"
+                });
+
+                i++;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _errorText = e.ToString();
+        }
+
+        
+    }
 
     public class GbImageContainer
     {
@@ -313,5 +379,4 @@
 
         public bool IsValid => !string.IsNullOrWhiteSpace(Base64Png);
     }
-
 }

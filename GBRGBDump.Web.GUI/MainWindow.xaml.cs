@@ -59,6 +59,8 @@ namespace GBRGBDump.Web.GUI
 
             serviceCollection.AddTransient<PrinterImageService>();
 
+            serviceCollection.AddTransient<ImageProcessingService>();
+
             // Web services
             serviceCollection.AddTransient<IFileDialogService, FileDialogService>();
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
