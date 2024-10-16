@@ -63,6 +63,9 @@ namespace GBRGBDump.Web
 
             //builder.Services.AddFileSystemAccessService();
 
+            // Server side controllers for mocking apis
+           // builder.Services.AddControllers();
+
             var app = builder.Build();
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
