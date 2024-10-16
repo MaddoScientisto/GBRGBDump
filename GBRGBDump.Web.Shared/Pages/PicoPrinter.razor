@@ -192,10 +192,12 @@
 
             var processedData = await PrinterImageService.GetImages(data);
 
+            var date = DateTime.Now;
+
             _images = new ObservableCollection<GbImageContainer>(processedData.Select((x, index) => new GbImageContainer()
             {
                 Base64Png = x,
-                Name = index.ToString(),
+                Name = $"{date:s} {index}",
                 Id = index
             }));
         }
