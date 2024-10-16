@@ -26,7 +26,7 @@
         <Buttons Role="ButtonsRole.Toolbar">
             <Buttons Margin="Margin.Is2.FromEnd">
                 <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
-                <Button Color="Color.Info"><Icon Name="IconName.HandPaper"/> Tear</Button>
+                <Button Color="Color.Info" Clicked="Tear"><Icon Name="IconName.HandPaper"/> Tear</Button>
                 <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button>
             </Buttons>
             <Buttons>
@@ -131,6 +131,7 @@
 @code {
 
     [Inject] IJSRuntime JSRuntime { get; set; }
+    [Inject] INotificationService NotificationService { get; set; }
 
     ObservableCollection<GbImageContainer> _images = [];
     private bool IsProcessing { get; set; } = false;
@@ -205,6 +206,8 @@
                 Name = $"{date:s} {index}",
                 Id = index
             }));
+
+            await NotificationService.Success("Images downloaded.");
         }
         catch (Exception e)
         {
@@ -216,6 +219,40 @@
         {
             IsProcessing = false;
         }
+    }
+
+    private async Task Tear()
+    {
+        _errorText = string.Empty;
+        try
+        {
+            var confirmed = await _confirmationModalRef.ShowAsync();
+
+            if (confirmed)
+            {
+                var res = await _client.GetAsync($"{Model!.PrinterAddress}/reset");
+
+                res.EnsureSuccessStatusCode();
+
+                var text = await res.Content.ReadAsStringAsync();
+
+                // TODO: Deserialize JSON
+
+                if (text != "ok")
+                {
+                    await NotificationService.Error("Error, could not tear.");
+                    return;
+                }
+
+                await NotificationService.Success("Teared successfully!");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _errorText = e.Message;
+        }
+
     }
 
     private async Task OnPictureClick(GbImageContainer picture)
@@ -323,7 +360,7 @@
             Console.WriteLine(e);
             _errorText = e.ToString();
         }
-        
+
     }
 
     private async Task RGBMerge()
@@ -336,7 +373,7 @@
 
             if (imagesToMerge.Count() % 3 != 0)
             {
-                _errorText = "Error: The selected images are not a multiple of 3";
+                await NotificationService.Error("Error: The selected images are not a multiple of 3");
                 return;
             }
 
@@ -356,15 +393,17 @@
 
                 i++;
             }
+
+            await NotificationService.Success($"{mergedImages.Count} RGB Images created");
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             _errorText = e.ToString();
         }
-
-        
     }
+
+    
 
     public class GbImageContainer
     {
