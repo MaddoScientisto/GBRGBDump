@@ -26,7 +26,7 @@
             <Buttons Margin="Margin.Is2.FromEnd">
                 <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
                 <Button Color="Color.Info"><Icon Name="IconName.HandPaper"/> Tear</Button>
-                <Button Color="Color.Secondary"><Icon Name="IconName.CheckDouble"/> Select All</Button>
+                <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button>
             </Buttons>
             <Buttons>
                 <Button Color="Color.Danger"><Icon Name="IconName.Delete" /> Delete</Button>
@@ -62,17 +62,18 @@
                     <img @onclick="() => OnPictureClick(image)" src="@image.DataSource" alt="Image @image.Name" />
                     <div class="caption">@image.Name</div>
                     <div class="button-row">
+                        <Check TValue="bool" @bind-Checked="@image.IsSelected"></Check>
                         <Button Size="Size.Small"
                                 Margin="Margin.Is2.FromTop"
                                 Padding="Padding.Is0"
                                 Color="Color.Primary" Outline>
-                            <Icon Name="IconName.Download" />
+                            <Icon Name="IconName.Download"/>
                         </Button>
                         <Button Size="Size.Small"
                                 Margin="Margin.Is2.FromTop"
                                 Padding="Padding.Is0"
                                 Color="Color.Danger" Outline>
-                            <Icon Name="IconName.Delete" />
+                            <Icon Name="IconName.Delete"/>
                         </Button>
                     </div>
                 </div>
@@ -200,6 +201,25 @@
     {
         ImagePreview = picture;
         await modalRef.Show();
+    }
+
+    private void SelectAll()
+    {
+        
+        if (_images.All(x => x.IsSelected))
+        {
+            foreach (var image in _images)
+            {
+                image.IsSelected = false;
+            }
+
+            return;
+        }
+
+        foreach (var image in _images)
+        {
+            image.IsSelected = true;
+        }
     }
 
 
