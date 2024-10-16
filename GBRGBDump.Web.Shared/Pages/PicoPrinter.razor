@@ -72,7 +72,9 @@
                         <Button Size="Size.Small"
                                 Margin="Margin.Is2.FromTop"
                                 Padding="Padding.Is0"
-                                Color="Color.Danger" Outline>
+                                Color="Color.Danger"
+                                @onclick="() => Delete(image)"
+                                Outline>
                             <Icon Name="IconName.Delete"/>
                         </Button>
                     </div>
@@ -114,7 +116,15 @@
     </ModalContent>
 </Modal>
 
-<ConfirmationModal @ref="_confirmationModalRef" Title="Confirmation" Content="Confirm Operation?"></ConfirmationModal>
+<ConfirmationModal @ref="_confirmationModalRef" Title="Confirmation">
+    <Content>
+        @if (ImagePreview.IsValid)
+        {
+            <img src="@ImagePreview.DataSource"/>
+        }
+        <div>Confirm Operation</div>
+    </Content>
+</ConfirmationModal>
 
 @code {
     ObservableCollection<GbImageContainer> _images = [];
@@ -130,7 +140,7 @@
 
     private ConfirmationModal _confirmationModalRef;
 
-    private GbImageContainer? ImagePreview { get; set; } = new GbImageContainer();
+    private GbImageContainer ImagePreview { get; set; } = new GbImageContainer();
 
     protected override void OnInitialized()
     {
@@ -228,6 +238,10 @@
 
     private async Task Delete()
     {
+        // Clear preview
+        ImagePreview = new GbImageContainer();
+        StateHasChanged();
+
         var confirmed = await _confirmationModalRef.ShowAsync();
 
         try
@@ -248,7 +262,30 @@
             _errorText = e.ToString();
         }
 
-        
+
+    }
+
+    private async Task Delete(GbImageContainer image)
+    {
+        try
+        {
+            ImagePreview = image;
+
+            var confirmed = await _confirmationModalRef.ShowAsync();
+            if (confirmed)
+            {
+                _images.Remove(image);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _errorText = e.ToString();
+        }
+        finally
+        {
+            ImagePreview = new GbImageContainer();
+        }
     }
 
 
@@ -262,6 +299,8 @@
         public int Id { get; set; }
 
         public bool IsSelected { get; set; } = false;
+
+        public bool IsValid => !string.IsNullOrWhiteSpace(Base64Png);
     }
 
 }

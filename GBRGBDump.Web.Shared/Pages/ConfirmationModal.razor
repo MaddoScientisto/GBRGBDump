@@ -20,8 +20,8 @@
 
     private bool cancelClose;
 
-    [Parameter] public string Title { get; set; }
-    [Parameter] public string Content { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
 
     public async Task<bool> ShowAsync()
     {
