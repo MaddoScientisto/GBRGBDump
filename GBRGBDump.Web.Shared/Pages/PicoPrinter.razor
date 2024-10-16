@@ -66,6 +66,7 @@
                         <Button Size="Size.Small"
                                 Margin="Margin.Is2.FromTop"
                                 Padding="Padding.Is0"
+                                @onclick="() => Download(image)"
                                 Color="Color.Primary" Outline>
                             <Icon Name="IconName.Download"/>
                         </Button>
@@ -127,6 +128,9 @@
 </ConfirmationModal>
 
 @code {
+
+    [Inject] IJSRuntime JSRuntime { get; set; }
+
     ObservableCollection<GbImageContainer> _images = [];
     private bool IsProcessing { get; set; } = false;
 
@@ -288,6 +292,11 @@
         {
             ImagePreview = new GbImageContainer();
         }
+    }
+
+    private async Task Download(GbImageContainer image)
+    {
+        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
     }
 
 
