@@ -1,0 +1,67 @@
+﻿
+<Modal @ref="modalRef" Closing="@OnModalClosing">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>@Title</ModalTitle>
+        </ModalHeader>
+        <ModalBody>
+            @Content
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Primary" Clicked="@Cancel">Cancel</Button>
+            <Button Color="Color.Danger" Clicked="@Ok">OK</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+@code {
+    private Modal modalRef;
+    private TaskCompletionSource<bool> _tcs;
+
+    private bool cancelClose;
+
+    [Parameter] public string Title { get; set; }
+    [Parameter] public string Content { get; set; }
+
+    public async Task<bool> ShowAsync()
+    {
+        await modalRef.Show();
+
+        _tcs = new TaskCompletionSource<bool>();
+        StateHasChanged();
+
+        return await _tcs.Task;
+    }
+
+    private Task Ok()
+    {
+        return Confirm(true);
+    }
+
+    private Task Cancel()
+    {
+        return Confirm(false);
+    }
+
+    private async Task Confirm(bool result)
+    {
+        cancelClose = false;
+        await modalRef.Hide();
+        _tcs.SetResult(result);
+        StateHasChanged();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+
+    private Task OnModalClosing( ModalClosingEventArgs e )
+    {
+        // just set Cancel to prevent modal from closing
+        e.Cancel = cancelClose 
+                   || e.CloseReason != CloseReason.UserClosing;
+
+        return Task.CompletedTask;
+    }
+}
