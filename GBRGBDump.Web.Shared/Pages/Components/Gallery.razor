@@ -248,7 +248,6 @@
         }
     }
 
-    // TODO: Move to component
     private async Task RGBMerge()
     {
         try
@@ -271,7 +270,7 @@
                 Images.Add(new GbImageContainer()
                 {
                     Base64Png = image,
-                    Id = Images.Count,
+                    Id = Images.Count, // TODO: Less naive id implementation
                     Name = $"{date:s} {Images.Count} RGB {i}"
                 });
 

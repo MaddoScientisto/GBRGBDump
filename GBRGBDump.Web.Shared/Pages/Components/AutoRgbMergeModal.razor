@@ -1,0 +1,38 @@
+﻿<ModalHeader>
+    <ModalTitle>RGB Merge</ModalTitle>
+</ModalHeader>
+<ModalBody>
+    <Field Horizontal>
+        <FieldLabel>Channel Order</FieldLabel>
+        <FieldBody>
+            <Select @bind-SelectedValue="@ChannelOrder" TValue="ChannelOrder">
+                <SelectItem Value="ChannelOrder.Sequential">Sequential (RRR GGG BBB)</SelectItem>
+                <SelectItem Value="ChannelOrder.Interleaved">Interleaved (RGB RGB RGB)</SelectItem>
+            </Select>
+        </FieldBody>
+    </Field>
+    <Field Horizontal>
+        <FieldLabel>AEB Step</FieldLabel>
+        <FieldBody>
+            <NumericPicker @bind-Value="@AebStep" />
+        </FieldBody>
+    </Field>
+</ModalBody>
+<ModalFooter>
+    <Button Color="Color.Success " Clicked="Confirm">Confirm</Button>
+    <Button Color="Color.Secondary" Clicked="ModalService.Hide">Close</Button>
+</ModalFooter>
+
+@code {
+    [Inject] public IModalService ModalService { get; set; }
+    [Parameter] public Func<ChannelOrder, int, Task> OnSuccess { get; set; }
+
+    private ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
+    private int AebStep { get; set; } = 2;
+
+    private async Task Confirm()
+    {
+        await OnSuccess(ChannelOrder, AebStep);
+        await ModalService.Hide();
+    }
+}

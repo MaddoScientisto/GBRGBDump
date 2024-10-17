@@ -11,6 +11,7 @@
 @inject ISettingsService SettingsService
 @inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 @inject IExecutionService ExecutionService
+@inject ImageProcessingService ImageProcessingService
 
 <p>Loading from @Model!.InputPath into @Model!.OutputPath</p>
 @if (Model!.PreScript.Enabled)
@@ -22,6 +23,8 @@
 
 
 <Button Color="Color.Primary" Clicked="ExecuteNew">Process with new Method</Button>
+
+<Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
 
 @if (_isProcessing)
 {
@@ -45,6 +48,9 @@
 
 @code
 {
+    [Inject] public IModalService ModalService { get; set; }
+    [Inject] INotificationService NotificationService { get; set; }
+
     private Gallery galleryRef;
     ObservableCollection<GbImageContainer> _images = [];
 
@@ -53,11 +59,11 @@
     protected override void OnInitialized()
     {
         Model ??= SettingsService.LoadSettings() ?? new()
-            {
-                // Set defaults here
-                ChannelOrder = ChannelOrder.Sequential,
-                AverageType = AverageTypes.Normal
-            };
+        {
+            // Set defaults here
+            ChannelOrder = ChannelOrder.Sequential,
+            AverageType = AverageTypes.Normal
+        };
 
         ExecutionService.OutputReceived += (sender, output) =>
         {
@@ -121,14 +127,13 @@
             s.Start();
 
             var result = await Task.Run(() =>
-                ImageTransformService.TransformSavToBase64ArrayAsync(Model.InputPath,  importParams));
+                ImageTransformService.TransformSavToBase64ArrayAsync(Model.InputPath, importParams));
 
             s.Stop();
 
             _lastReport += $"/r/n{s.Elapsed:g}";
 
             _images = new ObservableCollection<GbImageContainer>(result);
-
         }
         catch (Exception e)
         {
@@ -176,24 +181,26 @@
             {
                 ErrorLines.Add("Please specify both input and output paths");
                 return;
-            }; 
+            }
+
+            ;
 
             var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
 
             FileSystemService.CreateDirectory(outputSubFolder);
 
             var importParams = new ImportSavOptions()
-                {
-                    ImportLastSeen = false,
-                    ImportDeleted = true,
-                    ForceMagicCheck = false,
-                    AverageType = Model!.AverageType,
-                    AebStep = 2,
-                    BanksToProcess = -1,
-                    CartIsJp = cartIsJp ?? false,
-                    ChannelOrder = Model.ChannelOrder,
-                    RgbMerge = true
-                };
+            {
+                ImportLastSeen = false,
+                ImportDeleted = true,
+                ForceMagicCheck = false,
+                AverageType = Model!.AverageType,
+                AebStep = 2,
+                BanksToProcess = -1,
+                CartIsJp = cartIsJp ?? false,
+                ChannelOrder = Model.ChannelOrder,
+                RgbMerge = true
+            };
 
             var progress = new Progress<ProgressInfo>(ReportProgress);
 
@@ -208,7 +215,6 @@
             s.Stop();
 
             _lastReport += $"/r/n{s.Elapsed:g}";
-
         }
         catch (Exception e)
         {
@@ -219,7 +225,6 @@
         {
             _isProcessing = false;
         }
-
     }
 
 
@@ -234,4 +239,56 @@
         StateHasChanged();
     }
 
+    private async Task DoAutoRgbMerge()
+    {
+        await ModalService.Show<AutoRgbMergeModal>(_builder =>
+        {
+            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, aebStep) =>
+            {
+                // do work here
+
+                // var imagesToMerge = _images.GroupBy(x => x.Bank);
+                var elements = ((aebStep * 2) + 1) * 3;
+
+                var imagseToMerge = _images
+                    .Select((item, index) => new { item, index })
+                    .GroupBy(x => x.index / elements)
+                    .Select(g => g.Select(x => x.item).ToList())
+                    .ToList();
+
+                var date = DateTime.Now;
+
+                int groupIndex = 0;
+                foreach (var group in imagseToMerge)
+                {
+                    var mergedImages = await ImageProcessingService.RGBMergeAsync(group.Select(img => img.Base64Png).ToList(), channelOrder);
+
+                    int imgIndex = 0;
+
+                    foreach (var mergedImage in mergedImages)
+                    {
+                        _images.Add(new GbImageContainer()
+                        {
+                            Base64Png = mergedImage,
+                                Id = _images.Count, // TODO: Less naive id implementation
+                                Name = $"{date:s} {_images.Count} {groupIndex} RGB {imgIndex}"
+                        });
+
+                        imgIndex++;
+                    }
+
+                    groupIndex++;
+                }
+
+                await NotificationService.Success($"RGB Images created");
+            });
+        });
+    }
+
+    // private RenderFragment RGBOptionsFragment => __builder =>
+    // {
+    //     <Paragraph>yooooo</Paragraph>
+    // };
+
+    
 }
