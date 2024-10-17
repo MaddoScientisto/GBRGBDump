@@ -1,0 +1,291 @@
+﻿@inject ImageProcessingService ImageProcessingService
+
+<Buttons Role="ButtonsRole.Toolbar">
+    <Buttons Margin="Margin.Is2.FromEnd">
+
+        <Button Color="Color.Secondary" Clicked="SelectAll" Disabled="@SelectDisabled">
+            @if (SelectedImagesCount == 0)
+            {
+                <Icon Name="IconName.CheckDouble"/>
+                <span>Select all</span>
+            }
+            else
+            {
+                <span>(@SelectedImagesCount) Deselect All</span>
+            }
+        </Button>
+    </Buttons>
+    <Buttons>
+        <Button Color="Color.Danger" Clicked="Delete" Disabled="@DeleteDisabled"><Icon Name="IconName.Delete"/> <span>Delete (@SelectedImagesCount)</span></Button>
+    </Buttons>
+    <Buttons Margin="Margin.Is2.OnX">
+        <Button Color="Color.Primary" Clicked="Average" Disabled="@AverageDisabled">Average</Button>
+        <Button Color="Color.Primary" Clicked="RGBMerge" Disabled="@RGBDisabled">RGB</Button>
+    </Buttons>
+</Buttons>
+
+<div class="gallery">
+    @foreach (var image in Images)
+    {
+        <div class="gallery-item">
+            <img @onclick="() => OnPictureClick(image)" src="@image.DataSource" alt="Image @image.Name"/>
+            <div class="caption">@image.Name</div>
+            <div class="button-row">
+                <Check TValue="bool" @bind-Checked="@image.IsSelected"></Check>
+                <Button Size="Size.Small"
+                        Margin="Margin.Is2.FromTop"
+                        Padding="Padding.Is0"
+                        @onclick="() => Download(image)"
+                        Color="Color.Primary" Outline>
+                    <Icon Name="IconName.Download"/>
+                </Button>
+                <Button Size="Size.Small"
+                        Margin="Margin.Is2.FromTop"
+                        Padding="Padding.Is0"
+                        Color="Color.Danger"
+                        @onclick="() => Delete(image)"
+                        Outline>
+                    <Icon Name="IconName.Delete"/>
+                </Button>
+            </div>
+        </div>
+    }
+</div>
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>@ImagePreview.Name</ModalTitle>
+            <CloseButton/>
+        </ModalHeader>
+        <ModalBody>
+            <Card>
+                <CardImage Source="@ImagePreview.DataSource" Style="image-rendering: pixelated;"></CardImage>
+                <CardBody>
+                    <Button Color="Color.Primary" @onclick="() => Download(ImagePreview)">
+                        <Icon Name="IconName.Download"/>
+                    </Button>
+                    <Button Color="Color.Danger" @onclick="() => Delete(ImagePreview)">
+                        <Icon Name="IconName.Delete"/>
+                    </Button>
+                </CardBody>
+            </Card>
+        </ModalBody>
+    </ModalContent>
+</Modal>
+
+<ConfirmationModal @ref="_confirmationModalRef" Title="Confirmation">
+    <Content>
+        @if (ImagePreview.IsValid)
+        {
+            <img src="@ImagePreview.DataSource"/>
+        }
+        <div>Confirm Operation</div>
+    </Content>
+</ConfirmationModal>
+
+@code {
+
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    [Inject] INotificationService NotificationService { get; set; }
+    [Inject] IMessageService MessageService { get; set; }
+
+    private ObservableCollection<PicoPrinter.GbImageContainer> _images = [];
+
+    [Parameter]
+    public ObservableCollection<PicoPrinter.GbImageContainer> Images
+    {
+        get => _images;
+        set
+        {
+            if (_images == value) return;
+            _images = value;
+            ImagesChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter] public EventCallback<ObservableCollection<PicoPrinter.GbImageContainer>> ImagesChanged { get; set; }
+
+    private int SelectedImagesCount => Images.Count(x => x.IsSelected);
+
+    private bool SelectDisabled => Images.Count == 0;
+    private bool DeleteDisabled => SelectedImagesCount == 0;
+    private bool AverageDisabled => SelectedImagesCount <= 1;
+    private bool RGBDisabled => SelectedImagesCount == 0 || SelectedImagesCount % 3 != 0;
+
+    private PicoPrinter.GbImageContainer ImagePreview { get; set; } = new PicoPrinter.GbImageContainer();
+
+    private Modal modalRef;
+    private ConfirmationModal _confirmationModalRef;
+
+    // private async Task NotifyImagesChanged()
+    // {
+    //     if (ImagesChanged.HasDelegate)
+    //     {
+    //         await ImagesChanged.InvokeAsync(Images);
+    //     }
+    // }
+
+    private async Task OnPictureClick(PicoPrinter.GbImageContainer picture)
+    {
+        ImagePreview = picture;
+        await modalRef.Show();
+    }
+
+    private async Task Delete()
+    {
+        // Clear preview
+        ImagePreview = new PicoPrinter.GbImageContainer();
+        StateHasChanged();
+
+        var confirmed = await _confirmationModalRef.ShowAsync();
+
+        try
+        {
+            if (confirmed)
+            {
+                var itemsToRemove = Images.Where(x => x.IsSelected).ToList();
+
+                foreach (var image in itemsToRemove)
+                {
+                    Images.Remove(image);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await MessageService.Error(e.ToString());
+        }
+    }
+
+    private async Task Delete(PicoPrinter.GbImageContainer image)
+    {
+        try
+        {
+            ImagePreview = image;
+
+            var confirmed = await _confirmationModalRef.ShowAsync();
+            if (confirmed)
+            {
+                Images.Remove(image);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await MessageService.Error(e.ToString());
+        }
+        finally
+        {
+            ImagePreview = new PicoPrinter.GbImageContainer();
+        }
+    }
+
+    private async Task Download(PicoPrinter.GbImageContainer image)
+    {
+        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);        
+    }
+
+    /// <summary>
+    /// Selects all images if none are selected, otherwise deselects all of them.
+    /// </summary>
+    public void SelectAll()
+    {
+        if (SelectedImagesCount == 0)
+        {
+            foreach (var image in Images)
+            {
+                image.IsSelected = true;
+            }
+
+            return;
+        }
+
+        foreach (var image in Images)
+        {
+            image.IsSelected = false;
+        }
+
+        // if (Images.All(x => !x.IsSelected))
+        // {
+        //     foreach (var image in Images)
+        //     {
+        //         image.IsSelected = true;
+        //     }
+
+        //     return;
+        // }
+
+        // foreach (var image in Images)
+        // {
+        //     image.IsSelected = false;
+        // }
+    }
+
+    private async Task Average()
+    {
+        try
+        {
+            var imagesToAverage = Images.Where(x => x.IsSelected);
+
+            var averagedImage = await ImageProcessingService.AverageAsync(imagesToAverage.Select(x => x.Base64Png).ToList());
+
+            Images.Add(new PicoPrinter.GbImageContainer()
+            {
+                Base64Png = averagedImage,
+                Id = Images.Count,
+                Name = $"{imagesToAverage.First().Name} HDR {Images.Count}"
+            });
+
+            ImagePreview = Images.Last();
+            await modalRef.Show();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+
+            await MessageService.Error(e.ToString());
+        }
+    }
+
+    // TODO: Move to component
+    private async Task RGBMerge()
+    {
+        try
+        {
+            var imagesToMerge = Images.Where(x => x.IsSelected);
+
+            if (imagesToMerge.Count() % 3 != 0)
+            {
+                await NotificationService.Error("Error: The selected images are not a multiple of 3");
+                return;
+            }
+
+            var mergedImages = await ImageProcessingService.RGBMergeAsync(imagesToMerge.Select(x => x.Base64Png).ToList(), ChannelOrder.Sequential); // TODO: Configure channel order
+
+            var date = DateTime.Now;
+
+            int i = 0;
+            foreach (var image in mergedImages)
+            {
+                Images.Add(new PicoPrinter.GbImageContainer()
+                {
+                    Base64Png = image,
+                    Id = Images.Count,
+                    Name = $"{date:s} {Images.Count} RGB {i}"
+                });
+
+                i++;
+            }
+
+            await NotificationService.Success($"{mergedImages.Count} RGB Images created");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await MessageService.Error(e.ToString());
+        }
+    }
+
+}

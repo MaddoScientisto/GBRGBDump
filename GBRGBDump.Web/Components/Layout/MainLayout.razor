@@ -4,16 +4,14 @@
 
 <Layout>
     <LayoutHeader>
-        <NavigationBar />
+        <NavigationBar/>
     </LayoutHeader>
     <LayoutContent>
-        <ErrorBoundary>
-            @Body
-        </ErrorBoundary>
+        @Body
     </LayoutContent>
 </Layout>
 
-<Global />
+<Global/>
 
 <div id="blazor-error-ui" data-nosnippet>
     @if (HostEnvironment.IsProduction())
@@ -27,4 +25,3 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
-

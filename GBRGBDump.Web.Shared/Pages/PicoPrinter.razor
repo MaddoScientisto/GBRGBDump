@@ -1,7 +1,5 @@
 ﻿@page "/printer"
-@using System.Collections.ObjectModel
-@using System.Diagnostics
-@using GBTools.Graphics.Services
+
 @inject HttpClient _client
 @inject PrinterImageService PrinterImageService
 @inject ISettingsService SettingsService
@@ -27,96 +25,24 @@
             <Buttons Margin="Margin.Is2.FromEnd">
                 <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
                 <Button Color="Color.Info" Clicked="Tear"><Icon Name="IconName.HandPaper"/> Tear</Button>
-                <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button>
+                @* <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button> *@
             </Buttons>
-            <Buttons>
+            @* <Buttons>
                 <Button Color="Color.Danger" Clicked="Delete"><Icon Name="IconName.Delete" /> Delete</Button>
             </Buttons>
             <Buttons Margin="Margin.Is2.OnX">
                 <Button Color="Color.Primary" Clicked="Average">Average</Button>
                 <Button Color="Color.Primary" Clicked="RGBMerge">RGB</Button>
-            </Buttons>
+            </Buttons> *@
         </Buttons>
         
     </Row>
     <Row>
-        <div class="gallery">
-            @foreach (var image in _images)
-            {
-                @* <Card>
-                    <CardImage Source="@image.DataSource" Style="image-rendering: pixelated;" @onclick="() => OnPictureClick(image)"></CardImage>
-                    <CardBody Padding="Padding.Is1">
-                        <CardText>Image @image.Name</CardText>
-
-                        <Button Size="Size.Small"
-                                Margin="Margin.Is2.FromTop"
-                                Padding="Padding.Is0" 
-                                Color="Color.Primary" Outline><Icon Name="IconName.Download" /></Button>
-                        <Button Size="Size.Small"
-                                Margin="Margin.Is2.FromTop"
-                                Padding="Padding.Is0" 
-                                Color="Color.Danger" Outline><Icon Name="IconName.Delete" /></Button>
-                    </CardBody>
-                </Card> *@
-
-                <div class="gallery-item">
-                    <img @onclick="() => OnPictureClick(image)" src="@image.DataSource" alt="Image @image.Name" />
-                    <div class="caption">@image.Name</div>
-                    <div class="button-row">
-                        <Check TValue="bool" @bind-Checked="@image.IsSelected"></Check>
-                        <Button Size="Size.Small"
-                                Margin="Margin.Is2.FromTop"
-                                Padding="Padding.Is0"
-                                @onclick="() => Download(image)"
-                                Color="Color.Primary" Outline>
-                            <Icon Name="IconName.Download"/>
-                        </Button>
-                        <Button Size="Size.Small"
-                                Margin="Margin.Is2.FromTop"
-                                Padding="Padding.Is0"
-                                Color="Color.Danger"
-                                @onclick="() => Delete(image)"
-                                Outline>
-                            <Icon Name="IconName.Delete"/>
-                        </Button>
-                    </div>
-                </div>
-            }
-        </div>
-        @*  <div class="gallery">
-            @foreach (var image in _images)
-            {
-                @* <div class="gallery-item">
-                    <img @onclick="() => OnPictureClick(image)" src="@image" alt="image caption"/>
-                    <div class="caption">Name</div>
-                    <div class="button-row">
-                        <Button>test</Button>
-                        <Button>test 2</Button>
-                    </div>
-                </div> *@
-        @*}
-        </div> *@
-
+        <Gallery @ref="galleryRef" @bind-Images="_images"></Gallery>
     </Row>
 </Container>
 
-<Modal @ref="modalRef">
-    <ModalContent Centered>
-        <ModalHeader>
-            <ModalTitle>@ImagePreview.Name</ModalTitle>
-            <CloseButton/>
-        </ModalHeader>
-        <ModalBody>
-            <Card>
-                <CardImage Source="@ImagePreview.DataSource" Style="image-rendering: pixelated;"></CardImage>
-                <CardBody>
-                    <Button Color="Color.Primary" @onclick="() => Download(ImagePreview)"><Icon Name="IconName.Download" /></Button>
-                    <Button Color="Color.Danger" @onclick="() => Delete(ImagePreview)"><Icon Name="IconName.Delete" /></Button>
-                </CardBody>
-            </Card>
-        </ModalBody>
-    </ModalContent>
-</Modal>
+
 
 <ConfirmationModal @ref="_confirmationModalRef" Title="Confirmation">
     <Content>
@@ -132,6 +58,7 @@
 
     [Inject] IJSRuntime JSRuntime { get; set; }
     [Inject] INotificationService NotificationService { get; set; }
+    [Inject] IMessageService MessageService { get; set; }
 
     ObservableCollection<GbImageContainer> _images = [];
     private bool IsProcessing { get; set; } = false;
@@ -141,6 +68,8 @@
     private SettingsModel? Model { get; set; }
 
     private bool CannotExecute => IsProcessing || string.IsNullOrWhiteSpace(Model!.PrinterAddress);
+
+    private Gallery galleryRef;
 
     private Modal modalRef;
 
@@ -213,7 +142,7 @@
         {
             Console.WriteLine(e);
             Debug.WriteLine(e);
-            _errorText = e.ToString();
+            await MessageService.Error(e.ToString());
         }
         finally
         {
@@ -250,161 +179,12 @@
         catch (Exception e)
         {
             Console.WriteLine(e);
-            _errorText = e.Message;
+            await MessageService.Error(e.ToString());
         }
 
     }
-
-    private async Task OnPictureClick(GbImageContainer picture)
-    {
-        ImagePreview = picture;
-        await modalRef.Show();
-    }
-
-    private void SelectAll()
-    {
-
-        if (_images.All(x => x.IsSelected))
-        {
-            foreach (var image in _images)
-            {
-                image.IsSelected = false;
-            }
-
-            return;
-        }
-
-        foreach (var image in _images)
-        {
-            image.IsSelected = true;
-        }
-    }
-
-    private async Task Delete()
-    {
-        // Clear preview
-        ImagePreview = new GbImageContainer();
-        StateHasChanged();
-
-        var confirmed = await _confirmationModalRef.ShowAsync();
-
-        try
-        {
-            if (confirmed)
-            {
-                var itemsToRemove = _images.Where(x => x.IsSelected).ToList();
-
-                foreach (var image in itemsToRemove)
-                {
-                    _images.Remove(image);
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            _errorText = e.ToString();
-        }
-
-
-    }
-
-    private async Task Delete(GbImageContainer image)
-    {
-        try
-        {
-            ImagePreview = image;
-
-            var confirmed = await _confirmationModalRef.ShowAsync();
-            if (confirmed)
-            {
-                _images.Remove(image);
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            _errorText = e.ToString();
-        }
-        finally
-        {
-            ImagePreview = new GbImageContainer();
-        }
-    }
-
-    private async Task Download(GbImageContainer image)
-    {
-        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
-    }
-
-    private async Task Average()
-    {
-        try
-        {
-            var imagesToAverage = _images.Where(x => x.IsSelected);
-
-            var averagedImage = await ImageProcessingService.AverageAsync(imagesToAverage.Select(x => x.Base64Png).ToList());
-
-            _images.Add(new GbImageContainer()
-            {
-                Base64Png = averagedImage,
-                Id = _images.Count,
-                Name = $"{imagesToAverage.First().Name} HDR {_images.Count}"
-            });
-
-            ImagePreview = _images.Last();
-            await modalRef.Show();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            _errorText = e.ToString();
-        }
-
-    }
-
-    private async Task RGBMerge()
-    {
-        _errorText = String.Empty;
-
-        try
-        {
-            var imagesToMerge = _images.Where(x => x.IsSelected);
-
-            if (imagesToMerge.Count() % 3 != 0)
-            {
-                await NotificationService.Error("Error: The selected images are not a multiple of 3");
-                return;
-            }
-
-            var mergedImages = await ImageProcessingService.RGBMergeAsync(imagesToMerge.Select(x => x.Base64Png).ToList(), ChannelOrder.Sequential); // TODO: Configure channel order
-
-            var date = DateTime.Now;
-
-            int i = 0;
-            foreach (var image in mergedImages)
-            {
-                _images.Add(new GbImageContainer()
-                {
-                    Base64Png = image,
-                    Id = _images.Count,
-                    Name = $"{date:s} {_images.Count} RGB {i}"
-                });
-
-                i++;
-            }
-
-            await NotificationService.Success($"{mergedImages.Count} RGB Images created");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            _errorText = e.ToString();
-        }
-    }
-
     
-
+    // TODO: Move to its own class, maybe in common library
     public class GbImageContainer
     {
         public string Base64Png { get; set; } = string.Empty;
