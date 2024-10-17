@@ -168,4 +168,22 @@ namespace GBTools.Common
         Interleaved  // RGBRGBRGB
     }
 
+    public class GbImageContainer
+    {
+        public string Base64Png { get; set; } = string.Empty;
+
+        public string DataSource => $"data:image/png;base64,{Base64Png}";
+
+        public string Name { get; set; } = string.Empty;
+        public int Id { get; set; }
+
+        public bool IsSelected { get; set; } = false;
+
+        public bool IsValid => !string.IsNullOrWhiteSpace(Base64Png);
+
+        public string ImageHash { get; set; } = string.Empty;
+
+        public int Bank { get; set; }
+    }
+
 }

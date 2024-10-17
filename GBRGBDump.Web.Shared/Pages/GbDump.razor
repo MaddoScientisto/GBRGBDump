@@ -20,6 +20,9 @@
 
 <Button Color="Color.Danger" Clicked="Exececute" Disabled="@_isProcessing">Execute</Button>
 
+
+<Button Color="Color.Primary" Clicked="ExecuteNew">Process with new Method</Button>
+
 @if (_isProcessing)
 {
     <SpinKit Type="SpinKitType.Circle"></SpinKit>
@@ -37,8 +40,13 @@
     <p style="color: red">@error</p>
 }
 
+
+<Gallery @ref="galleryRef" @bind-Images="_images"></Gallery>
+
 @code
 {
+    private Gallery galleryRef;
+    ObservableCollection<GbImageContainer> _images = [];
 
     [SupplyParameterFromForm] private SettingsModel? Model { get; set; }
 
@@ -78,6 +86,60 @@
     private string _lastReport = string.Empty;
 
     private bool _isProcessing = false;
+
+    private async Task ExecuteNew()
+    {
+        OutputLines.Clear();
+        ErrorLines.Clear();
+
+        await InvokeAsync(() => StateHasChanged());
+
+        try
+        {
+            _isProcessing = true;
+
+            // TODO: Prescript
+
+            var importParams = new ImportSavOptions()
+            {
+                ImportLastSeen = false,
+                ImportDeleted = true,
+                ForceMagicCheck = false,
+                AverageType = Model!.AverageType,
+                AebStep = 2,
+                BanksToProcess = -1,
+                CartIsJp = cartIsJp ?? false,
+                ChannelOrder = Model.ChannelOrder,
+                RgbMerge = true
+            };
+
+            var progress = new Progress<ProgressInfo>(ReportProgress);
+
+            _lastReport = String.Empty;
+
+            Stopwatch s = new Stopwatch();
+            s.Start();
+
+            var result = await Task.Run(() =>
+                ImageTransformService.TransformSavToBase64ArrayAsync(Model.InputPath,  importParams));
+
+            s.Stop();
+
+            _lastReport += $"/r/n{s.Elapsed:g}";
+
+            _images = new ObservableCollection<GbImageContainer>(result);
+
+        }
+        catch (Exception e)
+        {
+            ErrorLines.Add(e.ToString());
+            Debug.WriteLine(e);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
 
     private async Task Exececute()
     {
@@ -136,8 +198,6 @@
             var progress = new Progress<ProgressInfo>(ReportProgress);
 
             _lastReport = String.Empty;
-
-           
 
             Stopwatch s = new Stopwatch();
             s.Start();

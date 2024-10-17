@@ -65,7 +65,7 @@ public class PrinterImageService()
                         if (Render(canvas, processedData, bufferStart, ptr, PRINTER_WIDTH, sheets, margins, palette,
                                 exposure))
                         {
-                            canvases.Add(CanvasToBase64(canvas));
+                            canvases.Add(Utilities.CanvasToBase64(canvas));
                             canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
                         }
 
@@ -84,7 +84,7 @@ public class PrinterImageService()
                             Render(canvas, processedData, currentImageStart, ptr, CAMERA_WIDTH, 1, 0x03,
                                 0xE4, 0Xff);
 
-                            canvases.Add(CanvasToBase64(canvas));
+                            canvases.Add(Utilities.CanvasToBase64(canvas));
                             canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
 
                             bufferStart = ptr;
@@ -106,7 +106,7 @@ public class PrinterImageService()
 
                 if (canvas.Height > 1)
                 {
-                    canvases.Add(CanvasToBase64(canvas));
+                    canvases.Add(Utilities.CanvasToBase64(canvas));
                     canvas.Mutate(x => x.Resize(1, 1).Clear(SixLabors.ImageSharp.Color.Transparent));
                 }
             }
@@ -176,15 +176,6 @@ public class PrinterImageService()
         }
 
         return ((margin & 0x0f) != 0);
-    }
-
-    private string CanvasToBase64(Image<Rgba32> canvas)
-    {
-        using MemoryStream ms = new MemoryStream();
-        canvas.Save(ms, new PngEncoder() { FilterMethod = PngFilterMethod.None });
-        byte[] imageBytes = ms.ToArray();
-        
-        return Convert.ToBase64String(imageBytes);
     }
 
     private int Decode(

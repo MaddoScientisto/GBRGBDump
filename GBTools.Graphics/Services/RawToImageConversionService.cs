@@ -6,14 +6,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GBTools.Common;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SkiaSharp;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace GBTools.Graphics
 {
     public interface IGameboyPrinterService
     {
         Task RenderAndSaveAsPng(List<string> rawTiles, string filePath);
+        Task<string> RenderAndSaveToBase64Png(List<string> rawTiles);
         SKImage RenderImage(List<string> rawTiles);
         Task SaveImageAsync(SKImage image, string filePath);
         Task RenderAndHDRMerge(List<ImportItem> rawItems, string outputPath, AverageTypes averageType, ChannelOrder channelOrder);
@@ -38,9 +44,28 @@ namespace GBTools.Graphics
             await SaveImageAsync(image, filePath);
         }
 
+        public async Task<string> RenderAndSaveToBase64Png(List<string> rawTiles)
+        {
+            return await Task.Run(() =>
+            {
+                var tiles = ParseAndDecode(rawTiles);
+
+                using var image = RenderTilesToImage(tiles);
+
+                var base64EncodedImage = Utilities.CanvasToBase64(image);
+
+                return base64EncodedImage;
+            });
+
+
+        }
+
         public SKImage RenderImage(List<string> rawTiles)
         {
             var tiles = ParseAndDecode(rawTiles);
+
+
+
             using var bitmap = RenderTilesToBitmap(tiles);
             var image = SKImage.FromBitmap(bitmap);
             return image;
@@ -161,6 +186,43 @@ namespace GBTools.Graphics
 
             return bitmap;
         }
+
+        private Image<Rgba32> RenderTilesToImage(List<int[]> tiles)
+        {
+            int tileHeightCount = tiles.Count / TilesPerLine;
+            int imageWidth = TilePixelWidth * TilesPerLine;
+            int imageHeight = TilePixelHeight * tileHeightCount;
+
+            var bitmap = new Image<Rgba32>(imageWidth, imageHeight);
+            bitmap.Mutate(x => x.Clear(Color.White));
+
+            for (int index = 0; index < tiles.Count; index++)
+            {
+                var pixels = tiles[index];
+                int tileXOffset = index % TilesPerLine;
+                int tileYOffset = index / TilesPerLine;
+
+                for (int i = 0; i < TilePixelWidth; i++)
+                {
+                    for (int j = 0; j < TilePixelHeight; j++)
+                    {
+                        var color = Palette[pixels[j * TilePixelWidth + i]];
+
+                        bitmap[tileXOffset * TilePixelWidth + i, tileYOffset * TilePixelHeight + j] = color;
+                    }
+                }
+            }
+
+            return bitmap;
+        }
+
+        private readonly Dictionary<int, Rgba32> Palette = new Dictionary<int, Rgba32>()
+        {
+            {0, Color.White},
+            {1, Color.ParseHex("#AAAAAA")},
+            {2, Color.ParseHex("#555555")},
+            {3, Color.Black}
+        };
 
         private SKColor ColorFromPixelValue(int value)
         {

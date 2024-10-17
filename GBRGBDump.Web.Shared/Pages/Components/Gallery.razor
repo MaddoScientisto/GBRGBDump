@@ -89,10 +89,10 @@
     [Inject] INotificationService NotificationService { get; set; }
     [Inject] IMessageService MessageService { get; set; }
 
-    private ObservableCollection<PicoPrinter.GbImageContainer> _images = [];
+    private ObservableCollection<GbImageContainer> _images = [];
 
     [Parameter]
-    public ObservableCollection<PicoPrinter.GbImageContainer> Images
+    public ObservableCollection<GbImageContainer> Images
     {
         get => _images;
         set
@@ -103,7 +103,7 @@
         }
     }
 
-    [Parameter] public EventCallback<ObservableCollection<PicoPrinter.GbImageContainer>> ImagesChanged { get; set; }
+    [Parameter] public EventCallback<ObservableCollection<GbImageContainer>> ImagesChanged { get; set; }
 
     private int SelectedImagesCount => Images.Count(x => x.IsSelected);
 
@@ -112,7 +112,7 @@
     private bool AverageDisabled => SelectedImagesCount <= 1;
     private bool RGBDisabled => SelectedImagesCount == 0 || SelectedImagesCount % 3 != 0;
 
-    private PicoPrinter.GbImageContainer ImagePreview { get; set; } = new PicoPrinter.GbImageContainer();
+    private GbImageContainer ImagePreview { get; set; } = new GbImageContainer();
 
     private Modal modalRef;
     private ConfirmationModal _confirmationModalRef;
@@ -125,7 +125,7 @@
     //     }
     // }
 
-    private async Task OnPictureClick(PicoPrinter.GbImageContainer picture)
+    private async Task OnPictureClick(GbImageContainer picture)
     {
         ImagePreview = picture;
         await modalRef.Show();
@@ -134,7 +134,7 @@
     private async Task Delete()
     {
         // Clear preview
-        ImagePreview = new PicoPrinter.GbImageContainer();
+        ImagePreview = new GbImageContainer();
         StateHasChanged();
 
         var confirmed = await _confirmationModalRef.ShowAsync();
@@ -158,7 +158,7 @@
         }
     }
 
-    private async Task Delete(PicoPrinter.GbImageContainer image)
+    private async Task Delete(GbImageContainer image)
     {
         try
         {
@@ -177,11 +177,11 @@
         }
         finally
         {
-            ImagePreview = new PicoPrinter.GbImageContainer();
+            ImagePreview = new GbImageContainer();
         }
     }
 
-    private async Task Download(PicoPrinter.GbImageContainer image)
+    private async Task Download(GbImageContainer image)
     {
         await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);        
     }
@@ -230,7 +230,7 @@
 
             var averagedImage = await ImageProcessingService.AverageAsync(imagesToAverage.Select(x => x.Base64Png).ToList());
 
-            Images.Add(new PicoPrinter.GbImageContainer()
+            Images.Add(new GbImageContainer()
             {
                 Base64Png = averagedImage,
                 Id = Images.Count,
@@ -268,7 +268,7 @@
             int i = 0;
             foreach (var image in mergedImages)
             {
-                Images.Add(new PicoPrinter.GbImageContainer()
+                Images.Add(new GbImageContainer()
                 {
                     Base64Png = image,
                     Id = Images.Count,

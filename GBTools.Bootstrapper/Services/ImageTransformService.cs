@@ -33,8 +33,73 @@ namespace GBTools.Bootstrapper
             _gameboyPrinterService = gameboyPrinter;
         }
 
-        public async Task<bool> TransformSav(string filePath, string outputPath, ImportSavOptions options,
-            IProgress<ProgressInfo>? progress = null)
+        public async Task<List<GbImageContainer>> TransformSavToBase64ArrayAsync(string filePath, ImportSavOptions options)
+        {
+            try
+            {
+                var (itemsToProcess, progressInfo) = await PreprocessSavFile(filePath, options);
+
+                var exceptions = new ConcurrentQueue<Exception>();
+
+                var results = new ConcurrentQueue<GbImageContainer>();
+
+                await Parallel.ForEachAsync(itemsToProcess, new ParallelOptions()
+                {
+                    MaxDegreeOfParallelism = 8
+                }, async (importParams, token) =>
+                {
+                    try
+                    {
+                        var importItems = await _importSavService.ImportSav(importParams);
+
+                        foreach (var item in importItems)
+                        {
+                            var base64Image = await _gameboyPrinterService.RenderAndSaveToBase64Png(item.Tiles);
+                            GbImageContainer container = new GbImageContainer()
+                            {
+                                Base64Png = base64Image,
+                                Name = item.FileName,
+                                ImageHash = item.ImageHash,
+                                Id = item.Index,
+                                Bank = item.Bank,
+                            };
+
+                            results.Enqueue(container);
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        exceptions.Enqueue(e);
+                        Debug.WriteLine(e);
+                    }
+                });
+
+                if (!exceptions.IsEmpty)
+                {
+                    throw new AggregateException(exceptions);
+                }
+
+                progressInfo.CurrentImage--;
+
+                //progress?.Report(progressInfo);
+
+                var sortedList = results.OrderBy(x => x.Bank).ThenBy(x => x.Id).ToList();
+
+                return sortedList;
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+
+
+        }
+
+        private async Task<(List<ImportSavParams> itemsToProcess, ProgressInfo progressInfo)> PreprocessSavFile(string filePath, ImportSavOptions options)
         {
             try
             {
@@ -55,8 +120,6 @@ namespace GBTools.Bootstrapper
                 progressInfo.CurrentBank = 1;
                 progressInfo.CurrentImage = 1;
                 progressInfo.CurrentImageName = string.Empty;
-
-                progress?.Report(progressInfo);
 
                 var itemsToProcess = new List<ImportSavParams>();
 
@@ -88,6 +151,72 @@ namespace GBTools.Bootstrapper
                     itemsToProcess.Add(importParams);
                 }
 
+                return (itemsToProcess, progressInfo);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+
+        public async Task<bool> TransformSav(string filePath, string outputPath, ImportSavOptions options,
+            IProgress<ProgressInfo>? progress = null)
+        {
+            try
+            {
+                var (itemsToProcess, progressInfo) = await PreprocessSavFile(filePath, options);
+                progress?.Report(progressInfo);
+                //var progressInfo = new ProgressInfo();
+
+                //var data = await _fileReaderService.ReadFileAsByteArray(filePath);
+                //var lastModified = File.GetLastWriteTimeUtc(filePath);
+                //var fileName = Path.GetFileName(filePath);
+                //var filenameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+                //var extension = Path.GetExtension(filePath);
+
+                //const int maxChunkSize = 128 * 1024; // 128KB
+                //int totalChunks = (data.Length + maxChunkSize - 1) / maxChunkSize;
+                //int startChunkIndex =
+                //    data.Length > maxChunkSize ? 1 : 0; // Skip the first chunk only if the file is larger than 128KB
+
+                //progressInfo.TotalBanks = totalChunks;
+                //progressInfo.CurrentBank = 1;
+                //progressInfo.CurrentImage = 1;
+                //progressInfo.CurrentImageName = string.Empty;
+
+                //progress?.Report(progressInfo);
+
+                //var itemsToProcess = new List<ImportSavParams>();
+
+                //for (int chunkIndex = startChunkIndex; chunkIndex < totalChunks; chunkIndex++)
+                //{
+                //    int offset = chunkIndex * maxChunkSize;
+                //    int length = Math.Min(maxChunkSize, data.Length - offset);
+
+                //    var chunkData = new byte[length];
+                //    Array.Copy(data, offset, chunkData, 0, length);
+
+                //    string formattedFileName = totalChunks > 1
+                //        ? $"{filenameWithoutExtension}_BANK_{chunkIndex:D2}"
+                //        : $"{filenameWithoutExtension}";
+
+                //    progressInfo.CurrentImage = 1;
+                //    progressInfo.CurrentImageName = formattedFileName;
+
+                //    // Assuming default values for parameters
+                //    var importParams = new ImportSavParams
+                //    {
+                //        Data = chunkData,
+                //        LastModified = lastModified.Ticks,
+                //        FileName = formattedFileName,
+                //        Options = options,
+                //        Bank = chunkIndex
+                //    };
+
+                //    itemsToProcess.Add(importParams);
+                //}
+
                 var exceptions = new ConcurrentQueue<Exception>();
                 
                 await Parallel.ForEachAsync(itemsToProcess, new ParallelOptions()
@@ -110,7 +239,7 @@ namespace GBTools.Bootstrapper
                                 CurrentBank = item.Bank,
                                 CurrentImage = item.Index,
                                 CurrentImageName = item.FileName,
-                                TotalBanks = totalChunks,
+                                TotalBanks = progressInfo.TotalBanks,
                                 TotalImages = importItems.Count,
                             });
 
