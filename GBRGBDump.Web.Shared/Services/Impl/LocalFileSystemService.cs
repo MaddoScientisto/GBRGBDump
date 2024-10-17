@@ -50,6 +50,11 @@ namespace GBRGBDump.Web.Shared.Services.Impl
             }
         }
 
+        public async Task WriteBase64ToFile(string base64Image, string folder, string fileName) 
+        {
+            await File.WriteAllBytesAsync(Path.Combine(folder, fileName), Convert.FromBase64String(base64Image));
+        }
+
         public string MakeOutputSubFolder(string source, string destination)
         {
             return System.IO.Path.Combine(destination, System.IO.Path.GetFileNameWithoutExtension(source));

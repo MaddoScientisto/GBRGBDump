@@ -13,5 +13,6 @@ namespace GBRGBDump.Web.Shared.Services
         string MakeOutputSubFolder(string source, string destination);
 
         void CreateDirectory(string path);
+        Task WriteBase64ToFile(string base64Image, string folder, string fileName);
     }
 }
