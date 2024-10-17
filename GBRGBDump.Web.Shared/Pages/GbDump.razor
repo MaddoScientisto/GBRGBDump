@@ -243,7 +243,7 @@
     {
         await ModalService.Show<AutoRgbMergeModal>(_builder =>
         {
-            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, aebStep) =>
+            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
             {
                 // do work here
 
@@ -265,16 +265,37 @@
 
                     int imgIndex = 0;
 
+                    var createdGroup = new List<GbImageContainer>();
+
                     foreach (var mergedImage in mergedImages)
                     {
-                        _images.Add(new GbImageContainer()
+                        createdGroup.Add(new GbImageContainer()
                         {
                             Base64Png = mergedImage,
                                 Id = _images.Count, // TODO: Less naive id implementation
                                 Name = $"{date:s} {_images.Count} {groupIndex} RGB {imgIndex}"
                         });
-
+                        // Note: ids may be wrong
                         imgIndex++;
+                    }
+
+                    if (averageType is AverageTypes.Normal or AverageTypes.FullBank)
+                    {
+                        var averagedImage = await ImageProcessingService.AverageAsync(createdGroup.Select(x => x.Base64Png).ToList());
+
+
+                        var id = _images.Count + createdGroup.Count;
+                        createdGroup.Add(new GbImageContainer()
+                        {
+                            Base64Png = averagedImage,
+                            Id = id,
+                            Name = $"{createdGroup.First().Name} HDR {id}"
+                        });
+                    }
+
+                    foreach (var image in createdGroup)
+                    {
+                        _images.Add(image);
                     }
 
                     groupIndex++;

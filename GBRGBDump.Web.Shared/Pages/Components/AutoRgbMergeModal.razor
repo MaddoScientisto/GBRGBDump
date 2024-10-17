@@ -11,12 +11,25 @@
             </Select>
         </FieldBody>
     </Field>
+
     <Field Horizontal>
         <FieldLabel>AEB Step</FieldLabel>
         <FieldBody>
             <NumericPicker @bind-Value="@AebStep" />
         </FieldBody>
     </Field>
+    
+    <Field Horizontal>
+        <FieldLabel>Average Type</FieldLabel>
+        <FieldBody>
+            <Select @bind-SelectedValue="@AverageType" TValue="AverageTypes">
+                <SelectItem Value="AverageTypes.None">None</SelectItem>
+                <SelectItem Value="AverageTypes.Normal">Normal</SelectItem>
+                <SelectItem Value="AverageTypes.FullBank">Full Bank</SelectItem>
+            </Select>
+        </FieldBody>
+    </Field>
+
 </ModalBody>
 <ModalFooter>
     <Button Color="Color.Success " Clicked="Confirm">Confirm</Button>
@@ -25,14 +38,15 @@
 
 @code {
     [Inject] public IModalService ModalService { get; set; }
-    [Parameter] public Func<ChannelOrder, int, Task> OnSuccess { get; set; }
+    [Parameter] public Func<ChannelOrder, AverageTypes, int, Task> OnSuccess { get; set; }
 
     private ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
+    private AverageTypes AverageType { get; set; } = AverageTypes.Normal;
     private int AebStep { get; set; } = 2;
 
     private async Task Confirm()
     {
-        await OnSuccess(ChannelOrder, AebStep);
+        await OnSuccess(ChannelOrder, AverageType, AebStep);
         await ModalService.Hide();
     }
 }
