@@ -92,3 +92,12 @@ a, .btn-link {
     gap: 10px;
     justify-content: center;
 }
+
+.sticky-div {
+    position: -webkit-sticky; /* For Safari */
+    position: sticky;
+    top: 0; /* Distance from the top of the screen */
+    background-color: #f1f1f1;
+    padding: 10px;
+    border: 2px solid #ddd;
+}
