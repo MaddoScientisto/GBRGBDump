@@ -131,6 +131,12 @@ namespace GBTools.Bootstrapper
                     var chunkData = new byte[length];
                     Array.Copy(data, offset, chunkData, 0, length);
 
+                    // Check if the chunk is completely empty and skip it
+                    if (chunkData.All(x => x == 0XFF))
+                    {
+                        continue;
+                    }
+
                     string formattedFileName = totalChunks > 1
                         ? $"{filenameWithoutExtension}_BANK_{chunkIndex:D2}"
                         : $"{filenameWithoutExtension}";
