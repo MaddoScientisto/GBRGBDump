@@ -15,6 +15,12 @@
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/GBRGBDump.GUI/GBRGBDump.GUI.csproj"
+        },
+        {
+            "name": "C#: GBRGBDump.Web.GUI Debug",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj"
         }
 
     ]
