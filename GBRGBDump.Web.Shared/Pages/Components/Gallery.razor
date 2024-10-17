@@ -25,31 +25,30 @@
 </Buttons>
 
 <div class="gallery">
-    @foreach (var image in Images)
-    {
+    <Repeater Items="@Images">
         <div class="gallery-item">
-            <img @onclick="() => OnPictureClick(image)" src="@image.DataSource" alt="Image @image.Name"/>
-            <div class="caption">@image.Name</div>
+            <img @onclick="() => OnPictureClick(context)" src="@context.DataSource" alt="Image @context.Name" />
+            <div class="caption">@context.Name</div>
             <div class="button-row">
-                <Check TValue="bool" @bind-Checked="@image.IsSelected"></Check>
+                <Check TValue="bool" @bind-Checked="@context.IsSelected"></Check>
                 <Button Size="Size.Small"
                         Margin="Margin.Is2.FromTop"
                         Padding="Padding.Is0"
-                        @onclick="() => Download(image)"
+                        @onclick="() => Download(context)"
                         Color="Color.Primary" Outline>
-                    <Icon Name="IconName.Download"/>
+                    <Icon Name="IconName.Download" />
                 </Button>
                 <Button Size="Size.Small"
                         Margin="Margin.Is2.FromTop"
                         Padding="Padding.Is0"
                         Color="Color.Danger"
-                        @onclick="() => Delete(image)"
+                        @onclick="() => Delete(context)"
                         Outline>
-                    <Icon Name="IconName.Delete"/>
+                    <Icon Name="IconName.Delete" />
                 </Button>
             </div>
         </div>
-    }
+    </Repeater>
 </div>
 
 <Modal @ref="modalRef">
