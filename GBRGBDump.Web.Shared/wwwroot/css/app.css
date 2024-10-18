@@ -1,14 +1,8 @@
-﻿html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
+﻿html, body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-h1:focus {
-    outline: none;
-}
+h1:focus { outline: none; }
 
-a, .btn-link {
-    color: #0071c1;
-}
+a, .btn-link { color: #0071c1; }
 
 .btn-primary {
     color: #fff;
@@ -16,17 +10,11 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
+.valid.modified:not([type=checkbox]) { outline: 1px solid #26b050; }
 
-.invalid {
-    outline: 1px solid red;
-}
+.invalid { outline: 1px solid red; }
 
-.validation-message {
-    color: red;
-}
+.validation-message { color: red; }
 
 #blazor-error-ui {
     background: lightyellow;
@@ -40,23 +28,23 @@ a, .btn-link {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
 
 .gallery {
     display: flex;
     flex-wrap: wrap;
-    /*grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));*/
     gap: 10px; /* Space between grid items */
     justify-content: center;
     padding: 10px; /* Padding around the grid */
 }
 
 /* Div wrapping each image, caption, and buttons */
+
 .gallery-item {
     display: flex;
     flex-direction: column;
@@ -65,32 +53,60 @@ a, .btn-link {
     padding: 10px;
     background-color: #f9f9f9;
     width: fit-content;
+    max-width: 100%; /* Ensure the gallery item doesn't overflow */
 }
 
-    /* Style for the image */
-    .gallery-item img {
-        image-rendering: pixelated; /* Nearest neighbor filtering */
-        width: auto;
-        height: auto;
-        max-width: 100%; /* Ensures image doesn't overflow */
-        object-fit: contain;
-    }
+/* Style for the image */
+
+.gallery-item img {
+    image-rendering: pixelated; /* Nearest neighbor filtering */
+    width: auto;
+    height: auto;
+    max-width: 100%; /* Ensures image doesn't overflow */
+    object-fit: contain;
+}
 
 /* Caption style */
+
 .caption {
     margin-top: 10px;
     font-size: 14px;
     color: #333;
     text-align: center;
     width: 100%;
+    max-width: 100%; /* Ensure caption doesn't exceed image width */
+    overflow: hidden; /* Truncate overflowing text */
+    text-overflow: ellipsis; /* Show ellipsis (...) when text is too long */
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+.caption:hover {
+    white-space: normal; /* Allow text to wrap on hover */
+    overflow: visible;
+    background-color: #f0f0f0; /* Optional: add a background highlight on hover */
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 1;
+    position: relative; /* Ensure it appears on top of other elements */
 }
 
 /* Button row style */
+
 .button-row {
     margin-top: 10px;
     display: flex;
     gap: 10px;
     justify-content: center;
+}
+
+.tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px; /* Small horizontal gap between tags */
+    justify-content: flex-start; /* Align tags to the left */
+    margin-top: 5px; /* Small margin above the tags row */
+    margin-bottom: 5px; /* Small margin below the tags row */
+    width: 100%; /* Ensure it doesn't overflow the container */
 }
 
 .sticky-div {
