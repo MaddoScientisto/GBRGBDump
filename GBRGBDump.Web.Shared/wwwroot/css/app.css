@@ -53,7 +53,7 @@ a, .btn-link { color: #0071c1; }
     padding: 10px;
     background-color: #f9f9f9;
     width: fit-content;
-    max-width: 100%; /* Ensure the gallery item doesn't overflow */
+    max-width: 160px; /* Ensure the gallery item doesn't overflow */
 }
 
 /* Style for the image */
@@ -78,16 +78,36 @@ a, .btn-link { color: #0071c1; }
     overflow: hidden; /* Truncate overflowing text */
     text-overflow: ellipsis; /* Show ellipsis (...) when text is too long */
     white-space: nowrap; /* Prevent text wrapping */
+    display: block; /* Ensure it's treated as a block element */
+    cursor: default; /* Show it's not clickable */
+    padding: 0 5px; /* Optional: adds slight padding to keep the text inside neatly */
+    box-sizing: border-box; /* Include padding in width calculations */
 }
 
-.caption:hover {
-    white-space: normal; /* Allow text to wrap on hover */
-    overflow: visible;
-    background-color: #f0f0f0; /* Optional: add a background highlight on hover */
+/* Tooltip on hover */
+.caption[data-full-caption]:hover::after {
+    content: attr(data-full-caption); /* Tooltip text from the data attribute */
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
     padding: 5px;
-    border-radius: 5px;
-    z-index: 1;
-    position: relative; /* Ensure it appears on top of other elements */
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap; /* Ensure the tooltip text doesn't wrap */
+    top: -30px; /* Position above the caption */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none; /* Ensure the tooltip doesn't interfere with hover */
+}
+
+/* Default state (hide tooltip) */
+.caption::after {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
 }
 
 /* Button row style */

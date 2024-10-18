@@ -1,6 +1,8 @@
 ﻿<div class="gallery-item">
     <img @onclick="OnClick" src="@Image.DataSource" alt="Image @Image.Name"/>
-    <div class="caption">@Image.Name</div>
+    <Tooltip Text="@Image.Name" class="caption">
+        <div class="caption">@Image.Name</div>
+    </Tooltip>
     <div class="tags-row">
         <Repeater Items="@Image.Tags">
             <Badge Color="Color.Primary">@context</Badge>
