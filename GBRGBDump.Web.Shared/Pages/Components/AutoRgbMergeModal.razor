@@ -47,7 +47,7 @@
 
     private async Task Confirm()
     {
-        await OnSuccess(ChannelOrder, AverageType, AebStep);
         await ModalService.Hide();
+        await OnSuccess(ChannelOrder, AverageType, AebStep);
     }
 }

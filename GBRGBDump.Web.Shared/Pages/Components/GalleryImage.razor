@@ -1,0 +1,72 @@
+﻿<div class="gallery-item">
+    <img @onclick="OnClick" src="@Image.DataSource" alt="Image @Image.Name"/>
+    <div class="caption">@Image.Name</div>
+    <div class="button-row">
+        <Repeater Items="@Image.Tags">
+            <Badge Color="Color.Primary">@context</Badge>
+        </Repeater>
+    </div>
+    <div class="button-row">
+        <Check TValue="bool" Checked="@Image.IsSelected" CheckedChanged="OnIsSelectedChanged"></Check>
+        <Button Size="Size.Small"
+                Margin="Margin.Is2.FromTop"
+                Padding="Padding.Is0"
+                Clicked="Download"
+                Color="Color.Primary" Outline>
+            <Icon Name="IconName.Download"/>
+        </Button>
+        <Button Size="Size.Small"
+                Margin="Margin.Is2.FromTop"
+                Padding="Padding.Is0"
+                Color="Color.Danger"
+                Clicked="Delete"
+                Outline>
+            <Icon Name="IconName.Delete"/>
+        </Button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public GbImageContainer Image { get; set; }
+    [Parameter]
+    public EventCallback<GbImageContainer> ImageChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<GbImageContainer> OnPictureClick { get; set; }
+
+    [Parameter]
+    public EventCallback<GbImageContainer> OnDownload { get; set; }
+
+    [Parameter]
+    public EventCallback<GbImageContainer> OnDelete { get; set; }
+
+    private async Task OnIsSelectedChanged(bool value)
+    {
+        Image.IsSelected = value;
+        await ImageChanged.InvokeAsync(Image);
+    }
+
+    private async Task OnClick()
+    {
+        if (OnPictureClick.HasDelegate)
+        {
+            await OnPictureClick.InvokeAsync(Image);
+        }
+    }
+
+    private async Task Download()
+    {
+        if (OnDownload.HasDelegate)
+        {
+            await OnDownload.InvokeAsync(Image);
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Image);
+        }
+    }
+}

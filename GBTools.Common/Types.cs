@@ -184,6 +184,8 @@ namespace GBTools.Common
         public string ImageHash { get; set; } = string.Empty;
 
         public int Bank { get; set; }
+
+        public List<string> Tags { get; set; } = [];
     }
 
 }

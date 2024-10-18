@@ -16,7 +16,9 @@
         </Button>
     </Buttons>
     <Buttons>
-        <Button Color="Color.Danger" Clicked="Delete" Disabled="@DeleteDisabled"><Icon Name="IconName.Delete"/> <span>Delete (@SelectedImagesCount)</span></Button>
+        <Button Color="Color.Danger" Clicked="DeleteSelected" Disabled="@DeleteDisabled">
+            <Icon Name="IconName.Delete"/> <span>Delete (@SelectedImagesCount)</span>
+        </Button>
     </Buttons>
     <Buttons Margin="Margin.Is2.OnX">
         <Button Color="Color.Primary" Clicked="Average" Disabled="@AverageDisabled">Average</Button>
@@ -25,29 +27,12 @@
 </Buttons>
 
 <div class="gallery">
+
     <Repeater Items="@Images">
-        <div class="gallery-item">
-            <img @onclick="() => OnPictureClick(context)" src="@context.DataSource" alt="Image @context.Name" />
-            <div class="caption">@context.Name</div>
-            <div class="button-row">
-                <Check TValue="bool" @bind-Checked="@context.IsSelected"></Check>
-                <Button Size="Size.Small"
-                        Margin="Margin.Is2.FromTop"
-                        Padding="Padding.Is0"
-                        @onclick="() => Download(context)"
-                        Color="Color.Primary" Outline>
-                    <Icon Name="IconName.Download" />
-                </Button>
-                <Button Size="Size.Small"
-                        Margin="Margin.Is2.FromTop"
-                        Padding="Padding.Is0"
-                        Color="Color.Danger"
-                        @onclick="() => Delete(context)"
-                        Outline>
-                    <Icon Name="IconName.Delete" />
-                </Button>
-            </div>
-        </div>
+        <GalleryImage @bind-Image="@context"
+                      OnPictureClick="OnPictureClick"
+                      OnDownload="Download"
+                      OnDelete="Delete"></GalleryImage>
     </Repeater>
 </div>
 
@@ -131,7 +116,7 @@
         await modalRef.Show();
     }
 
-    private async Task Delete()
+    private async Task DeleteSelected()
     {
         // Clear preview
         ImagePreview = new GbImageContainer();
@@ -183,7 +168,7 @@
 
     private async Task Download(GbImageContainer image)
     {
-        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);        
+        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
     }
 
     /// <summary>
@@ -230,11 +215,15 @@
 
             var averagedImage = await ImageProcessingService.AverageAsync(imagesToAverage.Select(x => x.Base64Png).ToList());
 
+            var imagesTags = imagesToAverage.SelectMany(x => x.Tags).Distinct().ToList();
+            imagesTags.Add("HDR");
+
             Images.Add(new GbImageContainer()
             {
                 Base64Png = averagedImage,
                 Id = Images.Count,
-                Name = $"{imagesToAverage.First().Name} HDR {Images.Count}"
+                Name = $"{imagesToAverage.First().Name} HDR {Images.Count}",
+                Tags = imagesTags
             });
 
             ImagePreview = Images.Last();
@@ -260,6 +249,9 @@
                 return;
             }
 
+            var imagesTags = imagesToMerge.SelectMany(x => x.Tags).Distinct().ToList();
+            imagesTags.Add("RGB");
+
             var mergedImages = await ImageProcessingService.RGBMergeAsync(imagesToMerge.Select(x => x.Base64Png).ToList(), ChannelOrder.Sequential); // TODO: Configure channel order
 
             var date = DateTime.Now;
@@ -271,7 +263,8 @@
                 {
                     Base64Png = image,
                     Id = Images.Count, // TODO: Less naive id implementation
-                    Name = $"{date.ToSortableFileName()} {Images.Count} RGB {i}"
+                    Name = $"{date.ToSortableFileName()} {Images.Count} RGB {i}",
+                    Tags = imagesTags
                 });
 
                 i++;

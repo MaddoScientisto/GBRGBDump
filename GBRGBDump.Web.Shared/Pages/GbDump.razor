@@ -271,9 +271,6 @@
         {
             _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
             {
-                // do work here
-
-                // var imagesToMerge = _images.GroupBy(x => x.Bank);
                 var elements = ((aebStep * 2) + 1) * 3;
 
                 var imagseToMerge = _images
@@ -299,7 +296,8 @@
                         {
                             Base64Png = mergedImage,
                                 Id = _images.Count, // TODO: Less naive id implementation
-                                Name = $"{date.ToSortableFileName()} {_images.Count} {groupIndex} RGB {imgIndex}"
+                                Name = $"{date.ToSortableFileName()} {_images.Count} {groupIndex} RGB {imgIndex}",
+                                Tags = ["RGB"]
                         });
                         // Note: ids may be wrong
                         imgIndex++;
@@ -315,7 +313,8 @@
                         {
                             Base64Png = averagedImage,
                             Id = id,
-                            Name = $"{createdGroup.First().Name} HDR {id}"
+                            Name = $"{createdGroup.First().Name} HDR {id}",
+                            Tags = ["RGB","HDR"]
                         });
                     }
 
