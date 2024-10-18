@@ -132,7 +132,7 @@
             _images = new ObservableCollection<GbImageContainer>(processedData.Select((x, index) => new GbImageContainer()
             {
                 Base64Png = x,
-                Name = $"{date:s} {index}",
+                Name = $"{date.ToSortableFileName()} {index}",
                 Id = index
             }));
 

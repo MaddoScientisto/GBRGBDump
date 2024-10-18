@@ -271,7 +271,7 @@
                 {
                     Base64Png = image,
                     Id = Images.Count, // TODO: Less naive id implementation
-                    Name = $"{date:s} {Images.Count} RGB {i}"
+                    Name = $"{date.ToSortableFileName()} {Images.Count} RGB {i}"
                 });
 
                 i++;

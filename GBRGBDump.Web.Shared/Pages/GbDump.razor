@@ -299,7 +299,7 @@
                         {
                             Base64Png = mergedImage,
                                 Id = _images.Count, // TODO: Less naive id implementation
-                                Name = $"{date:s} {_images.Count} {groupIndex} RGB {imgIndex}"
+                                Name = $"{date.ToSortableFileName()} {_images.Count} {groupIndex} RGB {imgIndex}"
                         });
                         // Note: ids may be wrong
                         imgIndex++;
