@@ -1,0 +1,25 @@
+﻿@inject IEnvironmentService LocalEnvironment
+@inject IFileDialogService FileDialogService
+
+<ModalBody>
+    <SettingsFragment @bind-Model="@Model"></SettingsFragment>
+</ModalBody>
+<ModalFooter>
+
+    <Button Color="Color.Secondary" Clicked="ModalService.Hide">Close</Button>
+    <Button Color="Color.Success" Clicked="Confirm">Confirm</Button>
+</ModalFooter>
+
+@code {
+    [Inject] public IModalService ModalService { get; set; }
+
+    [Parameter] public SettingsModel? Model { get; set; }
+    [Parameter] public Func<SettingsModel, Task> OnSuccess { get; set; }
+
+    private async Task Confirm()
+    {
+        await ModalService.Hide();
+        await OnSuccess(Model);
+    }
+
+}

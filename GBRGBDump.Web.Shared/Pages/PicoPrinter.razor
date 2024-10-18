@@ -23,7 +23,9 @@
     <Row>
         <Buttons Role="ButtonsRole.Toolbar">
             <Buttons Margin="Margin.Is2.FromEnd">
+
                 <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
+
                 <Button Color="Color.Info" Clicked="Tear"><Icon Name="IconName.HandPaper"/> Tear</Button>
                 @* <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button> *@
             </Buttons>
