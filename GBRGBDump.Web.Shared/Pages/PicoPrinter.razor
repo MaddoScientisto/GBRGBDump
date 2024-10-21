@@ -4,6 +4,7 @@
 @inject PrinterImageService PrinterImageService
 @inject ISettingsService SettingsService
 @inject ImageProcessingService ImageProcessingService
+@inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 
 <Container Fluid>
 
@@ -38,6 +39,10 @@
             </Buttons> *@
         </Buttons>
         
+<Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
+
+<Button Color="Color.Primary" Clicked="DumpToFs">Dump to FileSystem</Button>
+        
     </Row>
     <Row>
         <Gallery @ref="galleryRef" @bind-Images="_images"></Gallery>
@@ -61,6 +66,8 @@
     [Inject] IJSRuntime JSRuntime { get; set; }
     [Inject] INotificationService NotificationService { get; set; }
     [Inject] IMessageService MessageService { get; set; }
+
+     [Inject] public IModalService ModalService { get; set; }
 
     ObservableCollection<GbImageContainer> _images = [];
     private bool IsProcessing { get; set; } = false;
@@ -185,5 +192,97 @@
         }
 
     }
+
+     private async Task DumpToFs()
+    {
+        try
+        {
+            var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+
+            FileSystemService.CreateDirectory(outputSubFolder);
+
+            // todo: write base64 to directory, averages in average folder
+
+            foreach (var image in _images)
+            {
+                await FileSystemService.WriteBase64ToFile(image.Base64Png, outputSubFolder, $"{image.Name}.png");
+            }
+
+            await NotificationService.Success("Dumped to FS.");
+
+        }
+        catch (Exception e)
+        {
+           await MessageService.Error(e.ToString());
+           Console.WriteLine(e);
+        }
+    }
+
+      private async Task DoAutoRgbMerge()
+    {
+        await ModalService.Show<AutoRgbMergeModal>(_builder =>
+        {
+            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
+            {
+                var elements = ((aebStep * 2) + 1) * 3;
+
+                var imagseToMerge = _images
+                    .Select((item, index) => new { item, index })
+                    .GroupBy(x => x.index / elements)
+                    .Select(g => g.Select(x => x.item).ToList())
+                    .ToList();
+
+                var date = DateTime.Now;
+
+                int groupIndex = 0;
+                foreach (var group in imagseToMerge)
+                {
+                    var mergedImages = await ImageProcessingService.RGBMergeAsync(group.Select(img => img.Base64Png).ToList(), channelOrder);
+
+                    int imgIndex = 0;
+
+                    var createdGroup = new List<GbImageContainer>();
+
+                    foreach (var mergedImage in mergedImages)
+                    {
+                        createdGroup.Add(new GbImageContainer()
+                        {
+                            Base64Png = mergedImage,
+                                Id = _images.Count, // TODO: Less naive id implementation
+                                Name = $"{date.ToSortableFileName()} {_images.Count} {groupIndex} RGB {imgIndex}",
+                                Tags = ["RGB"]
+                        });
+                        // Note: ids may be wrong
+                        imgIndex++;
+                    }
+
+                    if (averageType is AverageTypes.Normal or AverageTypes.FullBank)
+                    {
+                        var averagedImage = await ImageProcessingService.AverageAsync(createdGroup.Select(x => x.Base64Png).ToList());
+
+
+                        var id = _images.Count + createdGroup.Count;
+                        createdGroup.Add(new GbImageContainer()
+                        {
+                            Base64Png = averagedImage,
+                            Id = id,
+                            Name = $"{createdGroup.First().Name} HDR {id}",
+                            Tags = ["RGB","HDR"]
+                        });
+                    }
+
+                    foreach (var image in createdGroup)
+                    {
+                        _images.Add(image);
+                    }
+
+                    groupIndex++;
+                }
+
+                await NotificationService.Success($"RGB Images created");
+            });
+        });
+    }
+
 
 }
