@@ -1,0 +1,21 @@
+﻿
+<h3>Select the Input type</h3>
+
+<RadioGroup TValue="ImportType" Name="importType" CheckedValue="@SelectedImportType" CheckedValueChanged="@OnCheckedValueChanged">
+    <Radio Value="@ImportType.File">File</Radio>
+    <Radio Value="@ImportType.Printer">Printer</Radio>
+    <Radio Value="@ImportType.Script">Script</Radio>
+</RadioGroup>
+
+@code {
+    [Parameter] public ImportType SelectedImportType { get; set; }
+    [Parameter] public EventCallback<ImportType> SelectedImportTypeChanged { get; set; }
+
+    Task OnCheckedValueChanged(ImportType value)
+    {
+        if (SelectedImportType == value) return Task.CompletedTask;
+
+        return SelectedImportTypeChanged.InvokeAsync(value);
+    }
+
+}

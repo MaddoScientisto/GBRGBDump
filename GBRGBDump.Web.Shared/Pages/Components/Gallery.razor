@@ -1,6 +1,11 @@
 ﻿@inject ImageProcessingService ImageProcessingService
 
+@* TODO: Get buttons from render fragment parameter *@
+
 <Buttons Role="ButtonsRole.Toolbar" Class="sticky-div">
+    
+    @ChildContent
+
     <Buttons Margin="Margin.Is2.FromEnd">
 
         <Button Color="Color.Secondary" Clicked="SelectAll" Disabled="@SelectDisabled">
@@ -89,6 +94,9 @@
     }
 
     [Parameter] public EventCallback<ObservableCollection<GbImageContainer>> ImagesChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     private int SelectedImagesCount => Images.Count(x => x.IsSelected);
 

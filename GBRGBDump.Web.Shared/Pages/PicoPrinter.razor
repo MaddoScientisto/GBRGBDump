@@ -11,80 +11,26 @@
     <Row>
         <h3>PicoPrinter</h3>
     </Row>
-    <Row>
-        @if (string.IsNullOrWhiteSpace(Model!.PrinterAddress))
-        {
-            <Alert Color="Color.Danger" Visible>
-                <AlertDescription>No printer address specified, please add it to the settings</AlertDescription>
-            </Alert>
-        }
-        <ErrorViewer ErrorText="@_errorText"></ErrorViewer>
-    </Row>
 
     <Row>
-        <Buttons Role="ButtonsRole.Toolbar">
-            <Buttons Margin="Margin.Is2.FromEnd">
-
-                <Button Clicked="ProcessGbPrinterData" Color="Color.Primary" Disabled="@CannotExecute" Loading="@IsProcessing"><Icon Name="IconName.Print"/> Get from GB Printer</Button>
-
-                <Button Color="Color.Info" Clicked="Tear"><Icon Name="IconName.HandPaper"/> Tear</Button>
-                @* <Button Color="Color.Secondary" Clicked="SelectAll"><Icon Name="IconName.CheckDouble"/> Select All</Button> *@
-            </Buttons>
-            @* <Buttons>
-                <Button Color="Color.Danger" Clicked="Delete"><Icon Name="IconName.Delete" /> Delete</Button>
-            </Buttons>
-            <Buttons Margin="Margin.Is2.OnX">
-                <Button Color="Color.Primary" Clicked="Average">Average</Button>
-                <Button Color="Color.Primary" Clicked="RGBMerge">RGB</Button>
-            </Buttons> *@
-        </Buttons>
-        
-<Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
-
-<Button Color="Color.Primary" Clicked="DumpToFs">Dump to FileSystem</Button>
-        
-    </Row>
-    <Row>
-        <Gallery @ref="galleryRef" @bind-Images="_images"></Gallery>
+        <Gallery @ref="galleryRef" @bind-Images="@_images">
+            <PrinterHandler @bind-Images="@_images" Model="@Model"></PrinterHandler>
+            
+        </Gallery>
     </Row>
 </Container>
 
-
-
-<ConfirmationModal @ref="_confirmationModalRef" Title="Confirmation">
-    <Content>
-        @if (ImagePreview.IsValid)
-        {
-            <img src="@ImagePreview.DataSource"/>
-        }
-        <div>Confirm Operation</div>
-    </Content>
-</ConfirmationModal>
-
 @code {
 
-    [Inject] IJSRuntime JSRuntime { get; set; }
-    [Inject] INotificationService NotificationService { get; set; }
-    [Inject] IMessageService MessageService { get; set; }
-
-     [Inject] public IModalService ModalService { get; set; }
-
     ObservableCollection<GbImageContainer> _images = [];
-    private bool IsProcessing { get; set; } = false;
-
-    private string _errorText = String.Empty;
 
     private SettingsModel? Model { get; set; }
 
-    private bool CannotExecute => IsProcessing || string.IsNullOrWhiteSpace(Model!.PrinterAddress);
 
     private Gallery galleryRef;
 
     private Modal modalRef;
 
-    private ConfirmationModal _confirmationModalRef;
-
-    private GbImageContainer ImagePreview { get; set; } = new GbImageContainer();
 
     protected override void OnInitialized()
     {
@@ -95,194 +41,5 @@
             AverageType = AverageTypes.Normal
         };
     }
-
-    private async Task<byte[]> ProcessDataAsync(string imageBinPath)
-    {
-        // Fetch the binary data from the provided path
-        var res = await _client.GetAsync(imageBinPath);
-
-        // Ensure the request was successful
-        res.EnsureSuccessStatusCode();
-
-        // Read the response body as a stream
-        var resBodyStream = await res.Content.ReadAsStreamAsync();
-
-        // Retrieve the response size (content length)
-        var dataSize = res.Content.Headers.ContentLength ?? 0;
-
-        // Read the stream into a byte array (equivalent to Uint8Array in JavaScript)
-        byte[] resData;
-        using var memoryStream = new MemoryStream();
-        await resBodyStream.CopyToAsync(memoryStream);
-        resData = memoryStream.ToArray();
-
-        // Initialize processed_data as a new byte array, similar to Uint8Array in JavaScript
-        //int bufferSize = (int)Math.Max(1024 * 1024, dataSize);
-        //byte[] processedData = new byte[bufferSize];
-
-        // You can now continue processing `resData` and `processedData` as needed
-
-        return resData; // or perform further processing here and return as necessary
-    }
-
-    private async Task ProcessGbPrinterData()
-    {
-        IsProcessing = true;
-        _errorText = string.Empty;
-
-        try
-        {
-            var data = await ProcessDataAsync($"{Model!.PrinterAddress}/download");
-
-            var processedData = await PrinterImageService.GetImages(data);
-
-            var date = DateTime.Now;
-
-            _images = new ObservableCollection<GbImageContainer>(processedData.Select((x, index) => new GbImageContainer()
-            {
-                Base64Png = x,
-                Name = $"{date.ToSortableFileName()} {index}",
-                Id = index
-            }));
-
-            await NotificationService.Success("Images downloaded.");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            Debug.WriteLine(e);
-            await MessageService.Error(e.ToString());
-        }
-        finally
-        {
-            IsProcessing = false;
-        }
-    }
-
-    private async Task Tear()
-    {
-        _errorText = string.Empty;
-        try
-        {
-            var confirmed = await _confirmationModalRef.ShowAsync();
-
-            if (confirmed)
-            {
-                var res = await _client.GetAsync($"{Model!.PrinterAddress}/reset");
-
-                res.EnsureSuccessStatusCode();
-
-                var text = await res.Content.ReadAsStringAsync();
-
-                // TODO: Deserialize JSON
-
-                if (text != "ok")
-                {
-                    await NotificationService.Error("Error, could not tear.");
-                    return;
-                }
-
-                await NotificationService.Success("Teared successfully!");
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            await MessageService.Error(e.ToString());
-        }
-
-    }
-
-     private async Task DumpToFs()
-    {
-        try
-        {
-            var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
-
-            FileSystemService.CreateDirectory(outputSubFolder);
-
-            // todo: write base64 to directory, averages in average folder
-
-            foreach (var image in _images)
-            {
-                await FileSystemService.WriteBase64ToFile(image.Base64Png, outputSubFolder, $"{image.Name}.png");
-            }
-
-            await NotificationService.Success("Dumped to FS.");
-
-        }
-        catch (Exception e)
-        {
-           await MessageService.Error(e.ToString());
-           Console.WriteLine(e);
-        }
-    }
-
-      private async Task DoAutoRgbMerge()
-    {
-        await ModalService.Show<AutoRgbMergeModal>(_builder =>
-        {
-            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
-            {
-                var elements = ((aebStep * 2) + 1) * 3;
-
-                var imagseToMerge = _images
-                    .Select((item, index) => new { item, index })
-                    .GroupBy(x => x.index / elements)
-                    .Select(g => g.Select(x => x.item).ToList())
-                    .ToList();
-
-                var date = DateTime.Now;
-
-                int groupIndex = 0;
-                foreach (var group in imagseToMerge)
-                {
-                    var mergedImages = await ImageProcessingService.RGBMergeAsync(group.Select(img => img.Base64Png).ToList(), channelOrder);
-
-                    int imgIndex = 0;
-
-                    var createdGroup = new List<GbImageContainer>();
-
-                    foreach (var mergedImage in mergedImages)
-                    {
-                        createdGroup.Add(new GbImageContainer()
-                        {
-                            Base64Png = mergedImage,
-                                Id = _images.Count, // TODO: Less naive id implementation
-                                Name = $"{date.ToSortableFileName()} {_images.Count} {groupIndex} RGB {imgIndex}",
-                                Tags = ["RGB"]
-                        });
-                        // Note: ids may be wrong
-                        imgIndex++;
-                    }
-
-                    if (averageType is AverageTypes.Normal or AverageTypes.FullBank)
-                    {
-                        var averagedImage = await ImageProcessingService.AverageAsync(createdGroup.Select(x => x.Base64Png).ToList());
-
-
-                        var id = _images.Count + createdGroup.Count;
-                        createdGroup.Add(new GbImageContainer()
-                        {
-                            Base64Png = averagedImage,
-                            Id = id,
-                            Name = $"{createdGroup.First().Name} HDR {id}",
-                            Tags = ["RGB","HDR"]
-                        });
-                    }
-
-                    foreach (var image in createdGroup)
-                    {
-                        _images.Add(image);
-                    }
-
-                    groupIndex++;
-                }
-
-                await NotificationService.Success($"RGB Images created");
-            });
-        });
-    }
-
 
 }

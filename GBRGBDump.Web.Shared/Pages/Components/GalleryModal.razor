@@ -1,0 +1,95 @@
+﻿
+<ModalBody>
+    
+    <Gallery @bind-Images="@Images">
+        
+        <Buttons>
+            @switch (ImportType)
+            {
+                case ImportType.File:
+                    @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    break;
+                case ImportType.Printer:
+                    <PrinterHandler @bind-Images="@Images" Model="@Model" @ref="_printerRef"></PrinterHandler>
+                    break;
+                case ImportType.Script:
+                    @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        </Buttons>
+
+        <Buttons>
+
+            @* <Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
+
+            <Button Color="Color.Primary" Clicked="DumpToFs">Dump to FileSystem</Button> *@
+        </Buttons>
+    </Gallery>
+
+</ModalBody>
+<ModalFooter>
+
+    <Button Color="Color.Secondary" Clicked="ModalService.Hide">Close</Button>
+    <Button Color="Color.Success" Clicked="Confirm">Proceed</Button>
+
+</ModalFooter>
+
+@code {
+    [Inject] public IModalService ModalService { get; set; }
+
+    [Parameter] public Func<Task> OnSuccess { get; set; }
+
+    [Parameter] public SettingsModel? Model { get; set; }
+    [Parameter] public ImportType ImportType { get; set; }
+
+    private ObservableCollection<GbImageContainer> _images = [];
+    [Parameter]
+    public ObservableCollection<GbImageContainer> Images
+    {
+        get => _images;
+        set
+        {
+            if (_images == value) return;
+            _images = value;
+            ImagesChanged.InvokeAsync(value);
+        }
+    }
+    [Parameter] public EventCallback<ObservableCollection<GbImageContainer>> ImagesChanged { get; set; }
+
+    private PrinterHandler? _printerRef;
+
+
+    protected override void OnInitialized()
+    {
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        switch (ImportType)
+        {
+            case ImportType.File:
+
+                break;
+            case ImportType.Printer:
+                if (_printerRef != null)
+                {
+                    await _printerRef.ProcessGbPrinterData();
+                }
+                break;
+            case ImportType.Script:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private async Task Confirm()
+    {
+        await ModalService.Hide();
+        await OnSuccess();
+    }
+}

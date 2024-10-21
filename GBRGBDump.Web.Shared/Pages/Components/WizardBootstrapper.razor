@@ -1,0 +1,32 @@
+﻿<Button Color="Color.Primary" Clicked="StartWizard">Import Wizard</Button>
+
+
+@code {
+    [Inject] public IModalService ModalService { get; set; }
+
+    private async Task StartWizard()
+    {
+        await ModalService.Show<WizardModal>("Wizard", _builder =>
+        {
+            // TODO: Handle parameters and success here
+
+            _builder.Add(_modal => _modal.OnSuccess, async (settingsModel, importType) =>
+            {
+                await ModalService.Hide();
+
+                await ProcessGallery(settingsModel, importType);
+            });
+        }, new ModalInstanceOptions() { Size = ModalSize.Fullscreen });
+    }
+
+    private async Task ProcessGallery(SettingsModel settings, ImportType importType)
+    {
+        // Launch a gallery modal with settings and import type
+        await ModalService.Show<GalleryModal>("Import Preview", _builder =>
+        {
+            _builder.Add(_modal => _modal.Model, settings);
+            _builder.Add(_modal => _modal.ImportType, importType);
+        }, new ModalInstanceOptions() { Size = ModalSize.Fullscreen });
+    }
+
+}

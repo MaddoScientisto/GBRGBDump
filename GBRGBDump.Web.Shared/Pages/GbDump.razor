@@ -19,15 +19,6 @@
     <p>Scripts enabled: @Model!.PreScript.Path @Model!.PreScript.Arguments executing in @Model!.PreScript.RunLocation</p>
 }
 
-<Button Color="Color.Danger" Clicked="Exececute" Disabled="@_isProcessing">Execute</Button>
-
-
-<Button Color="Color.Primary" Clicked="ExecuteNew">Process with new Method</Button>
-
-<Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
-
-<Button Color="Color.Primary" Clicked="DumpToFs">Dump to FileSystem</Button>
-
 @if (_isProcessing)
 {
     <SpinKit Type="SpinKitType.Circle"></SpinKit>
@@ -46,7 +37,18 @@
 }
 
 
-<Gallery @ref="galleryRef" @bind-Images="_images"></Gallery>
+<Gallery @ref="galleryRef" @bind-Images="_images">
+    <Buttons>
+        <Button Color="Color.Danger" Clicked="Exececute" Disabled="@_isProcessing">Execute</Button>
+
+
+        <Button Color="Color.Primary" Clicked="ExecuteNew">Process with new Method</Button>
+
+        <Button Color="Color.Primary" Clicked="DoAutoRgbMerge" >Auto RGB Merge</Button>
+
+        <Button Color="Color.Primary" Clicked="DumpToFs">Dump to FileSystem</Button>
+    </Buttons>
+</Gallery>
 
 @code
 {
