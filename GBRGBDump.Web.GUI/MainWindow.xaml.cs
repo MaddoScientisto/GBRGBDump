@@ -14,6 +14,7 @@ using Blazorise.Icons.FontAwesome;
 using GBRGBDump.Services.Impl;
 using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
+using GBRGBDump.WebShared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Common.Services;
@@ -66,6 +67,7 @@ namespace GBRGBDump.Web.GUI
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
 
+            serviceCollection.AddTransient<AutoRGBMergeService>();
             
             serviceCollection.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
 

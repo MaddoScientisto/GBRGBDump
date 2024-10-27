@@ -6,6 +6,7 @@ using GBRGBDump.Web.Shared.Pages;
 using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
 using GBRGBDump.WebServer.Components;
+using GBRGBDump.WebShared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Common.Services;
@@ -56,7 +57,9 @@ namespace GBRGBDump.Web
             // Web services
             builder.Services.AddTransient<IFileDialogService, FileDialogService>();
             builder.Services.AddTransient<IEnvironmentService, EnvironmentService>();
-            builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>(); 
+            builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
+
+            builder.Services.AddTransient<AutoRGBMergeService>();
             builder.Services.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
 
             builder.Services.AddHttpClient();

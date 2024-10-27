@@ -7,7 +7,10 @@
             @switch (ImportType)
             {
                 case ImportType.File:
-                    @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    @* <Button Color="Color.Primary" Clicked="SelectInput">Select Input</Button>
+                    break;
+                    <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    <FileHandler @bind-Images="@Images" Model="@Model" @ref="_fileRef"></FileHandler>
                     break;
                 case ImportType.Printer:
                     <PrinterHandler @bind-Images="@Images" Model="@Model" @ref="_printerRef"></PrinterHandler>
@@ -59,6 +62,7 @@
     [Parameter] public EventCallback<ObservableCollection<GbImageContainer>> ImagesChanged { get; set; }
 
     private PrinterHandler? _printerRef;
+    private FileHandler? _fileRef;
 
 
     protected override void OnInitialized()
@@ -78,6 +82,11 @@
                 if (_printerRef != null)
                 {
                     await _printerRef.ProcessGbPrinterData();
+
+                    await _printerRef.DoAutoRgbMerge();
+
+                    // TODO: Dump to FS
+                    // TODO: Setting to dump to FS
                 }
                 break;
             case ImportType.Script:
