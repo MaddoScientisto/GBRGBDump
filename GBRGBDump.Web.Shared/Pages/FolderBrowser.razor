@@ -4,8 +4,13 @@
 @inject NavigationManager Navigation
 @inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 
-<Button Clicked="ShowPreview" Color="Color.Primary">Preview</Button>
-<Button Clicked="OpenGallery" Color="Color.Primary">Open Gallery</Button>
+<Buttons Role="ButtonsRole.Toolbar" Class="sticky-div">
+    <Button Clicked="ShowPreview" Color="Color.Primary">Preview</Button>
+    <Button Color="Color.Primary" Clicked="@(()=>treeViewRef.ExpandAll())">Expand all</Button>
+    <Button Color="Color.Secondary" Clicked="@(()=>treeViewRef.CollapseAll())">Collapse all</Button>
+</Buttons>
+
+@* <Button Clicked="OpenGallery" Color="Color.Primary">Open Gallery</Button> *@
 
 <span>Toast visible: @PreviewVisible</span>
 
@@ -19,26 +24,27 @@
         <ToastBody>
             @if (PreviewVisible)
             {
-                <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
+                <ImagePreview Path="@SelectedNode?.Path"></ImagePreview>
             }
         </ToastBody>
     </Toast>
 </Toaster>
 
-@* @if (showPreview && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image)
+@* @if (showPreview && !string.IsNullOrWhiteSpace(SelectedNode?.Text) && SelectedNode.Type == ItemType.Image)
 {
 
 
 
-    <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
+    <ImagePreview Path="@SelectedNode?.Path"></ImagePreview>
 
 }
  *@
 
-<TreeView Nodes="Items"
+<TreeView @ref="@treeViewRef"
+          Nodes="Items"
           GetChildNodes="@(item => item.Children)"
           HasChildNodes="@(item => item.Children?.Any() == true)"
-          @bind-SelectedNode="selectedNode"
+          @bind-SelectedNode="SelectedNode"
           @bind-ExpandedNodes="expandedNodes">
     <NodeContent>
         @switch (context.Type)
@@ -76,6 +82,8 @@
     [Inject] public IModalService ModalService { get; set; }
     [Inject] IMessageService MessageService { get; set; }
 
+    TreeView<Item> treeViewRef;
+
     private SettingsModel? Settings { get; set; }
 
     protected override void OnInitialized()
@@ -107,7 +115,19 @@
     };
 
     IList<Item> expandedNodes = new List<Item>();
-    Item? selectedNode = null;
+
+    Item? SelectedNode = null;
+
+    // Item? SelectedNode
+    // {
+    //     get => _selectedNode;
+    //     set
+    //     {
+    //         if (_selectedNode == value) return;
+    //         _selectedNode = value;
+    //         OnSelectedNodeChanged(_selectedNode);
+    //     }
+    // }
 
 
     bool ShowModal { get; set; } = false;
@@ -116,14 +136,38 @@
 
     bool PreviewVisible
     {
-        get => showPreview && selectedNode != null && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image;
+        get => showPreview && SelectedNode != null && !string.IsNullOrWhiteSpace(SelectedNode?.Text) && SelectedNode.Type == ItemType.Image;
         set => showPreview = value;
     }
 
-    void ShowPreview()
+    async Task ShowPreview()
     {
-        ShowModal = true;
-        showPreview = true;
+        if (SelectedNode == null) return;
+        switch (SelectedNode.Type)
+        {
+            case ItemType.Folder:
+                ShowModal = false;
+                showPreview = false;
+                await OpenGallery();
+                break;
+            case ItemType.Image:
+
+                ShowModal = true;
+                showPreview = true;
+                break;
+            case ItemType.File:
+            // TODO: Handle Json
+            case ItemType.Sav:
+            // TODO: Import from file
+            case ItemType.Rom:
+            // TODO: Import from file
+            default:
+                ShowModal = false;
+                showPreview = false;
+
+                break;
+        }
+
     }
 
     private async Task OpenGallery()
@@ -133,10 +177,10 @@
         {
             // TODO: Load images and pass them to the modal
 
-            if (selectedNode == null) return;
-            if (selectedNode.Type != ItemType.Folder) return;
+            if (SelectedNode == null) return;
+            if (SelectedNode.Type != ItemType.Folder) return;
 
-            var path = selectedNode.Path;
+            var path = SelectedNode.Path;
 
             var fileSystem = FileSystemService.GetFileSystemEntries(path);
 
@@ -164,7 +208,15 @@
             await MessageService.Error(e.ToString());
         }
 
-        
+
 
     }
+
+    private void OnSelectedNodeChanged(Item obj)
+    {
+        if (obj.Type != ItemType.Image) return;
+
+        
+    }
+
 }
