@@ -7,7 +7,10 @@
             @switch (ImportType)
             {
                 case ImportType.File:
-                    @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    @* <Button Color="Color.Primary" Clicked="SelectInput">Select Input</Button>
+                    break;
+                    <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
+                    <FileHandler @bind-Images="@Images" Model="@Model" @ref="_fileRef"></FileHandler>
                     break;
                 case ImportType.Printer:
                     <PrinterHandler @bind-Images="@Images" Model="@Model" @ref="_printerRef"></PrinterHandler>
@@ -16,7 +19,8 @@
                     @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+
+                    break;
             }
         </Buttons>
 
@@ -59,6 +63,7 @@
     [Parameter] public EventCallback<ObservableCollection<GbImageContainer>> ImagesChanged { get; set; }
 
     private PrinterHandler? _printerRef;
+    private FileHandler? _fileRef;
 
 
     protected override void OnInitialized()
@@ -78,18 +83,29 @@
                 if (_printerRef != null)
                 {
                     await _printerRef.ProcessGbPrinterData();
+
+                    await _printerRef.DoAutoRgbMerge();
+
+                    //await _printerRef.DumpToFs();
+
                 }
                 break;
             case ImportType.Script:
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+
+
+                break;
         }
     }
 
     private async Task Confirm()
     {
         await ModalService.Hide();
+        
+        // TODO: Dump to FS HERE
+
         await OnSuccess();
+        
     }
 }

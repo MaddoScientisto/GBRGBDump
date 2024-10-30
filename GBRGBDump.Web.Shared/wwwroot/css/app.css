@@ -137,3 +137,15 @@ a, .btn-link { color: #0071c1; }
     padding: 10px;
     border: 2px solid #ddd;
 }
+
+.overlay-container {
+    position: relative; /* Required to position the overlay inside this container */
+}
+
+.overlay-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: auto; /* Adjust the width as needed */
+    height: auto;
+}

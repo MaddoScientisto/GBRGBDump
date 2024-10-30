@@ -49,11 +49,9 @@ namespace GBTools.Decoder
 
         private string Hash(string data)
         {
-            using (var sha256 = SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
-                return BitConverter.ToString(hashedBytes).Replace("-", "").ToLowerInvariant();
-            }
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
+            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLowerInvariant();
         }
 
         private List<string> DummyImage(string dataHash)

@@ -8,6 +8,7 @@ namespace GBRGBDump.WebShared.Models
 {
     public enum ImportType
     {
+        None,
         File,
         Printer,
         Script

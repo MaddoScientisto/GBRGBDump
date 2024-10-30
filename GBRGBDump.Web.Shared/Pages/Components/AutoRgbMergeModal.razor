@@ -29,6 +29,13 @@
             </Select>
         </FieldBody>
     </Field>
+    
+    <Field Horizontal>
+        <FieldLabel>Auto Save to FS in: @SavePath</FieldLabel>
+        <FieldBody>
+            <Check TValue="bool">Auto Dump to FS</Check>
+        </FieldBody>
+    </Field>
 
 </ModalBody>
 <ModalFooter>
@@ -39,15 +46,18 @@
 
 @code {
     [Inject] public IModalService ModalService { get; set; }
-    [Parameter] public Func<ChannelOrder, AverageTypes, int, Task> OnSuccess { get; set; }
+    [Parameter] public Func<ChannelOrder, AverageTypes, int, bool, Task> OnSuccess { get; set; }
+
+    [Parameter] public string SavePath { get; set; }
 
     private ChannelOrder ChannelOrder { get; set; } = ChannelOrder.Sequential;
     private AverageTypes AverageType { get; set; } = AverageTypes.Normal;
     private int AebStep { get; set; } = 2;
+    private bool AutoSave { get; set; } = true;
 
     private async Task Confirm()
     {
         await ModalService.Hide();
-        await OnSuccess(ChannelOrder, AverageType, AebStep);
+        await OnSuccess(ChannelOrder, AverageType, AebStep, AutoSave);
     }
 }
