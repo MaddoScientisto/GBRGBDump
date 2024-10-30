@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GBTools.Common;
 
 namespace GBRGBDump.Web.Shared.Services.Impl
 {
@@ -15,15 +16,23 @@ namespace GBRGBDump.Web.Shared.Services.Impl
             return Directory.GetFileSystemEntries(path, "*", SearchOption.AllDirectories);
         }
 
+        private async Task<string> ImageToRawBase64Async(string imagePath)
+        {
+            // Read the image file asynchronously into a byte array
+            byte[] imageBytes = await File.ReadAllBytesAsync(imagePath);
+
+            // Convert byte array to base64 string
+            string base64String = Convert.ToBase64String(imageBytes);
+
+            return base64String;
+        }
+
         public async Task<string> ImageToBase64Async(string imagePath)
         {
             try
             {
-                // Read the image file asynchronously into a byte array
-                byte[] imageBytes = await File.ReadAllBytesAsync(imagePath);
-
                 // Convert byte array to base64 string
-                string base64String = Convert.ToBase64String(imageBytes);
+                string base64String = await ImageToRawBase64Async(imagePath);
 
                 // Determine the file extension to create the correct data URL
                 string extension = Path.GetExtension(imagePath).ToLower();
@@ -48,6 +57,20 @@ namespace GBRGBDump.Web.Shared.Services.Impl
                 Console.WriteLine($"Error converting image to base64: {ex.Message}");
                 return null;
             }
+        }
+
+        public async Task<GbImageContainer> ImageToGbImageAsync(string imagePath)
+        {
+            string base64String = await ImageToRawBase64Async(imagePath);
+
+            var img = new GbImageContainer()
+            {
+                Base64Png = base64String,
+                Name = Path.GetFileNameWithoutExtension(imagePath),
+
+            };
+
+            return img;
         }
 
         public async Task WriteBase64ToFile(string base64Image, string folder, string fileName) 

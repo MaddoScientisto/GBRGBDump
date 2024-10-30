@@ -5,12 +5,35 @@
 @inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
 
 <Button Clicked="ShowPreview" Color="Color.Primary">Preview</Button>
+<Button Clicked="OpenGallery" Color="Color.Primary">Open Gallery</Button>
 
-@if (showPreview && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image)
+<span>Toast visible: @PreviewVisible</span>
+
+<Toaster>
+    <Toast @bind-Visible="ShowModal" Autohide="false">
+        <ToastHeader>
+            <Strong>Asdf</Strong>
+            <CloseButton />
+        </ToastHeader>
+        
+        <ToastBody>
+            @if (PreviewVisible)
+            {
+                <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
+            }
+        </ToastBody>
+    </Toast>
+</Toaster>
+
+@* @if (showPreview && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image)
 {
-    <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
-}
 
+
+
+    <ImagePreview Path="@selectedNode?.Path"></ImagePreview>
+
+}
+ *@
 
 <TreeView Nodes="Items"
           GetChildNodes="@(item => item.Children)"
@@ -50,6 +73,9 @@
 
 @code {
 
+    [Inject] public IModalService ModalService { get; set; }
+    [Inject] IMessageService MessageService { get; set; }
+
     private SettingsModel? Settings { get; set; }
 
     protected override void OnInitialized()
@@ -81,12 +107,64 @@
     };
 
     IList<Item> expandedNodes = new List<Item>();
-    Item selectedNode;
+    Item? selectedNode = null;
+
+
+    bool ShowModal { get; set; } = false;
 
     bool showPreview = false;
 
+    bool PreviewVisible
+    {
+        get => showPreview && selectedNode != null && !string.IsNullOrWhiteSpace(selectedNode?.Text) && selectedNode.Type == ItemType.Image;
+        set => showPreview = value;
+    }
+
     void ShowPreview()
     {
+        ShowModal = true;
         showPreview = true;
+    }
+
+    private async Task OpenGallery()
+    {
+
+        try
+        {
+            // TODO: Load images and pass them to the modal
+
+            if (selectedNode == null) return;
+            if (selectedNode.Type != ItemType.Folder) return;
+
+            var path = selectedNode.Path;
+
+            var fileSystem = FileSystemService.GetFileSystemEntries(path);
+
+            var imagePaths = fileSystem.Where(x => x.EndsWith(".png")).ToList();
+
+            ObservableCollection<GbImageContainer> _images = [];
+
+            foreach (var imagePath in imagePaths)
+            {
+                var img = await FileSystemService.ImageToGbImageAsync(imagePath);
+
+                _images.Add(img);
+            }
+
+            await ModalService.Show<GalleryModal>("Directory", _builder =>
+            {
+                _builder.Add(_modal => _modal.Model, Settings);
+                _builder.Add(_modal => _modal.ImportType, ImportType.None);
+                _builder.Add(_modal => _modal.Images, _images);
+            }, new ModalInstanceOptions() { Size = ModalSize.Fullscreen });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await MessageService.Error(e.ToString());
+        }
+
+        
+
     }
 }

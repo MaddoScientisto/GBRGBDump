@@ -19,7 +19,8 @@
                     @* <Button Color="Color.Primary" Clicked="ExecuteNew">Reimport</Button> *@
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+
+                    break;
             }
         </Buttons>
 
@@ -92,13 +93,19 @@
             case ImportType.Script:
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+
+
+                break;
         }
     }
 
     private async Task Confirm()
     {
         await ModalService.Hide();
+        
+        // TODO: Dump to FS HERE
+
         await OnSuccess();
+        
     }
 }
