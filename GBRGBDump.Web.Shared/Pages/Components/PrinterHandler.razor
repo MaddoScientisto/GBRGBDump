@@ -147,11 +147,23 @@
 
     }
 
+    private string MakeOutputPath()
+    {
+        return Path.Combine(Model!.OutputPath, Images.First().Name.Split(' ')[0]);
+    }
+
     private async Task DumpToFs()
+    {
+        await DumpToFs(null);
+    }
+
+    public async Task DumpToFs(string? path = null)
     {
         try
         {
-            var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+            var outputSubFolder = path ?? MakeOutputPath();
+
+            //var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
 
             FileSystemService.CreateDirectory(outputSubFolder);
 
@@ -176,7 +188,11 @@
     {
         await ModalService.Show<AutoRgbMergeModal>(_builder =>
         {
-            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
+            var path = MakeOutputPath();
+
+            _builder.Add(_modal => _modal.SavePath, path);
+
+            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep, autoSave) =>
             {
 
                 var images = await AutoRGBMergeService.AutoRGBMerge(Images, channelOrder, averageType, aebStep);
@@ -187,6 +203,12 @@
                 }
 
                 await NotificationService.Success($"RGB Images created");
+
+                if (autoSave)
+                {
+                    await DumpToFs(path);
+                }
+
             });
         });
     }

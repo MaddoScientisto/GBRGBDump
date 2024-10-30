@@ -118,9 +118,14 @@
 
     private async Task DumpToFs()
     {
+        await DumpToFs(null);
+    }
+
+    private async Task DumpToFs(string? path = null)
+    {
         try
         {
-            var outputSubFolder = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+            var outputSubFolder = path ?? FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
 
             FileSystemService.CreateDirectory(outputSubFolder);
 
@@ -143,9 +148,13 @@
 
     public async Task DoAutoRgbMerge()
     {
+        var path = FileSystemService.MakeOutputSubFolder(Model!.InputPath, Model!.OutputPath);
+
         await ModalService.Show<AutoRgbMergeModal>(_builder =>
         {
-            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep) =>
+            _builder.Add(_modal => _modal.SavePath, path);
+
+            _builder.Add(_modal => _modal.OnSuccess, async (channelOrder, averageType, aebStep, autoSave) =>
             {
 
                 var images = await AutoRGBMergeService.AutoRGBMerge(Images, channelOrder, averageType, aebStep);
@@ -156,6 +165,11 @@
                 }
 
                 await NotificationService.Success($"RGB Images created");
+
+                if (autoSave)
+                {
+                    await DumpToFs(path);
+                }
             });
         });
     }
