@@ -105,7 +105,8 @@
         var builder = new PathToHierarchy();
         var root = builder.BuildHierarchy(fileSystem.ToList());
 
-        Items = [root];
+        //Items = [root];
+        Items = root.Children;
     }
 
 
