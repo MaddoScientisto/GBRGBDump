@@ -19,7 +19,7 @@
     [Parameter] public Func<SettingsModel, ImportType, Task> OnSuccess { get; set; }
 
     private SettingsModel? Model { get; set; }
-    private ImportType ImportType { get; set; } = ImportType.File;
+    private ImportType ImportType { get; set; } = ImportType.Printer;
 
 
     protected override void OnInitialized()
