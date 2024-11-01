@@ -176,7 +176,8 @@
 
     private async Task Download(GbImageContainer image)
     {
-        await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
+        //await JSRuntime.InvokeVoidAsync("downloadBase64File", $"{image.Name}.png", image.DataSource);
+        await JSRuntime.InvokeVoidAsync("imageUtils.scaleAndDownloadImage", image.DataSource, image.Name, 6);
     }
 
     /// <summary>
