@@ -69,7 +69,7 @@ namespace GBRGBDump.Web.GUI
 
             serviceCollection.AddTransient<AutoRGBMergeService>();
             
-            serviceCollection.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+            serviceCollection.AddTransient<IFileSystemService, FileSystemService>();
 
             serviceCollection.AddHttpClient();
 

@@ -60,7 +60,7 @@ namespace GBRGBDump.Web
             builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
 
             builder.Services.AddTransient<AutoRGBMergeService>();
-            builder.Services.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+            builder.Services.AddTransient<IFileSystemService, FileSystemService>();
 
             builder.Services.AddHttpClient();
 
