@@ -19,7 +19,8 @@ namespace GBRGBDump.Services.Impl
 
         public string? OpenFileDialog(string? filter = null)
         {
-            
+            try
+            {
                 OpenFileDialog openFileDialog = new OpenFileDialog();
                 if (!string.IsNullOrWhiteSpace(filter))
                 {
@@ -30,8 +31,14 @@ namespace GBRGBDump.Services.Impl
                 {
                     return openFileDialog.FileName;
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while trying to open a file dialog");
+            }
+                
 
-                return null;
+            return null;
             
         }
 
