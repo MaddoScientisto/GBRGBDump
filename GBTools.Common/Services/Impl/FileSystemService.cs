@@ -1,24 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace GBTools.Common.Services
+﻿namespace GBTools.Common.Services.Impl
 {
-    public interface IFileSystemService
-    {
-        void CreateDirectory(string path);
-        bool FileExists(string path);
-
-        IEnumerable<string> GetFileSystemEntries(string path);
-        Task<string> ImageToBase64Async(string imagePath);
-        Task<GbImageContainer> ImageToGbImageAsync(string imagePath);
-        string MakeOutputSubFolder(string source, string destination);
-
-        Task WriteBase64ToFile(string base64Image, string folder, string fileName);
-    }
-
     public class FileSystemService : IFileSystemService
     {
         public void CreateDirectory(string path)
