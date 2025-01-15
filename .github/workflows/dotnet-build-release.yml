@@ -182,6 +182,14 @@ jobs:
         path: publish/GBRGBDump/${{ matrix.output }}/**
         if-no-files-found: error
 
+    # Build and publish docker image
+
+    - name: Build and publish Docker
+      run: |
+           docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
+           docker build -f ./GBRGBDump.Web/Dockerfile . --tag ghcr.io/${{ env.NUGET_OWNER }}/GBRGBDump:latest
+           docker push ghcr.io/${{ env.NUGET_OWNER }}/GBRGBDump:latest
+
   publish-release:
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
     runs-on: ubuntu-latest
