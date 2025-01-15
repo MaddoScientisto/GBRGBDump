@@ -1,0 +1,6 @@
+services:
+  gbrgbdump.web:
+    image: ${DOCKER_REGISTRY-}gbrgbdumpweb
+    build:
+      context: .
+      dockerfile: GBRGBDump.Web/Dockerfile

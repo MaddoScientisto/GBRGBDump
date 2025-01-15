@@ -8,6 +8,9 @@
 	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 	  <RootNamespace>GBRGBDump.WebServer</RootNamespace>
 	  <IsPackable>false</IsPackable>
+	  <UserSecretsId>25fd51a8-74ab-4ae2-a933-8929ef19ce2a</UserSecretsId>
+	  <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	  <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +20,7 @@
   <ItemGroup>
     <PackageReference Include="Blazorise.Bootstrap5" Version="1.7.2" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.7.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
   </ItemGroup>
 
   <ItemGroup>

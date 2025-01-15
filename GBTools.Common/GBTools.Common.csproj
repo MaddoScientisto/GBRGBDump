@@ -12,6 +12,12 @@
 	<PropertyGroup>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Services\NewFolder\**" />
+	  <EmbeddedResource Remove="Services\NewFolder\**" />
+	  <None Remove="Services\NewFolder\**" />
+	</ItemGroup>
   <ItemGroup>
     <None Include="Readme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
@@ -26,10 +32,6 @@
 
   <ItemGroup>
     <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\NewFolder\" />
   </ItemGroup>
 
 </Project>
