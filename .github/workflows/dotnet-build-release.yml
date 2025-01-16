@@ -285,5 +285,27 @@ jobs:
           dotnet nuget push "$file" --api-key "${{ env.NUGET_APIKEY }}" --source maddo-github --skip-duplicate
         done
 
+    # Merge Docker Packages
+    # Build and publish docker image
+    - name: Build and publish Docker
+      run: |
+          LOWERCASE_OWNER=$(echo "${{ env.NUGET_OWNER }}" | tr '[:upper:]' '[:lower:]')
+          docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
+
+          docker manifest create ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }} \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-amd64 \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm32v7 \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm64v8
+
+          docker manifest push ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
+
+          docker manifest create ghcr.io/$LOWERCASE_OWNER/gbrgbdump:latest \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-amd64 \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm32v7 \
+          -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm64v8
+
+          docker manifest push ghcr.io/$LOWERCASE_OWNER/gbrgbdump:latest
+      # TODO: tag as latest only if it's a release
+
 
     
