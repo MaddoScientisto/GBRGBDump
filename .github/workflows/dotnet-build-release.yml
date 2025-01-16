@@ -196,6 +196,7 @@ jobs:
     - name: Build and publish Docker
       if: matrix.runtime != 'win-x64' # Skip Docker build for win-x64
       run: |
+          LOWERCASE_OWNER=$(echo "${{ env.NUGET_OWNER }}" | tr '[:upper:]' '[:lower:]')
           docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
 
           # Map architectures
@@ -208,8 +209,8 @@ jobs:
             ARCH="ARM64V8"
           fi
 
-          docker build -f ./GBRGBDump.Web/Dockerfile . --build-arg ARCH=${ARCH} --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:${{ steps.version_step.outputs.fullSemVer }}-${ARCH}
-          docker push ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump --all-tags
+          docker build -f ./GBRGBDump.Web/Dockerfile . --build-arg ARCH=${ARCH} --tag ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ steps.version_step.outputs.fullSemVer }}-$ARCH
+          docker push ghcr.io/$LOWERCASE_OWNER/gbrgbdump --all-tags
       # TODO: tag as latest only if it's a release
 
   publish-release:
