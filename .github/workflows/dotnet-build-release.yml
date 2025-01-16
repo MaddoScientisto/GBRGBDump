@@ -161,8 +161,11 @@ jobs:
       with:
         versionSpec: '6.0.x'
 
+    - name: Determine Version
+      id: version_step # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v3.1.2
+
     - name: Update Version
-      id: version_step
       uses: gittools/actions/gitversion/command@v3.1.2
       with:
         arguments: /updateprojectfiles
@@ -191,10 +194,22 @@ jobs:
 
     # Build and publish docker image
     - name: Build and publish Docker
+      if: matrix.runtime != 'win-x64' # Skip Docker build for win-x64
       run: |
-           docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
-           docker build -f ./GBRGBDump.Web/Dockerfile . --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:${{ steps.version_step.outputs.fullSemVer }} --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:latest
-           docker push ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump --all-tags
+          docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
+
+          # Map architectures
+          ARCH=""
+          if [ "${{ matrix.runtime }}" = "linux-x64" ]; then
+            ARCH="AMD64"
+          elif [ "${{ matrix.runtime }}" = "linux-arm" ]; then
+            ARCH="ARM32V7"
+          elif [ "${{ matrix.runtime }}" = "linux-arm64" ]; then
+            ARCH="ARM64V8"
+          fi
+
+          docker build -f ./GBRGBDump.Web/Dockerfile . --build-arg ARCH=${ARCH} --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:${{ steps.version_step.outputs.fullSemVer }}-${ARCH}
+          docker push ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump --all-tags
       # TODO: tag as latest only if it's a release
 
   publish-release:
