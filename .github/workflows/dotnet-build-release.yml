@@ -72,16 +72,16 @@ jobs:
       run: dotnet restore --locked-mode ./GBRGBDump.sln
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3.0.0
+      uses: gittools/actions/gitversion/setup@v3.1.2
       with:
-        versionSpec: '6.x'
+        versionSpec: '6.0.x'
 
     - name: Determine Version
       id: version_step # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v3.0.0
+      uses: gittools/actions/gitversion/execute@v3.1.2
 
     - name: Update Version
-      uses: gittools/actions/gitversion/command@v3.0.0
+      uses: gittools/actions/gitversion/command@v3.1.2
       with:
         arguments: /updateprojectfiles
 
@@ -155,12 +155,12 @@ jobs:
         dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3.0.0
+      uses: gittools/actions/gitversion/setup@v3.1.2
       with:
-        versionSpec: '6.x'
+        versionSpec: '6.0.x'
 
     - name: Update Version
-      uses: gittools/actions/gitversion/command@v3.0.0
+      uses: gittools/actions/gitversion/command@v3.1.2
       with:
         arguments: /updateprojectfiles
 
