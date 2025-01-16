@@ -64,6 +64,10 @@ jobs:
       run : |
         dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"    
     
+    # Debug step
+    - name: Display structure of downloaded files
+      run: ls -R
+
     - name: Restore dependencies
       run: dotnet restore --locked-mode GBRGBDump/GBRGBDump.sln
 
