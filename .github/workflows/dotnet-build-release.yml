@@ -96,7 +96,7 @@ jobs:
         dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
 
     # Build NuGet Packages
-    - run: dotnet pack ./GBRGBDump.sln --configuration Release --output ${{ env.NuGetDirectory }}
+    - run: dotnet pack ./GBRGBDump.sln -v diag --configuration Release --output ${{ env.NuGetDirectory }}
 
     # Upload NuGet Packages Artifacts
     - name: Upload NuGet Artifact
