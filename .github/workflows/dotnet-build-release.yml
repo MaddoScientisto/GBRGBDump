@@ -65,7 +65,7 @@ jobs:
         dotnet nuget add source --username ${{ env.NUGET_OWNER }} --store-password-in-clear-text --password ${{ env.NUGET_APIKEY }} --name maddo-github "https://nuget.pkg.github.com/${{ env.NUGET_OWNER }}/index.json"    
     
     - name: Restore dependencies
-      run: dotnet restore --locked-mode
+      run: dotnet restore --locked-mode .\GBRGBDump.sln
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3.0.0
