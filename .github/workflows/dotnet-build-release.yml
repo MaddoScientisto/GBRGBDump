@@ -162,6 +162,7 @@ jobs:
         versionSpec: '6.0.x'
 
     - name: Update Version
+      id: version_step
       uses: gittools/actions/gitversion/command@v3.1.2
       with:
         arguments: /updateprojectfiles
@@ -189,12 +190,12 @@ jobs:
         if-no-files-found: error
 
     # Build and publish docker image
-
     - name: Build and publish Docker
       run: |
            docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
-           docker build -f ./GBRGBDump.Web/Dockerfile . --tag ghcr.io/${{ env.NUGET_OWNER }}/GBRGBDump:latest
-           docker push ghcr.io/${{ env.NUGET_OWNER }}/GBRGBDump:latest
+           docker build -f ./GBRGBDump.Web/Dockerfile . --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:${{ steps.version_step.outputs.fullSemVer }} --tag ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump:latest
+           docker push ghcr.io/${{ env.NUGET_OWNER }}/gbrgbdump --all-tags
+      # TODO: tag as latest only if it's a release
 
   publish-release:
     needs: [build-gbrgbdump, build-gbrgbdump-gui]
