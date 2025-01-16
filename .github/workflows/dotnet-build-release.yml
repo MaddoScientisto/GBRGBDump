@@ -69,7 +69,7 @@ jobs:
       run: ls -R
 
     - name: Restore dependencies
-      run: dotnet restore --locked-mode GBRGBDump/GBRGBDump.sln
+      run: dotnet restore --locked-mode ./GBRGBDump.sln
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3.0.0
