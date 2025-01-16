@@ -2,6 +2,6 @@
 {
     public class SettingsConfig
     {
-        public string Location { get; set; }
+        public string? Location { get; set; }
     }
 }

@@ -10,20 +10,16 @@ using Newtonsoft.Json;
 
 namespace GBRGBDump.Web.Shared.Services.Impl
 {
-    public class LocalFileSystemJsonSettingsService : ISettingsService
+    public class LocalFileSystemJsonSettingsService(IOptions<SettingsConfig> config) : ISettingsService
     {
 
-        private readonly SettingsConfig _config;
-        public LocalFileSystemJsonSettingsService(IOptions<SettingsConfig> config)
-        {
-            _config = config.Value;
-        }
+        private readonly SettingsConfig _config = config.Value;
 
         public void SaveSettings(SettingsModel model)
         {
             var serialized = JsonConvert.SerializeObject(model);
 
-            File.WriteAllText(_config.Location, serialized);
+            File.WriteAllText(_config.Location ?? throw new InvalidOperationException(), serialized);
         }
 
         public SettingsModel? LoadSettings()
