@@ -9,6 +9,9 @@ on:
 concurrency: production
 permissions: 
   contents: write
+  packages: write
+  attestations: write
+  id-token: write
 
 env:
   NuGetDirectory: ${{ github.workspace}}/nuget
