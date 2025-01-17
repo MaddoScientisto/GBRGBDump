@@ -297,7 +297,7 @@ jobs:
           -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm32v7 \
           -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-arm64v8
 
-          docker manifest push ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
+          # docker manifest push ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}
 
           # docker manifest create ghcr.io/$LOWERCASE_OWNER/gbrgbdump:latest \
           # -- amend ghcr.io/$LOWERCASE_OWNER/gbrgbdump:${{ needs.build-gbrgbdump-gui.outputs.fullSemVer }}-amd64 \
