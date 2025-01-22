@@ -56,7 +56,7 @@ public sealed class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
         
         string outputSubFolder = Path.Combine(settings.OutputPath, Path.GetFileNameWithoutExtension(settings.InputFilePath));
 
-// Check if the output directory exists, if not, create it
+        // Check if the output directory exists, if not, create it
         if (!Directory.Exists(outputSubFolder))
         {
             Directory.CreateDirectory(outputSubFolder);

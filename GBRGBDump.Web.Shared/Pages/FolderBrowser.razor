@@ -1,8 +1,7 @@
 ﻿@page "/folders"
-@using GBRGBDump.Web.Shared.Services.Impl
 @inject ISettingsService SettingsService
 @inject NavigationManager Navigation
-@inject GBRGBDump.Web.Shared.Services.IFileSystemService FileSystemService
+@inject IFileSystemService FileSystemService
 
 <Buttons Role="ButtonsRole.Toolbar" Class="sticky-div">
     <Button Clicked="ShowPreview" Color="Color.Primary">Preview</Button>

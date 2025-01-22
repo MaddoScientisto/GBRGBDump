@@ -1,14 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using GBTools.Common;
-
-namespace GBRGBDump.Web.Shared.Services.Impl
+﻿namespace GBTools.Common.Services.Impl
 {
-    public class LocalFileSystemService : IFileSystemService
+    public class FileSystemService : IFileSystemService
     {
+        public void CreateDirectory(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+
+        public bool FileExists(string path)
+        {
+            return File.Exists(path);
+        }
+
         public IEnumerable<string> GetFileSystemEntries(string path)
         {
             if (!Directory.Exists(path)) return [];
@@ -73,7 +79,7 @@ namespace GBRGBDump.Web.Shared.Services.Impl
             return img;
         }
 
-        public async Task WriteBase64ToFile(string base64Image, string folder, string fileName) 
+        public async Task WriteBase64ToFile(string base64Image, string folder, string fileName)
         {
             await File.WriteAllBytesAsync(Path.Combine(folder, fileName), Convert.FromBase64String(base64Image));
         }
@@ -81,14 +87,6 @@ namespace GBRGBDump.Web.Shared.Services.Impl
         public string MakeOutputSubFolder(string source, string destination)
         {
             return System.IO.Path.Combine(destination, System.IO.Path.GetFileNameWithoutExtension(source));
-        }
-
-        public void CreateDirectory(string path)
-        {
-            if (!Path.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
         }
     }
 }

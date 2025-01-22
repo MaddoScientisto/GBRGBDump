@@ -5,11 +5,13 @@ using GBRGBDump.Web.Services.Impl;
 using GBRGBDump.Web.Shared.Pages;
 using GBRGBDump.Web.Shared.Services;
 using GBRGBDump.Web.Shared.Services.Impl;
+using GBRGBDump.WebServer;
 using GBRGBDump.WebServer.Components;
 using GBRGBDump.WebShared.Services.Impl;
 using GBTools.Bootstrapper;
 using GBTools.Common;
 using GBTools.Common.Services;
+using GBTools.Common.Services.Impl;
 using GBTools.Decoder;
 using GBTools.Graphics;
 using GBTools.Graphics.Services;
@@ -23,6 +25,13 @@ namespace GBRGBDump.Web
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            bool isDocker = Environment.GetEnvironmentVariable("DOCKER_CONTAINER") == "true";
+
+            if (isDocker)
+            {
+                builder.Configuration.AddJsonFile("appsettings.docker.json", true, true);
+            }
 
             // Add services to the container.
             builder.Services.AddRazorComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
@@ -60,7 +69,9 @@ namespace GBRGBDump.Web
             builder.Services.AddTransient<ISettingsService, LocalFileSystemJsonSettingsService>();
 
             builder.Services.AddTransient<AutoRGBMergeService>();
-            builder.Services.AddTransient<GBRGBDump.Web.Shared.Services.IFileSystemService, LocalFileSystemService>();
+            builder.Services.AddTransient<IFileSystemService, FileSystemService>();
+
+            builder.Services.Configure<SettingsConfig>(builder.Configuration.GetSection("Config"));
 
             builder.Services.AddHttpClient();
 

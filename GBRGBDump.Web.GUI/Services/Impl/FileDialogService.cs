@@ -5,14 +5,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace GBRGBDump.Services.Impl
 {
     public class FileDialogService : IFileDialogService
     {
+        private readonly ILogger<FileDialogService> _logger;
+        public FileDialogService(ILogger<FileDialogService> logger)
+        {
+            _logger = logger;
+        }
+
         public string? OpenFileDialog(string? filter = null)
         {
-            
+            try
+            {
                 OpenFileDialog openFileDialog = new OpenFileDialog();
                 if (!string.IsNullOrWhiteSpace(filter))
                 {
@@ -23,14 +31,21 @@ namespace GBRGBDump.Services.Impl
                 {
                     return openFileDialog.FileName;
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while trying to open a file dialog");
+            }
+                
 
-                return null;
+            return null;
             
         }
 
         public string? OpenFolderDialog(string? lastFolder = null)
         {
-            
+            try
+            {
                 OpenFolderDialog openFolderDialog = new OpenFolderDialog();
 
                 if (!string.IsNullOrWhiteSpace(lastFolder))
@@ -42,8 +57,14 @@ namespace GBRGBDump.Services.Impl
                 {
                     return openFolderDialog.FolderName;
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while trying to open a folder dialog");
+            }
+                
 
-                return null;
+            return null;
             
         }
     }

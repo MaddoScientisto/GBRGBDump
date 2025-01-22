@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -12,6 +12,12 @@
 	<PropertyGroup>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Services\NewFolder\**" />
+	  <EmbeddedResource Remove="Services\NewFolder\**" />
+	  <None Remove="Services\NewFolder\**" />
+	</ItemGroup>
   <ItemGroup>
     <None Include="Readme.md" Pack="true" PackagePath="\" />
   </ItemGroup>

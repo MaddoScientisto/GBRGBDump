@@ -1,0 +1,54 @@
+﻿@inject ISettingsService SettingsService
+@inject IFileSystemService FileSystemService
+
+<Carousel>
+    <Repeater Items="Images">
+        <CarouselSlide>
+            <Image Source="@context.DataSource" Width="Width.Is100"></Image>
+        </CarouselSlide>
+    </Repeater>
+</Carousel>
+
+@code {
+    private SettingsModel? Settings { get; set; }
+
+    private ObservableCollection<GbImageContainer> Images { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        Settings ??= SettingsService.LoadSettings() ?? new()
+            {
+                // Set defaults here
+                ChannelOrder = ChannelOrder.Sequential,
+                AverageType = AverageTypes.Normal
+            };
+
+        if (string.IsNullOrWhiteSpace(Settings.OutputPath))
+        {
+            return;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Settings == null || string.IsNullOrWhiteSpace(Settings.OutputPath))
+        {
+            return;
+        }
+        
+        var fileSystem = FileSystemService.GetFileSystemEntries(Settings.OutputPath);
+
+        var random = new Random();
+        var randomPics = fileSystem
+            .Where(x => x.EndsWith(".png"))
+            .OrderBy(x => random.Next())
+            .Take(10)
+            .ToList();
+
+        foreach (var randomPic in randomPics)
+        {
+            var img = await FileSystemService.ImageToGbImageAsync(randomPic);
+            Images.Add(img);
+        }
+    }
+}
