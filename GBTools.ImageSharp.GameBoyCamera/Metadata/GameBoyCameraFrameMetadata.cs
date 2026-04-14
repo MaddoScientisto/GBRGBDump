@@ -1,0 +1,25 @@
+namespace GBTools.ImageSharp.GameBoyCamera.Metadata;
+
+public sealed record GameBoyCameraFrameMetadata(
+    int AlbumIndex,
+    int CartIndex,
+    int BaseAddress,
+    int FrameNumber,
+    string? UserId,
+    string? UserName,
+    string? BirthDate,
+    string? Gender,
+    string? BloodType,
+    string? Comment,
+    bool IsCopy,
+    string? RomType,
+    string? Exposure,
+    string? CaptureMode,
+    string? EdgeMode,
+    string? Gain,
+    string? InvertOutput,
+    string? VoltageReference,
+    string? ZeroPoint,
+    string? VoltageOutput,
+    string? DitherSet,
+    int? Contrast);
