@@ -20,7 +20,7 @@ public sealed class BitmapFactory : IBitmapFactory
     {
         ArgumentNullException.ThrowIfNull(photo);
 
-        using Image<Rgba32> image = GameBoyCameraTileGridRenderer.Render(photo.TileGrid);
+        using Image<Rgba32> image = GameBoyCameraImageCodec.RenderPhoto(photo);
         if (image.Width != width || image.Height != height)
         {
             image.Mutate(context => context.Resize(width, height, KnownResamplers.NearestNeighbor));

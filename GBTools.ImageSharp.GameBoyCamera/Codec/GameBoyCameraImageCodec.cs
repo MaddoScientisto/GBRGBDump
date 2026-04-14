@@ -7,6 +7,18 @@ namespace GBTools.ImageSharp.GameBoyCamera.Codec;
 
 public static class GameBoyCameraImageCodec
 {
+    public static Image<Rgba32> RenderPhoto(GbcPhoto photo, GameBoyCameraPalette? palette = null)
+    {
+        ArgumentNullException.ThrowIfNull(photo);
+
+        if (photo.HasRenderedImage)
+        {
+            return Image.LoadPixelData<Rgba32>(photo.RenderedRgbaPixels!.Value.ToArray(), photo.RenderedWidth, photo.RenderedHeight);
+        }
+
+        return GameBoyCameraTileGridRenderer.Render(photo.TileGrid, palette);
+    }
+
     public static GbcTileGrid EncodeToTileGrid(Image<Rgba32> image, GameBoyCameraPalette? palette = null)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -120,7 +132,29 @@ public static class GameBoyCameraImageCodec
             throw new ArgumentException("Album must contain at least one photo.", nameof(album));
         }
 
-        return RenderFrames(album.Photos.Select(static photo => photo.TileGrid).ToArray(), palette);
+        Image<Rgba32>? result = null;
+        foreach (GbcPhoto photo in album.Photos)
+        {
+            using Image<Rgba32> rendered = RenderPhoto(photo, palette);
+            if (result is null)
+            {
+                result = rendered.Clone();
+                continue;
+            }
+
+            result.Frames.AddFrame(rendered.Frames.RootFrame);
+        }
+
+        return result!;
+    }
+
+    public static byte[] CopyPixelData(Image<Rgba32> image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        byte[] result = new byte[image.Width * image.Height * 4];
+        image.CopyPixelDataTo(result);
+        return result;
     }
 
     public static IReadOnlyList<string> FormatTiles(GbcTileGrid grid)

@@ -61,7 +61,7 @@ public sealed class ImageExportService : IImageExportService
 
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Environment.CurrentDirectory);
 
-        using Image<Rgba32> image = GameBoyCameraTileGridRenderer.Render(photoRequest.Photo.TileGrid);
+        using Image<Rgba32> image = GameBoyCameraImageCodec.RenderPhoto(photoRequest.Photo);
         await using FileStream stream = File.Create(path);
 
         switch (request.Format)

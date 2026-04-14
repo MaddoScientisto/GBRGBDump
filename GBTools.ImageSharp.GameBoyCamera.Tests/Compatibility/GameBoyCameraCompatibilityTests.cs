@@ -1,6 +1,8 @@
 using System.Text;
+using System.Text.Json;
 using GBTools.ImageSharp.GameBoyCamera.Codec;
 using GBTools.ImageSharp.GameBoyCamera.Compatibility;
+using GBTools.ImageSharp.GameBoyCamera.Model;
 using GBTools.ImageSharp.GameBoyCamera.Tests.Fixtures;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -168,6 +170,52 @@ public class GameBoyCameraCompatibilityTests
         Assert.NotNull(photo.FrameOverlay);
         Assert.Equal(GameBoyCameraConstants.RawPhotoTileWidth, photo.TileGrid.WidthInTiles);
         Assert.Equal(GameBoyCameraConstants.RawPhotoTileHeight, photo.TileGrid.HeightInTiles);
+    }
+
+    [Fact]
+    public void LoadGbPrinterWebAlbum_skips_invalid_entries_when_valid_photos_exist()
+    {
+        using JsonDocument validDocument = JsonDocument.Parse(GameBoyCameraFixtureFactory.CreateJsonFixture());
+        JsonElement validRoot = validDocument.RootElement;
+        JsonElement validImage = validRoot.GetProperty("state").GetProperty("images")[0];
+        string validHash = validImage.GetProperty("hash").GetString()!;
+        string validFrame = validImage.GetProperty("frame").GetString()!;
+
+        var document = new Dictionary<string, object?>
+        {
+            ["state"] = new Dictionary<string, object?>
+            {
+                ["lastUpdateUTC"] = 1,
+                ["version"] = 1,
+                ["images"] = new object?[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["hash"] = "missing-payload",
+                        ["title"] = "Broken",
+                        ["created"] = "2026-04-14T00:00:00.0000000Z",
+                        ["tags"] = Array.Empty<string>(),
+                        ["palette"] = "default",
+                        ["invertPalette"] = false,
+                        ["framePalette"] = "default",
+                        ["invertFramePalette"] = false,
+                        ["frame"] = string.Empty,
+                        ["lines"] = 224,
+                    },
+                    JsonSerializer.Deserialize<object>(validImage.GetRawText()),
+                },
+            },
+            [validHash] = validRoot.GetProperty(validHash).GetString(),
+            [$"frame-{validFrame}"] = validRoot.GetProperty($"frame-{validFrame}").GetString(),
+        };
+
+        using MemoryStream stream = new(JsonSerializer.SerializeToUtf8Bytes(document));
+        GbcAlbum album = GameBoyCameraCompatibility.LoadGbPrinterWebAlbum(stream, new GameBoyCameraLoadOptions
+        {
+            FrameMode = GameBoyCameraFrameMode.Keep,
+        });
+
+        Assert.Single(album.Photos);
     }
 
     [Fact]
