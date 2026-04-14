@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.PngMagnificationDialog"
+        x:DataType="vm:PngMagnificationDialogViewModel"
+        Width="380"
+        Height="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="PNG Magnification">
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <StackPanel Spacing="10">
+            <TextBlock Text="Enter the PNG export magnification as a whole-number scale factor."
+                       TextWrapping="Wrap" />
+            <TextBlock Text="Examples: 1 keeps the original size, 4 exports a 4x enlarged PNG."
+                       TextWrapping="Wrap"
+                       Opacity="0.75" />
+            <TextBox Text="{Binding MagnificationText, Mode=TwoWay}"
+                     PlaceholderText="4" />
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#FFD8A7A7"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasError}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,16,0,0">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" />
+            <Button Content="Export" Command="{Binding ConfirmCommand}" MinWidth="90" />
+        </StackPanel>
+    </Grid>
+</Window>

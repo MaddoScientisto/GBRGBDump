@@ -1,0 +1,23 @@
+{
+  "state": {
+    "images": [
+      {
+        "hash": "5aa1221a3c354b60aed8076105f9e6239281aca9",
+        "created": "2026-04-14 21:19:40:352",
+        "title": "Backup export 5aa1221a3c354b60aed8076105f9e6239281aca9",
+        "lines": 1,
+        "tags": [
+          "backup"
+        ],
+        "palette": "bw",
+        "framePalette": "bw",
+        "invertPalette": false,
+        "invertFramePalette": false,
+        "frame": ""
+      }
+    ],
+    "lastUpdateUTC": 1776194380,
+    "version": 1
+  },
+  "5aa1221a3c354b60aed8076105f9e6239281aca9": "x\u00DA\u0003\u0000\u0000\u0000\u0000\u0001"
+}

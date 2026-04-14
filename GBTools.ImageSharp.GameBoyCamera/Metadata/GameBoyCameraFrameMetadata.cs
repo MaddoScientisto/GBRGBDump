@@ -15,6 +15,8 @@ public sealed record GameBoyCameraFrameMetadata(
     string? RomType,
     string? Exposure,
     string? CaptureMode,
+    string? EdgeExclusive,
+    string? EdgeOperation,
     string? EdgeMode,
     string? Gain,
     string? InvertOutput,

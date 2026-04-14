@@ -17,4 +17,8 @@ public sealed class GameBoyCameraLoadOptions
     public bool IncludeLastSeen { get; init; } = true;
 
     public bool ForceMagicCheck { get; init; } = true;
+
+    public bool CartIsJapanese { get; init; }
+
+    public GameBoyCameraImportOrdering ImportOrdering { get; init; } = GameBoyCameraImportOrdering.Album;
 }

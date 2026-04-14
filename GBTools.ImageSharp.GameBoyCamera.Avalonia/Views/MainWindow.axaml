@@ -1,0 +1,246 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        xmlns:models="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.Models"
+    xmlns:media="using:Avalonia.Media"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1320" d:DesignHeight="860"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Game Boy Camera ImageSharp Tester"
+        MinWidth="1100"
+        MinHeight="720">
+
+    <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="2.1*,1*" Margin="20">
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <Button Content="Load Images"
+                    Command="{Binding LoadImagesCommand}"
+                    MinWidth="120" />
+            <Button Content="Export Selected"
+                    Command="{Binding ExportSelectedCommand}"
+                    MinWidth="130" />
+            <TextBlock Text="{Binding SourceSummary}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       FontSize="13" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Grid.ColumnSpan="2"
+                Margin="0,16,0,16"
+                Padding="12"
+                Background="#2B4D1F1F"
+                BorderBrush="#7A9F3A3A"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFD8A7A7" TextWrapping="Wrap" />
+        </Border>
+
+        <Border Grid.Row="2"
+                Grid.Column="0"
+                Margin="0,0,16,0"
+                Padding="16"
+                Background="#0FFFFFFF"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <TextBlock Text="Decoded Images"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,12" />
+
+                <Grid Grid.Row="1">
+                    <TextBlock Text="Load a supported file to preview decoded images here."
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="360"
+                               IsVisible="{Binding IsEmptyStateVisible}" />
+
+                    <ScrollViewer IsVisible="{Binding HasPhotos}">
+                        <ItemsControl ItemsSource="{Binding VisiblePhotos}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" ItemWidth="220" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PhotoItemViewModel">
+                                    <Border Margin="0,0,12,12"
+                                            Padding="10"
+                                            Background="#12000000"
+                                            BorderBrush="#33FFFFFF"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          VerticalAlignment="Center"
+                                                          Margin="0,0,8,0" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Title}"
+                                                           TextWrapping="Wrap"
+                                                           FontWeight="SemiBold" />
+                                            </Grid>
+
+                                            <Button Command="{Binding OpenDetailsCommand}"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    HorizontalAlignment="Left">
+                                                <Border BorderBrush="#40FFFFFF"
+                                                        BorderThickness="1"
+                                                        CornerRadius="8"
+                                                        Padding="6">
+                                                       <Image Source="{Binding ThumbnailBitmap}"
+                                                           RenderOptions.BitmapInterpolationMode="None"
+                                                           Width="160"
+                                                           Height="144"
+                                                           Stretch="Uniform" />
+                                                </Border>
+                                            </Button>
+
+                                            <TextBlock Text="Click image for preview and metadata"
+                                                       FontSize="11"
+                                                       Opacity="0.7" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Border IsVisible="{Binding IsLoadingPhotos}"
+                            Background="#66000000"
+                            CornerRadius="10">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="12">
+                            <ProgressBar Width="180"
+                                         IsIndeterminate="True" />
+                            <TextBlock Text="Loading images..."
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2"
+                      Margin="0,12,0,0"
+                      ColumnDefinitions="Auto,*"
+                      IsVisible="{Binding HasPhotos}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Order"
+                                   VerticalAlignment="Center" />
+                        <ComboBox Width="180"
+                                  ItemsSource="{Binding OrderingOptions}"
+                                  SelectedItem="{Binding SelectedOrdering, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <Button Content="First"
+                                Command="{Binding FirstPageCommand}" />
+                        <Button Content="Back"
+                                Command="{Binding PreviousPageCommand}" />
+                        <TextBox Width="56"
+                                 HorizontalContentAlignment="Center"
+                                 Text="{Binding PageNumberText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="PageNumberTextBox_OnKeyDown" />
+                        <TextBlock Text="/"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TotalPagesText}"
+                                   VerticalAlignment="Center" />
+                        <Button Content="Forward"
+                                Command="{Binding NextPageCommand}" />
+                        <Button Content="Last"
+                                Command="{Binding LastPageCommand}" />
+                        <TextBlock Text="Page size"
+                                   VerticalAlignment="Center"
+                                   Margin="12,0,0,0" />
+                        <NumericUpDown Width="90"
+                                       Minimum="1"
+                                       Increment="1"
+                                       ClipValueToMinMax="True"
+                                       Value="{Binding PageSize, Mode=TwoWay}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Grid.Column="1"
+                Padding="16"
+                Background="#0FFFFFFF"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12">
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Selected Image"
+                               FontSize="18"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedPhotoTitle}"
+                               FontSize="13"
+                               Opacity="0.75"
+                               TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal"
+                        Spacing="8"
+                        Margin="0,12,0,0">
+                    <Button Content="Back"
+                        Command="{Binding PreviousSelectedPhotoCommand}" />
+                    <Button Content="Forward"
+                        Command="{Binding NextSelectedPhotoCommand}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Grid Grid.Row="1">
+                    <TextBlock Text="Select a decoded image to inspect it here."
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="240"
+                               IsVisible="{Binding IsSelectionEmpty}" />
+
+                    <ScrollViewer IsVisible="{Binding HasSelection}">
+                        <StackPanel Spacing="14">
+                            <Border BorderBrush="#33FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10">
+                                <Image Source="{Binding SelectedPhoto.PreviewBitmap}"
+                                        RenderOptions.BitmapInterpolationMode="None"
+                                       MaxHeight="360"
+                                       Stretch="Uniform" />
+                            </Border>
+
+                            <TextBlock Text="Metadata"
+                                       FontSize="16"
+                                       FontWeight="SemiBold" />
+
+                            <ItemsControl ItemsSource="{Binding SelectedPhoto.MetadataEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:MetadataEntry">
+                                        <Grid ColumnDefinitions="150,*" Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+
+</Window>
