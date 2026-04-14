@@ -1,6 +1,7 @@
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.Views;
@@ -43,6 +44,26 @@ public partial class MainWindow : Window
             viewModel.CommitPageNumberInput();
             e.Handled = true;
         }
+    }
+
+    private void SelectionCheckBox_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || sender is not CheckBox checkBox || checkBox.DataContext is not PhotoItemViewModel photo)
+        {
+            return;
+        }
+
+        viewModel.BeginSelectionInteraction(photo, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+    }
+
+    private void SelectionCheckBox_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || sender is not CheckBox checkBox || checkBox.DataContext is not PhotoItemViewModel photo)
+        {
+            return;
+        }
+
+        viewModel.CompleteSelectionInteraction(photo);
     }
 
     private static bool TryGetLocalFilePath(DragEventArgs e, out string? path)

@@ -21,6 +21,18 @@
             <Button Content="Export Selected"
                     Command="{Binding ExportSelectedCommand}"
                     MinWidth="130" />
+            <Button Content="{Binding ToggleSelectAllButtonText}"
+                    Command="{Binding ToggleSelectAllCommand}"
+                    MinWidth="120" />
+            <Button Content="Compose RGB"
+                Command="{Binding ComposeRgbCommand}"
+                MinWidth="130" />
+            <Button Content="Compose Average"
+                Command="{Binding ComposeAverageCommand}"
+                MinWidth="150" />
+            <Button Content="Compose RGB+Average"
+                Command="{Binding ComposeRgbAverageCommand}"
+                MinWidth="180" />
             <TextBlock Text="{Binding SourceSummary}"
                        VerticalAlignment="Center"
                        TextWrapping="Wrap"
@@ -79,6 +91,8 @@
                                         <StackPanel Spacing="8">
                                             <Grid ColumnDefinitions="Auto,*">
                                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          Click="SelectionCheckBox_OnClick"
+                                                          PointerPressed="SelectionCheckBox_OnPointerPressed"
                                                           VerticalAlignment="Center"
                                                           Margin="0,0,8,0" />
                                                 <TextBlock Grid.Column="1"

@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Services;
+using GBTools.ImageSharp.GameBoyCamera.Composition;
+using GBTools.ImageSharp.GameBoyCamera.Model;
 using Microsoft.Extensions.Logging;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
@@ -32,6 +34,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ILogger<MainWindowViewModel> _logger;
     private List<PhotoItemViewModel> _sortedPhotos = [];
     private int _currentPageIndex;
+    private PhotoItemViewModel? _selectionAnchorPhoto;
+    private PhotoItemViewModel? _pendingSelectionPhoto;
+    private bool _pendingShiftRangeSelection;
+    private bool _isUpdatingSelectionInBulk;
 
     [ObservableProperty]
     private PhotoItemViewModel? selectedPhoto;
@@ -74,6 +80,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         VisiblePhotos = [];
         LoadImagesCommand = new AsyncRelayCommand(LoadImagesAsync, CanRunCommands);
         ExportSelectedCommand = new AsyncRelayCommand(ExportSelectedAsync, CanExportSelected);
+        ComposeRgbCommand = new AsyncRelayCommand(ComposeRgbAsync, CanComposeRgb);
+        ComposeAverageCommand = new AsyncRelayCommand(ComposeAverageAsync, CanComposeAverage);
+        ComposeRgbAverageCommand = new AsyncRelayCommand(ComposeRgbAverageAsync, CanComposeSmartAverage);
+        ToggleSelectAllCommand = new RelayCommand(ToggleSelectAll, () => HasPhotos);
         FirstPageCommand = new RelayCommand(MoveToFirstPage, () => CanMoveToFirstPage);
         PreviousPageCommand = new RelayCommand(MoveToPreviousPage, () => CanMoveToPreviousPage);
         NextPageCommand = new RelayCommand(MoveToNextPage, () => CanMoveToNextPage);
@@ -89,6 +99,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public IAsyncRelayCommand LoadImagesCommand { get; }
 
     public IAsyncRelayCommand ExportSelectedCommand { get; }
+
+    public IAsyncRelayCommand ComposeRgbCommand { get; }
+
+    public IAsyncRelayCommand ComposeAverageCommand { get; }
+
+    public IAsyncRelayCommand ComposeRgbAverageCommand { get; }
+
+    public IRelayCommand ToggleSelectAllCommand { get; }
 
     public IRelayCommand FirstPageCommand { get; }
 
@@ -113,6 +131,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool HasSelection => SelectedPhoto is not null;
 
     public bool IsSelectionEmpty => SelectedPhoto is null;
+
+    public bool HasSelectedPhotos => Photos.Any(static photo => photo.IsSelected);
+
+    public string ToggleSelectAllButtonText => HasSelectedPhotos ? "Deselect All" : "Select All";
 
     public string SelectedPhotoTitle => SelectedPhoto?.Title ?? "Nothing selected.";
 
@@ -208,6 +230,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private bool CanExportSelected() => !IsBusy && Photos.Any(static photo => photo.IsSelected);
 
+    private bool CanComposeRgb() => !IsBusy && GetSelectedMonochromePhotos().Count >= 3;
+
+    private bool CanComposeAverage() => !IsBusy && GetSelectedPhotos().Count >= 3;
+
+    private bool CanComposeSmartAverage() => !IsBusy && GetSelectedMonochromePhotos().Count >= 3;
+
     private async Task LoadImagesAsync()
     {
         string? path = await _dialogService.OpenSupportedImageAsync().ConfigureAwait(true);
@@ -272,6 +300,124 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private async Task ComposeRgbAsync()
+    {
+        IReadOnlyList<PhotoItemViewModel> selectedPhotos = GetSelectedMonochromePhotos();
+        if (selectedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        RgbCompositionRequest? request = await _dialogService.SelectRgbCompositionRequestAsync(
+            selectedPhotos.Select(static photo => photo.Photo).ToArray()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            IReadOnlyList<GbcPhoto> generatedPhotos = GameBoyCameraCompositionService.CreateRgbPhotos(
+                selectedPhotos.Select(static photo => photo.Photo).ToArray(),
+                new GameBoyCameraRgbCompositionOptions(request.ChannelOrder));
+
+            AppendGeneratedPhotos(generatedPhotos, "RGB Composite");
+            SourceSummary = $"Added {generatedPhotos.Count} RGB composite image(s).";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create RGB composites.");
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ComposeAverageAsync()
+    {
+        IReadOnlyList<PhotoItemViewModel> selectedPhotos = GetSelectedPhotos();
+        if (selectedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        DirectAverageCompositionRequest? request = await _dialogService.SelectAverageCompositionRequestAsync(
+            selectedPhotos.Select(static photo => photo.Photo).ToArray()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            GbcPhoto averagePhoto = GameBoyCameraCompositionService.CreateDirectAveragePhoto(
+                selectedPhotos.Select(static photo => photo.Photo).ToArray());
+
+            AppendGeneratedPhotos([averagePhoto], "Average Composite");
+            SourceSummary = $"Added 1 average image from {selectedPhotos.Count} selected photo(s).";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create average composites.");
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ComposeRgbAverageAsync()
+    {
+        IReadOnlyList<PhotoItemViewModel> selectedPhotos = GetSelectedMonochromePhotos();
+        if (selectedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        SmartAverageCompositionRequest? request = await _dialogService.SelectRgbAverageCompositionRequestAsync(
+            selectedPhotos.Select(static photo => photo.Photo).ToArray()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            GameBoyCameraAverageCompositionResult result = GameBoyCameraCompositionService.CreateAveragePhotos(
+                selectedPhotos.Select(static photo => photo.Photo).ToArray(),
+                new GameBoyCameraAverageCompositionOptions(request.ChannelOrder, request.Mode));
+
+            IReadOnlyList<GbcPhoto> finalPhotos = request.Mode == GameBoyCameraAverageCompositionMode.FullBank
+                ? result.AveragePhotos.TakeLast(1).ToArray()
+                : result.AveragePhotos;
+
+            AppendGeneratedPhotos(finalPhotos, "Average Composite");
+            string groupSizes = string.Join(" + ", result.SourceGroupSizes.Select(static size => size.ToString(CultureInfo.InvariantCulture)));
+            SourceSummary = $"Added {finalPhotos.Count} RGB+average result image(s) from groups {groupSizes}.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create RGB+average composites.");
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private async Task LoadFromPathAsync(string path)
     {
         try
@@ -327,8 +473,39 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (e.PropertyName == nameof(PhotoItemViewModel.IsSelected))
         {
-            ExportSelectedCommand.NotifyCanExecuteChanged();
+            if (!_isUpdatingSelectionInBulk)
+            {
+                UpdateSelectionState();
+            }
         }
+    }
+
+    public void BeginSelectionInteraction(PhotoItemViewModel photo, bool shiftPressed)
+    {
+        ArgumentNullException.ThrowIfNull(photo);
+
+        _pendingSelectionPhoto = photo;
+        _pendingShiftRangeSelection = shiftPressed && _selectionAnchorPhoto is not null && !ReferenceEquals(_selectionAnchorPhoto, photo);
+    }
+
+    public void CompleteSelectionInteraction(PhotoItemViewModel photo)
+    {
+        ArgumentNullException.ThrowIfNull(photo);
+
+        bool applyRangeSelection = _pendingShiftRangeSelection && ReferenceEquals(_pendingSelectionPhoto, photo) && _selectionAnchorPhoto is not null;
+        _pendingSelectionPhoto = null;
+        _pendingShiftRangeSelection = false;
+
+        if (applyRangeSelection)
+        {
+            ApplySelectionRange(_selectionAnchorPhoto!, photo, photo.IsSelected);
+            _selectionAnchorPhoto = photo;
+            UpdateSelectionState();
+            return;
+        }
+
+        _selectionAnchorPhoto = photo;
+        UpdateSelectionState();
     }
 
     private void ClearPhotos()
@@ -343,8 +520,54 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         VisiblePhotos.Clear();
         _sortedPhotos.Clear();
         _currentPageIndex = 0;
+        _selectionAnchorPhoto = null;
+        _pendingSelectionPhoto = null;
+        _pendingShiftRangeSelection = false;
         PageNumberText = "1";
         SelectedPhoto = null;
+        OnPropertyChanged(nameof(HasPhotos));
+        OnPropertyChanged(nameof(IsEmptyStateVisible));
+        OnPropertyChanged(nameof(HasSelectedPhotos));
+        OnPropertyChanged(nameof(ToggleSelectAllButtonText));
+        UpdateNavigationState();
+    }
+
+    private IReadOnlyList<PhotoItemViewModel> GetSelectedMonochromePhotos()
+        => Photos.Where(static photo => photo.IsSelected && photo.Photo.RgbnData is null && photo.Photo.AverageData is null).ToArray();
+
+    private IReadOnlyList<PhotoItemViewModel> GetSelectedPhotos()
+        => Photos.Where(static photo => photo.IsSelected).ToArray();
+
+    private void AppendGeneratedPhotos(IReadOnlyList<GbcPhoto> generatedPhotos, string titlePrefix)
+    {
+        if (generatedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        string created = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss:fff", CultureInfo.InvariantCulture);
+        int startIndex = Photos.Count;
+        List<PhotoItemViewModel> addedPhotos = [];
+
+        for (int index = 0; index < generatedPhotos.Count; index++)
+        {
+            GbcPhoto photo = generatedPhotos[index];
+            PhotoItemViewModel viewModel = new(
+                $"{titlePrefix} {index + 1:D2}",
+                created,
+                photo,
+                _bitmapFactory.CreateThumbnailBitmap(photo),
+                () => _bitmapFactory.CreatePreviewBitmap(photo),
+                PhotoMetadataEntryBuilder.Build(photo, null, startIndex + index, "Composed"),
+                SelectPhoto);
+
+            viewModel.PropertyChanged += OnPhotoPropertyChanged;
+            Photos.Add(viewModel);
+            addedPhotos.Add(viewModel);
+        }
+
+        ApplyOrderingAndPagination(preserveSelection: false);
+        SelectedPhoto = addedPhotos.FirstOrDefault();
         OnPropertyChanged(nameof(HasPhotos));
         OnPropertyChanged(nameof(IsEmptyStateVisible));
         UpdateNavigationState();
@@ -469,5 +692,78 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         PreviousSelectedPhotoCommand.NotifyCanExecuteChanged();
         NextSelectedPhotoCommand.NotifyCanExecuteChanged();
         ExportSelectedCommand.NotifyCanExecuteChanged();
+        ComposeRgbCommand.NotifyCanExecuteChanged();
+        ComposeAverageCommand.NotifyCanExecuteChanged();
+        ComposeRgbAverageCommand.NotifyCanExecuteChanged();
+        ToggleSelectAllCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (!HasPhotos)
+        {
+            return;
+        }
+
+        SetSelectionForAllPhotos(!HasSelectedPhotos);
+    }
+
+    private void SetSelectionForAllPhotos(bool isSelected)
+    {
+        _isUpdatingSelectionInBulk = true;
+
+        try
+        {
+            foreach (PhotoItemViewModel photo in Photos)
+            {
+                photo.IsSelected = isSelected;
+            }
+        }
+        finally
+        {
+            _isUpdatingSelectionInBulk = false;
+        }
+
+        _selectionAnchorPhoto = Photos.LastOrDefault(static photo => photo.IsSelected);
+        UpdateSelectionState();
+    }
+
+    private void ApplySelectionRange(PhotoItemViewModel startPhoto, PhotoItemViewModel endPhoto, bool isSelected)
+    {
+        List<PhotoItemViewModel> orderedPhotos = _sortedPhotos.Count > 0 ? _sortedPhotos : Photos.ToList();
+        int startIndex = orderedPhotos.IndexOf(startPhoto);
+        int endIndex = orderedPhotos.IndexOf(endPhoto);
+        if (startIndex < 0 || endIndex < 0)
+        {
+            return;
+        }
+
+        int lowerBound = Math.Min(startIndex, endIndex);
+        int upperBound = Math.Max(startIndex, endIndex);
+
+        _isUpdatingSelectionInBulk = true;
+
+        try
+        {
+            for (int index = lowerBound; index <= upperBound; index++)
+            {
+                orderedPhotos[index].IsSelected = isSelected;
+            }
+        }
+        finally
+        {
+            _isUpdatingSelectionInBulk = false;
+        }
+    }
+
+    private void UpdateSelectionState()
+    {
+        OnPropertyChanged(nameof(HasSelectedPhotos));
+        OnPropertyChanged(nameof(ToggleSelectAllButtonText));
+        ExportSelectedCommand.NotifyCanExecuteChanged();
+        ComposeRgbCommand.NotifyCanExecuteChanged();
+        ComposeAverageCommand.NotifyCanExecuteChanged();
+        ComposeRgbAverageCommand.NotifyCanExecuteChanged();
+        ToggleSelectAllCommand.NotifyCanExecuteChanged();
     }
 }

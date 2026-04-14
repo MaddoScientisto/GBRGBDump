@@ -1,3 +1,4 @@
+using GBTools.ImageSharp.GameBoyCamera.Composition;
 using GBTools.ImageSharp.GameBoyCamera.Metadata;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Model;
@@ -10,7 +11,8 @@ public sealed record GbcPhoto(
     ReadOnlyMemory<byte>? RenderedRgbaPixels = null,
     int RenderedWidth = 0,
     int RenderedHeight = 0,
-    GbcRgbnData? RgbnData = null)
+    GbcRgbnData? RgbnData = null,
+    GbcAverageData? AverageData = null)
 {
     public bool HasRenderedImage => RenderedRgbaPixels is { } pixels
         && !pixels.IsEmpty
@@ -31,3 +33,23 @@ public sealed record GbcRgbnData(
     string BlendMode);
 
 public sealed record GbcRgbnChannelData(string Hash, string CompressedPayload);
+
+public sealed record GbcAverageData(
+    string CompositeHash,
+    IReadOnlyList<GbcAverageSourceGroup> SourceGroups,
+    GameBoyCameraCompositionChannelOrder ChannelOrder,
+    string Algorithm,
+    GameBoyCameraAverageCompositionPipeline Pipeline)
+{
+    public int SourcePhotoCount => SourceGroups.Sum(static group => group.SourcePhotos.Count);
+}
+
+public enum GameBoyCameraAverageCompositionPipeline
+{
+    Direct,
+    Rgb,
+}
+
+public sealed record GbcAverageSourceGroup(IReadOnlyList<GbcAverageSourcePhoto> SourcePhotos);
+
+public sealed record GbcAverageSourcePhoto(string Hash, int TileCount, string CompressedPayload);

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using GBTools.ImageSharp.GameBoyCamera.Codec;
+using GBTools.ImageSharp.GameBoyCamera.Composition;
 using GBTools.ImageSharp.GameBoyCamera.Metadata;
 using GBTools.ImageSharp.GameBoyCamera.Model;
 using SixLabors.ImageSharp;
@@ -36,6 +37,7 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         }
 
         List<GbcPhoto> photos = [];
+        List<Exception> failures = [];
         foreach (JsonElement imageElement in imagesElement.EnumerateArray())
         {
             try
@@ -46,15 +48,18 @@ internal static class GameBoyCameraJsonCompatibilityCodec
                     photos.Add(photo);
                 }
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                failures.Add(exception);
                 continue;
             }
         }
 
         if (photos.Count == 0)
         {
-            throw new InvalidDataException("gb-printer-web JSON export did not contain any decodable image payloads.");
+            throw failures.Count > 0
+                ? new InvalidDataException("gb-printer-web JSON export did not contain any decodable image payloads.", failures[0])
+                : new InvalidDataException("gb-printer-web JSON export did not contain any decodable image payloads.");
         }
 
         int? version = state.TryGetProperty("version", out JsonElement versionElement) && versionElement.TryGetInt32(out int parsedVersion)
@@ -102,9 +107,11 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         for (int photoIndex = 0; photoIndex < album.Photos.Count; photoIndex++)
         {
             GbcPhoto photo = album.Photos[photoIndex];
-            Dictionary<string, object?> image = photo.RgbnData is null
-                ? CreateMonochromeExportImage(photo, photoIndex, payload, options)
-                : CreateRgbnExportImage(photo, photoIndex, payload, options);
+            Dictionary<string, object?> image = photo.AverageData is not null
+                ? CreateAverageExportImage(photo, photoIndex, payload, options)
+                : photo.RgbnData is null
+                    ? CreateMonochromeExportImage(photo, photoIndex, payload, options)
+                    : CreateRgbnExportImage(photo, photoIndex, payload, options);
 
             Dictionary<string, object?>? meta = CreateMetaPayload(photo.Metadata);
             if (meta is not null)
@@ -118,12 +125,8 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         return JsonSerializer.SerializeAsync(stream, payload, JsonOptions, cancellationToken);
     }
 
-    private static GbcTileGrid CreateGridFromJsonTiles(string[] rawTiles, JsonElement imageElement, JsonElement root, out GbcFrameOverlay? frameOverlay)
+    private static GbcTileGrid CreateGridFromJsonTiles(string[] rawTiles, int declaredTileCount)
     {
-        frameOverlay = null;
-        int declaredTileCount = imageElement.TryGetProperty("lines", out JsonElement linesElement) && linesElement.TryGetInt32(out int parsedTileCount)
-            ? parsedTileCount
-            : 0;
         int tileCount = rawTiles.Length > 0 ? rawTiles.Length : declaredTileCount;
         if (tileCount <= 0)
         {
@@ -131,9 +134,18 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         }
 
         int widthInTiles = GetJsonTileGridWidth(tileCount);
-        GbcTileGrid grid = rawTiles.Length > 0
+        return rawTiles.Length > 0
             ? GameBoyCameraTileGridFactory.CreateFromTextTiles(rawTiles, widthInTiles)
             : GameBoyCameraTileGridFactory.CreateFromBinary(new byte[tileCount * GameBoyCameraConstants.TileByteCount], widthInTiles);
+    }
+
+    private static GbcTileGrid CreateGridFromJsonTiles(string[] rawTiles, JsonElement imageElement, JsonElement root, out GbcFrameOverlay? frameOverlay)
+    {
+        frameOverlay = null;
+        int declaredTileCount = imageElement.TryGetProperty("lines", out JsonElement linesElement) && linesElement.TryGetInt32(out int parsedTileCount)
+            ? parsedTileCount
+            : 0;
+        GbcTileGrid grid = CreateGridFromJsonTiles(rawTiles, declaredTileCount);
 
         if (imageElement.TryGetProperty("frame", out JsonElement frameElement) && frameElement.ValueKind == JsonValueKind.String)
         {
@@ -160,6 +172,11 @@ internal static class GameBoyCameraJsonCompatibilityCodec
 
     private static GbcPhoto? TryCreatePhoto(JsonElement imageElement, JsonElement root, GameBoyCameraLoadOptions options)
     {
+        if (TryCreateAveragePhoto(imageElement, root, options, out GbcPhoto? averagePhoto))
+        {
+            return averagePhoto;
+        }
+
         if (TryCreateMonochromePhoto(imageElement, root, options, out GbcPhoto? monochromePhoto))
         {
             return monochromePhoto;
@@ -171,6 +188,128 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         }
 
         return null;
+    }
+
+    private static bool TryCreateAveragePhoto(JsonElement imageElement, JsonElement root, GameBoyCameraLoadOptions options, out GbcPhoto? photo)
+    {
+        photo = null;
+        JsonElement compositeElement = default;
+
+        bool isAverageType = imageElement.TryGetProperty("type", out JsonElement typeElement)
+            && typeElement.ValueKind == JsonValueKind.String
+            && string.Equals(typeElement.GetString(), "average", StringComparison.OrdinalIgnoreCase);
+
+        bool hasAverageComposite = imageElement.TryGetProperty("composite", out compositeElement)
+            && compositeElement.ValueKind == JsonValueKind.Object
+            && compositeElement.TryGetProperty("kind", out JsonElement compositeKindElement)
+            && compositeKindElement.ValueKind == JsonValueKind.String
+            && string.Equals(compositeKindElement.GetString(), "average", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAverageType && !hasAverageComposite)
+        {
+            return false;
+        }
+
+        if (TryCreateRawAveragePhoto(imageElement, root, options, compositeElement, out photo))
+        {
+            return true;
+        }
+
+        return TryCreateLegacyAveragePhoto(imageElement, root, compositeElement, out photo);
+    }
+
+    private static bool TryCreateRawAveragePhoto(
+        JsonElement imageElement,
+        JsonElement root,
+        GameBoyCameraLoadOptions options,
+        JsonElement compositeElement,
+        out GbcPhoto? photo)
+    {
+        photo = null;
+        if (!TryParseAverageSourceGroups(compositeElement, out IReadOnlyList<GbcAverageSourceGroup> sourceGroups))
+        {
+            return false;
+        }
+
+        GameBoyCameraCompositionChannelOrder channelOrder = ParseAverageChannelOrder(compositeElement);
+        List<IReadOnlyList<GbcPhoto>> sourcePhotoGroups = [];
+
+        foreach (GbcAverageSourceGroup sourceGroup in sourceGroups)
+        {
+            List<GbcPhoto> sourcePhotos = [];
+            foreach (GbcAverageSourcePhoto sourcePhoto in sourceGroup.SourcePhotos)
+            {
+                if (!root.TryGetProperty(sourcePhoto.Hash, out JsonElement payloadElement) || payloadElement.ValueKind != JsonValueKind.String)
+                {
+                    return false;
+                }
+
+                GbcTileGrid grid = LoadGridFromStoredPayload(payloadElement.GetString()!, sourcePhoto.TileCount, options.FrameMode);
+                sourcePhotos.Add(new GbcPhoto(grid, null, null, null));
+            }
+
+            sourcePhotoGroups.Add(sourcePhotos);
+        }
+
+        GameBoyCameraAverageCompositionPipeline pipeline = ParseAveragePipeline(compositeElement);
+        GbcPhoto createdPhoto = pipeline == GameBoyCameraAverageCompositionPipeline.Direct
+            ? GameBoyCameraCompositionService.CreateDirectAveragePhoto(sourcePhotoGroups.SelectMany(static group => group).ToArray())
+            : GameBoyCameraCompositionService.CreateAveragePhotoFromSourceGroups(sourcePhotoGroups, channelOrder);
+        string compositeHash = imageElement.TryGetProperty("hash", out JsonElement hashElement) && hashElement.ValueKind == JsonValueKind.String
+            ? hashElement.GetString() ?? createdPhoto.AverageData!.CompositeHash
+            : createdPhoto.AverageData!.CompositeHash;
+
+        photo = createdPhoto with
+        {
+            AverageData = createdPhoto.AverageData! with { CompositeHash = compositeHash, ChannelOrder = channelOrder, Pipeline = pipeline },
+        };
+        return true;
+    }
+
+    private static bool TryCreateLegacyAveragePhoto(
+        JsonElement imageElement,
+        JsonElement root,
+        JsonElement compositeElement,
+        out GbcPhoto? photo)
+    {
+        photo = null;
+        if (!imageElement.TryGetProperty("rendered", out JsonElement renderedElement)
+            || renderedElement.ValueKind != JsonValueKind.Object
+            || !renderedElement.TryGetProperty("hash", out JsonElement renderedHashElement)
+            || renderedHashElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        string? renderedHash = renderedHashElement.GetString();
+        if (string.IsNullOrWhiteSpace(renderedHash)
+            || !root.TryGetProperty(renderedHash, out JsonElement renderedPayloadElement)
+            || renderedPayloadElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        byte[] renderedPayload = InflateLatin1Bytes(renderedPayloadElement.GetString()!);
+        using Image<Rgba32> rendered = Image.Load<Rgba32>(renderedPayload);
+
+        GbcTileGrid tileGrid = TryEncodeRenderedGrid(rendered, CreateBlankGrid(rendered.Width, rendered.Height));
+        GbcThumbnail thumbnail = new(GameBoyCameraImageCodec.CreateThumbnailBytes(rendered));
+        GameBoyCameraFrameMetadata? metadata = ParseMetadata(imageElement);
+        string compositeHash = imageElement.TryGetProperty("hash", out JsonElement hashElement) && hashElement.ValueKind == JsonValueKind.String
+            ? hashElement.GetString() ?? renderedHash
+            : renderedHash;
+
+        photo = new GbcPhoto(
+            tileGrid,
+            null,
+            metadata,
+            thumbnail,
+            GameBoyCameraImageCodec.CopyPixelData(rendered),
+            rendered.Width,
+            rendered.Height,
+            null,
+            CreateAverageData(compositeHash, compositeElement));
+        return true;
     }
 
     private static bool TryCreateMonochromePhoto(JsonElement imageElement, JsonElement root, GameBoyCameraLoadOptions options, out GbcPhoto? photo)
@@ -316,6 +455,14 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         string inflated = InflateLatin1String(compressedPayload);
         string[] rawTiles = inflated.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         GbcTileGrid grid = CreateGridFromJsonTiles(rawTiles, imageElement, root, out frameOverlay);
+        return ApplyFrameMode(grid, frameMode);
+    }
+
+    private static GbcTileGrid LoadGridFromStoredPayload(string compressedPayload, int declaredTileCount, GameBoyCameraFrameMode frameMode)
+    {
+        string inflated = InflateLatin1String(compressedPayload);
+        string[] rawTiles = inflated.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        GbcTileGrid grid = CreateGridFromJsonTiles(rawTiles, declaredTileCount);
         return ApplyFrameMode(grid, frameMode);
     }
 
@@ -479,20 +626,30 @@ internal static class GameBoyCameraJsonCompatibilityCodec
 
     private static string InflateLatin1String(string payload)
     {
-        byte[] data = Encoding.Latin1.GetBytes(payload);
-        using MemoryStream input = new(data);
-        using ZLibStream zlib = new(input, CompressionMode.Decompress);
-        using StreamReader reader = new(zlib, Encoding.UTF8);
-        return reader.ReadToEnd();
+        return Encoding.UTF8.GetString(InflateLatin1Bytes(payload)).TrimStart('\uFEFF');
     }
 
     private static string DeflateLatin1String(string payload)
     {
+        return DeflateLatin1Bytes(Encoding.UTF8.GetBytes(payload));
+    }
+
+    private static byte[] InflateLatin1Bytes(string payload)
+    {
+        byte[] data = Encoding.Latin1.GetBytes(payload);
+        using MemoryStream input = new(data);
+        using ZLibStream zlib = new(input, CompressionMode.Decompress);
+        using MemoryStream output = new();
+        zlib.CopyTo(output);
+        return output.ToArray();
+    }
+
+    private static string DeflateLatin1Bytes(byte[] payload)
+    {
         using MemoryStream output = new();
         using (ZLibStream zlib = new(output, CompressionLevel.SmallestSize, leaveOpen: true))
-        using (StreamWriter writer = new(zlib, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(payload);
+            zlib.Write(payload, 0, payload.Length);
         }
 
         return Encoding.Latin1.GetString(output.ToArray());
@@ -564,6 +721,55 @@ internal static class GameBoyCameraJsonCompatibilityCodec
                 ["blend"] = rgbn.BlendMode,
             },
             ["hashes"] = hashes,
+        };
+    }
+
+    private static Dictionary<string, object?> CreateAverageExportImage(
+        GbcPhoto photo,
+        int photoIndex,
+        IDictionary<string, object?> payload,
+        GameBoyCameraJsonExportOptions options)
+    {
+        GbcAverageData average = photo.AverageData!;
+
+        foreach (GbcAverageSourceGroup sourceGroup in average.SourceGroups)
+        {
+            foreach (GbcAverageSourcePhoto sourcePhoto in sourceGroup.SourcePhotos)
+            {
+                if (!payload.ContainsKey(sourcePhoto.Hash))
+                {
+                    payload[sourcePhoto.Hash] = sourcePhoto.CompressedPayload;
+                }
+            }
+        }
+
+        return new Dictionary<string, object?>
+        {
+            ["hash"] = average.CompositeHash,
+            ["type"] = "average",
+            ["created"] = options.CreatedFactory?.Invoke(photoIndex, photo) ?? options.LastUpdateUtc.ToString("yyyy-MM-dd HH:mm:ss:fff", CultureInfo.InvariantCulture),
+            ["title"] = options.TitleFactory?.Invoke(photoIndex, photo) ?? $"Image {photoIndex + 1:D2}",
+            ["tags"] = Array.Empty<string>(),
+            ["composite"] = new Dictionary<string, object?>
+            {
+                ["kind"] = "average",
+                ["version"] = 2,
+                ["algorithm"] = average.Algorithm,
+                ["pipeline"] = average.Pipeline == GameBoyCameraAverageCompositionPipeline.Direct ? "direct" : "rgb",
+                ["channelOrder"] = average.ChannelOrder.ToString().ToLowerInvariant(),
+                ["groups"] = average.SourceGroups
+                    .Select(static group => new Dictionary<string, object?>
+                    {
+                        ["sources"] = group.SourcePhotos
+                            .Select(static source => new Dictionary<string, object?>
+                            {
+                                ["hash"] = source.Hash,
+                                ["lines"] = source.TileCount,
+                            })
+                            .ToArray(),
+                    })
+                    .ToArray(),
+            },
         };
     }
 
@@ -647,6 +853,107 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         }
     }
 
+    private static GbcAverageData CreateAverageData(string compositeHash, JsonElement compositeElement)
+    {
+        if (compositeElement.ValueKind != JsonValueKind.Object)
+        {
+            return new GbcAverageData(
+                compositeHash,
+                Array.Empty<GbcAverageSourceGroup>(),
+                GameBoyCameraCompositionChannelOrder.Sequential,
+                "alpha-stack-v1",
+                GameBoyCameraAverageCompositionPipeline.Rgb);
+        }
+
+        string algorithm = compositeElement.TryGetProperty("algorithm", out JsonElement algorithmElement) && algorithmElement.ValueKind == JsonValueKind.String
+            ? algorithmElement.GetString() ?? "alpha-stack-v1"
+            : "alpha-stack-v1";
+
+        return new GbcAverageData(
+            compositeHash,
+            Array.Empty<GbcAverageSourceGroup>(),
+            ParseAverageChannelOrder(compositeElement),
+            algorithm,
+            ParseAveragePipeline(compositeElement));
+    }
+
+    private static GameBoyCameraAverageCompositionPipeline ParseAveragePipeline(JsonElement compositeElement)
+    {
+        if (!compositeElement.TryGetProperty("pipeline", out JsonElement pipelineElement) || pipelineElement.ValueKind != JsonValueKind.String)
+        {
+            return GameBoyCameraAverageCompositionPipeline.Rgb;
+        }
+
+        return string.Equals(pipelineElement.GetString(), "direct", StringComparison.OrdinalIgnoreCase)
+            ? GameBoyCameraAverageCompositionPipeline.Direct
+            : GameBoyCameraAverageCompositionPipeline.Rgb;
+    }
+
+    private static GameBoyCameraCompositionChannelOrder ParseAverageChannelOrder(JsonElement compositeElement)
+    {
+        if (!compositeElement.TryGetProperty("channelOrder", out JsonElement channelOrderElement) || channelOrderElement.ValueKind != JsonValueKind.String)
+        {
+            return GameBoyCameraCompositionChannelOrder.Sequential;
+        }
+
+        return string.Equals(channelOrderElement.GetString(), "interleaved", StringComparison.OrdinalIgnoreCase)
+            ? GameBoyCameraCompositionChannelOrder.Interleaved
+            : GameBoyCameraCompositionChannelOrder.Sequential;
+    }
+
+    private static bool TryParseAverageSourceGroups(JsonElement compositeElement, out IReadOnlyList<GbcAverageSourceGroup> sourceGroups)
+    {
+        sourceGroups = Array.Empty<GbcAverageSourceGroup>();
+        if (!compositeElement.TryGetProperty("groups", out JsonElement groupsElement) || groupsElement.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        List<GbcAverageSourceGroup> groups = [];
+        foreach (JsonElement groupElement in groupsElement.EnumerateArray())
+        {
+            if (!groupElement.TryGetProperty("sources", out JsonElement sourcesElement) || sourcesElement.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            List<GbcAverageSourcePhoto> sources = [];
+            foreach (JsonElement sourceElement in sourcesElement.EnumerateArray())
+            {
+                if (!sourceElement.TryGetProperty("hash", out JsonElement hashElement)
+                    || hashElement.ValueKind != JsonValueKind.String
+                    || !sourceElement.TryGetProperty("lines", out JsonElement linesElement)
+                    || !linesElement.TryGetInt32(out int tileCount))
+                {
+                    return false;
+                }
+
+                string? hash = hashElement.GetString();
+                if (string.IsNullOrWhiteSpace(hash) || tileCount <= 0)
+                {
+                    return false;
+                }
+
+                sources.Add(new GbcAverageSourcePhoto(hash, tileCount, string.Empty));
+            }
+
+            if (sources.Count == 0)
+            {
+                return false;
+            }
+
+            groups.Add(new GbcAverageSourceGroup(sources));
+        }
+
+        if (groups.Count == 0)
+        {
+            return false;
+        }
+
+        sourceGroups = groups;
+        return true;
+    }
+
     private static GameBoyCameraFrameMetadata? ParseMetadata(JsonElement imageElement)
     {
         if (!imageElement.TryGetProperty("meta", out JsonElement metaElement) || metaElement.ValueKind != JsonValueKind.Object)
@@ -690,6 +997,20 @@ internal static class GameBoyCameraJsonCompatibilityCodec
         return objectElement.TryGetProperty(propertyName, out JsonElement valueElement) && valueElement.ValueKind == JsonValueKind.String
             ? valueElement.GetString()
             : null;
+    }
+
+    private static byte[] CreatePngBytes(Image<Rgba32> rendered)
+    {
+        using MemoryStream stream = new();
+        rendered.SaveAsPng(stream);
+        return stream.ToArray();
+    }
+
+    private static GbcTileGrid CreateBlankGrid(int pixelWidth, int pixelHeight)
+    {
+        int widthInTiles = Math.Max(1, (int)Math.Ceiling(pixelWidth / (double)GameBoyCameraConstants.TilePixelWidth));
+        int heightInTiles = Math.Max(1, (int)Math.Ceiling(pixelHeight / (double)GameBoyCameraConstants.TilePixelHeight));
+        return GameBoyCameraTileGridFactory.CreateFromBinary(new byte[widthInTiles * heightInTiles * GameBoyCameraConstants.TileByteCount], widthInTiles);
     }
 
     private sealed class JsonRgbPalette

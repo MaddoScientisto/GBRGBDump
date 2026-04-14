@@ -3,6 +3,7 @@ using Avalonia.Platform.Storage;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Infrastructure;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
+using GBTools.ImageSharp.GameBoyCamera.Model;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Views;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.Services;
@@ -16,10 +17,12 @@ public sealed class DialogService : IDialogService
     };
 
     private readonly MainWindowProvider _mainWindowProvider;
+    private readonly IBitmapFactory _bitmapFactory;
 
-    public DialogService(MainWindowProvider mainWindowProvider)
+    public DialogService(MainWindowProvider mainWindowProvider, IBitmapFactory bitmapFactory)
     {
         _mainWindowProvider = mainWindowProvider;
+        _bitmapFactory = bitmapFactory;
     }
 
     public async Task<string?> OpenSupportedImageAsync()
@@ -56,6 +59,36 @@ public sealed class DialogService : IDialogService
         return magnification is null
             ? null
             : request with { PngMagnification = magnification.Value };
+    }
+
+    public Task<RgbCompositionRequest?> SelectRgbCompositionRequestAsync(IReadOnlyList<GbcPhoto> sourcePhotos)
+    {
+        CompositionDialog dialog = new()
+        {
+            DataContext = new CompositionDialogViewModel(CompositionDialogMode.RgbOnly, sourcePhotos, _bitmapFactory),
+        };
+
+        return dialog.ShowDialog<RgbCompositionRequest?>(RequireWindow());
+    }
+
+    public Task<DirectAverageCompositionRequest?> SelectAverageCompositionRequestAsync(IReadOnlyList<GbcPhoto> sourcePhotos)
+    {
+        CompositionDialog dialog = new()
+        {
+            DataContext = new CompositionDialogViewModel(CompositionDialogMode.AverageOnly, sourcePhotos, _bitmapFactory),
+        };
+
+        return dialog.ShowDialog<DirectAverageCompositionRequest?>(RequireWindow());
+    }
+
+    public Task<SmartAverageCompositionRequest?> SelectRgbAverageCompositionRequestAsync(IReadOnlyList<GbcPhoto> sourcePhotos)
+    {
+        CompositionDialog dialog = new()
+        {
+            DataContext = new CompositionDialogViewModel(CompositionDialogMode.RgbAndAverage, sourcePhotos, _bitmapFactory),
+        };
+
+        return dialog.ShowDialog<SmartAverageCompositionRequest?>(RequireWindow());
     }
 
     public async Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension)
