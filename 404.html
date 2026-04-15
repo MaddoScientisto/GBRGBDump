@@ -5,7 +5,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GBRGBDump Web Static</title>
-    <base href="/GBRGBDump/" />
+    <script>
+        (function () {
+            var repoBasePath = "/GBRGBDump/";
+            var currentPath = window.location.pathname || "/";
+            var baseHref = currentPath.startsWith(repoBasePath) ? repoBasePath : "/";
+            document.write('<base href="' + baseHref + '">');
+        })();
+    </script>
     <meta name="description" content="Static Blazor app for importing Game Boy Camera files and exporting them from the browser." />
     <link rel="stylesheet" href="app.css" />
 </head>
@@ -27,6 +34,21 @@
     </div>
 
     <script src="downloads.js"></script>
+    <script>
+        (function () {
+            var errorUi = document.getElementById("blazor-error-ui");
+            if (!errorUi) {
+                return;
+            }
+
+            var dismiss = errorUi.querySelector(".dismiss");
+            if (dismiss) {
+                dismiss.addEventListener("click", function () {
+                    errorUi.style.display = "none";
+                });
+            }
+        })();
+    </script>
     <script src="_framework/blazor.webassembly.66stpp682q.js"></script>
 </body>
 
