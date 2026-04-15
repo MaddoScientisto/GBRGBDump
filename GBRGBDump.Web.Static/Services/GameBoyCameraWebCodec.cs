@@ -40,8 +40,7 @@ public sealed class GameBoyCameraWebCodec
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(data);
 
-        GameBoyCameraSourceKind sourceKind = DetectSourceKind(fileName, data);
-        GbcAlbum album = LoadAlbum(sourceKind, data);
+        (GameBoyCameraSourceKind sourceKind, GbcAlbum album) = LoadImport(fileName, data);
 
         List<ImportedPhoto> photos = new(album.Photos.Count);
         for (int index = 0; index < album.Photos.Count; index++)
@@ -79,6 +78,11 @@ public sealed class GameBoyCameraWebCodec
             throw new InvalidOperationException("Import at least one photo before exporting.");
         }
 
+        if (format != ExportFormat.Json && photos.Count == 1)
+        {
+            return ExportSinglePhoto(photos[0], format);
+        }
+
         return format == ExportFormat.Json
             ? await ExportJsonAsync(photos, cancellationToken)
             : ExportArchive(photos, format);
@@ -113,7 +117,7 @@ public sealed class GameBoyCameraWebCodec
             {
                 ImportedPhoto photo = photos[index];
                 string entryName = $"{index + 1:D3}-{SanitizeFileName(photo.DisplayName)}.{GetFileExtension(format)}";
-                ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.SmallestSize);
+                ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
                 using Stream entryStream = entry.Open();
                 WritePhoto(entryStream, photo.Photo, format);
             }
@@ -125,7 +129,39 @@ public sealed class GameBoyCameraWebCodec
             stream.ToArray());
     }
 
+    private static ExportDownload ExportSinglePhoto(ImportedPhoto photo, ExportFormat format)
+    {
+        using MemoryStream stream = new();
+        WritePhoto(stream, photo.Photo, format);
+
+        return new ExportDownload(
+            $"{SanitizeFileName(photo.DisplayName)}.{GetFileExtension(format)}",
+            GetContentType(format),
+            stream.ToArray());
+    }
+
     private static void WritePhoto(Stream stream, GbcPhoto photo, ExportFormat format)
+    {
+        switch (format)
+        {
+            case ExportFormat.Png:
+            case ExportFormat.Gif:
+            case ExportFormat.Jpeg:
+            case ExportFormat.Bmp:
+                WriteRenderedImage(stream, photo, format);
+                break;
+            case ExportFormat.GbBin:
+                WriteGbBin(stream, photo);
+                break;
+            case ExportFormat.Gbci:
+                WriteCanonical(stream, photo);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.");
+        }
+    }
+
+    private static void WriteRenderedImage(Stream stream, GbcPhoto photo, ExportFormat format)
     {
         using Image<Rgba32> rendered = GameBoyCameraImageCodec.RenderPhoto(photo);
 
@@ -143,16 +179,34 @@ public sealed class GameBoyCameraWebCodec
             case ExportFormat.Bmp:
                 rendered.Save(stream, new BmpEncoder());
                 break;
-            case ExportFormat.GbBin:
-                GameBoyCameraCompatibility.ExportGbBin(rendered, stream);
-                break;
-            case ExportFormat.Gbci:
-                rendered.Save(stream, new GameBoyCameraEncoder());
-                break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.");
+                throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported rendered export format.");
         }
     }
+
+    private static void WriteGbBin(Stream stream, GbcPhoto photo)
+    {
+        stream.Write("GB-BIN01"u8);
+        foreach (GbcTile2Bpp tile in photo.TileGrid.Tiles)
+        {
+            stream.Write(tile.Bytes.Span);
+        }
+    }
+
+    private static void WriteCanonical(Stream stream, GbcPhoto photo)
+    {
+        if (!IsCanonicalGrid(photo.TileGrid))
+        {
+            throw new InvalidOperationException("GBCI export only supports 128x112 or 160x144 tile grids. Choose JSON, PNG, GIF, JPEG, BMP, or GB-BIN01 for this import.");
+        }
+
+        using Image<Rgba32> rendered = GameBoyCameraImageCodec.RenderPhoto(photo);
+        rendered.Save(stream, new GameBoyCameraEncoder());
+    }
+
+    private static bool IsCanonicalGrid(GbcTileGrid grid) =>
+        (grid.WidthInTiles == GameBoyCameraConstants.RawPhotoTileWidth && grid.HeightInTiles == GameBoyCameraConstants.RawPhotoTileHeight)
+        || (grid.WidthInTiles == GameBoyCameraConstants.FramedPhotoTileWidth && grid.HeightInTiles == GameBoyCameraConstants.FramedPhotoTileHeight);
 
     private static GbcAlbum LoadAlbum(GameBoyCameraSourceKind sourceKind, byte[] data)
     {
@@ -183,29 +237,51 @@ public sealed class GameBoyCameraWebCodec
             [new GbcPhoto(grid, null, null, null)]);
     }
 
-    private static GameBoyCameraSourceKind DetectSourceKind(string fileName, ReadOnlySpan<byte> data)
+    private static (GameBoyCameraSourceKind SourceKind, GbcAlbum Album) LoadImport(string fileName, byte[] data)
     {
+        string extension = Path.GetExtension(fileName).ToLowerInvariant();
+
         if (data.StartsWith(GameBoyCameraConstants.CanonicalMagicHeader))
         {
-            return GameBoyCameraSourceKind.Canonical;
+            return (GameBoyCameraSourceKind.Canonical, LoadCanonicalAlbum(new MemoryStream(data, writable: false)));
         }
 
         if (data.StartsWith("GB-BIN01"u8))
         {
-            return GameBoyCameraSourceKind.GbBin;
+            return (GameBoyCameraSourceKind.GbBin, LoadAlbum(GameBoyCameraSourceKind.GbBin, data));
         }
 
-        string extension = Path.GetExtension(fileName).ToLowerInvariant();
         return extension switch
         {
-            ".json" => GameBoyCameraSourceKind.GbPrinterWebJson,
-            ".gbci" => GameBoyCameraSourceKind.Canonical,
-            ".gb" or ".gbc" or ".rom" => GameBoyCameraSourceKind.RomDump,
-            ".sav" or ".srm" => GameBoyCameraSourceKind.SaveDump,
-            ".bin" => GameBoyCameraSourceKind.SaveDump,
-            _ when LooksLikeJson(data) => GameBoyCameraSourceKind.GbPrinterWebJson,
-            _ => throw new InvalidDataException($"Unsupported file type for '{fileName}'."),
+            ".json" => (GameBoyCameraSourceKind.GbPrinterWebJson, LoadAlbum(GameBoyCameraSourceKind.GbPrinterWebJson, data)),
+            ".gbci" => (GameBoyCameraSourceKind.Canonical, LoadCanonicalAlbum(new MemoryStream(data, writable: false))),
+            ".gb" or ".gbc" or ".rom" => (GameBoyCameraSourceKind.RomDump, LoadAlbum(GameBoyCameraSourceKind.RomDump, data)),
+            ".sav" or ".srm" => (GameBoyCameraSourceKind.SaveDump, LoadAlbum(GameBoyCameraSourceKind.SaveDump, data)),
+            ".bin" => (GameBoyCameraSourceKind.GbBin, LoadRawBinaryTileAlbum(data)),
+            _ when LooksLikeJson(data) => (GameBoyCameraSourceKind.GbPrinterWebJson, LoadAlbum(GameBoyCameraSourceKind.GbPrinterWebJson, data)),
+            _ => throw new InvalidDataException($"Unsupported file type for '{fileName}'.")
         };
+    }
+
+    private static GbcAlbum LoadRawBinaryTileAlbum(byte[] data)
+    {
+        if (data.Length == 0)
+        {
+            throw new InvalidDataException("Binary tile payload is empty.");
+        }
+
+        byte[] tileBytes = data.ToArray();
+        if (tileBytes.Length % GameBoyCameraConstants.TileByteCount != 0)
+        {
+            int paddedLength = ((tileBytes.Length / GameBoyCameraConstants.TileByteCount) + 1) * GameBoyCameraConstants.TileByteCount;
+            Array.Resize(ref tileBytes, paddedLength);
+            tileBytes.AsSpan(data.Length).Fill(0xFF);
+        }
+
+        GbcTileGrid grid = GameBoyCameraImageCodec.ParseBinaryTilePayload(tileBytes);
+        return new GbcAlbum(
+            new GameBoyCameraAlbumMetadata(GameBoyCameraSourceKind.GbBin, null, 0, null, null),
+            [new GbcPhoto(grid, null, null, null)]);
     }
 
     private static bool LooksLikeJson(ReadOnlySpan<byte> data)
@@ -232,6 +308,18 @@ public sealed class GameBoyCameraWebCodec
         ExportFormat.Bmp => "bmp",
         ExportFormat.GbBin => "bin",
         ExportFormat.Gbci => GameBoyCameraConstants.DefaultFileExtension,
+        _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format."),
+    };
+
+    private static string GetContentType(ExportFormat format) => format switch
+    {
+        ExportFormat.Json => "application/json",
+        ExportFormat.Png => "image/png",
+        ExportFormat.Gif => "image/gif",
+        ExportFormat.Jpeg => "image/jpeg",
+        ExportFormat.Bmp => "image/bmp",
+        ExportFormat.GbBin => "application/octet-stream",
+        ExportFormat.Gbci => GameBoyCameraConstants.DefaultMimeType,
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format."),
     };
 

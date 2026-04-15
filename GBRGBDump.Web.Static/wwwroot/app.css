@@ -55,6 +55,28 @@ select {
     position: relative;
 }
 
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+    max-width: min(32rem, calc(100vw - 2rem));
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(255, 139, 122, 0.4);
+    border-radius: 1rem;
+    background: rgba(35, 14, 14, 0.95);
+    box-shadow: var(--panel-shadow);
+    color: #ffe2d7;
+}
+
+#blazor-error-ui .reload,
+#blazor-error-ui .dismiss {
+    margin-left: 0.75rem;
+    cursor: pointer;
+    font-weight: 700;
+}
+
 .loading-shell,
 .missing-page {
     display: grid;

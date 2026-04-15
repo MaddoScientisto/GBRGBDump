@@ -165,6 +165,19 @@
     font-weight: 700;
 }
 
+.error-details {
+    overflow-x: auto;
+    margin: 0.8rem 0 0;
+    padding: 0.9rem;
+    border-radius: 0.9rem;
+    background: rgba(0, 0, 0, 0.28);
+    color: #ffd4c9;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
 .panel-heading {
     display: grid;
     gap: 0.15rem;

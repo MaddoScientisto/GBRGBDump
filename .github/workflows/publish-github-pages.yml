@@ -43,12 +43,12 @@ jobs:
       - name: Prepare GitHub Pages payload
         shell: bash
         run: |
-          touch publish/github-pages/wwwroot/GBRGBDump/.nojekyll
-          cp publish/github-pages/wwwroot/GBRGBDump/index.html publish/github-pages/wwwroot/GBRGBDump/404.html
+          touch publish/github-pages/wwwroot/.nojekyll
+          cp publish/github-pages/wwwroot/index.html publish/github-pages/wwwroot/404.html
 
       - name: Deploy to gh-pages branch
         uses: JamesIves/github-pages-deploy-action@v4.6.8
         with:
           branch: gh-pages
-          folder: publish/github-pages/wwwroot/GBRGBDump
+          folder: publish/github-pages/wwwroot
           clean: true

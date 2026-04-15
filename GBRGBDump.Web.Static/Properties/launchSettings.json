@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "GBRGBDump.Web.Static": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:62450;http://localhost:62451"
+    }
+  }
+}

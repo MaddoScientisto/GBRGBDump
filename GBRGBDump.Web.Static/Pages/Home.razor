@@ -40,7 +40,7 @@
                 <option value="@format">@GetExportLabel(format)</option>
             }
         </select>
-        <p class="helper-text">JSON exports the full import as one document. Every other format downloads as a zip.</p>
+        <p class="helper-text">JSON exports the full import as one document. Other formats download directly for one photo, or as a zip when there are multiple photos.</p>
     </div>
 
     <div class="button-row">
@@ -56,6 +56,10 @@
     <section class="panel message-panel message-panel--error">
         <p class="message-title">Import/export failed</p>
         <p>@errorMessage</p>
+        @if (!string.IsNullOrWhiteSpace(errorDetails))
+        {
+            <pre class="error-details">@errorDetails</pre>
+        }
     </section>
 }
 
@@ -101,7 +105,7 @@
             @foreach (ImportedPhoto photo in importedPhotos)
             {
                 <article class="preview-card">
-                    <img src="@photo.PreviewDataUrl" alt="@photo.DisplayName" loading="lazy" />
+                    <img src="@photo.PreviewDataUrl" alt="@photo.DisplayName" loading="lazy" style="@GetPreviewStyle(photo)" />
                     <div class="preview-card__body">
                         <div>
                             <h3>@photo.DisplayName</h3>
@@ -133,6 +137,7 @@
     private bool isBusy;
     private string? errorMessage;
     private string? statusMessage;
+    private string? errorDetails;
 
     private string AcceptedExtensions => string.Join(",", Codec.SupportedImportExtensions);
 
@@ -140,6 +145,7 @@
     {
         errorMessage = null;
         statusMessage = null;
+        errorDetails = null;
 
         IReadOnlyList<IBrowserFile> files = args.GetMultipleFiles();
         if (files.Count == 0)
@@ -151,23 +157,46 @@
         try
         {
             int importedCount = 0;
+            List<string> failures = [];
             foreach (IBrowserFile file in files)
             {
-                using Stream fileStream = file.OpenReadStream(MaxUploadSizeBytes);
-                using MemoryStream buffer = new();
-                await fileStream.CopyToAsync(buffer);
+                try
+                {
+                    using Stream fileStream = file.OpenReadStream(MaxUploadSizeBytes);
+                    using MemoryStream buffer = new();
+                    await fileStream.CopyToAsync(buffer);
 
-                IReadOnlyList<ImportedPhoto> photos = Codec.Import(file.Name, buffer.ToArray());
-                importedPhotos.AddRange(photos);
-                importedSourceFiles.Add(file.Name);
-                importedCount += photos.Count;
+                    IReadOnlyList<ImportedPhoto> photos = Codec.Import(file.Name, buffer.ToArray());
+                    importedPhotos.AddRange(photos);
+                    importedSourceFiles.Add(file.Name);
+                    importedCount += photos.Count;
+                }
+                catch (Exception exception)
+                {
+                    string fileError = $"{file.Name}: {exception.Message}";
+                    failures.Add(fileError);
+                    await ReportClientErrorAsync($"Import failed for {file.Name}", exception);
+                }
             }
 
-            statusMessage = string.Create(CultureInfo.InvariantCulture, $"Imported {importedCount} photo(s) from {files.Count} file(s).");
+            if (failures.Count > 0)
+            {
+                errorMessage = failures.Count == 1
+                    ? failures[0]
+                    : $"{failures.Count} files failed during import.";
+                errorDetails = string.Join(Environment.NewLine, failures);
+            }
+
+            if (importedCount > 0)
+            {
+                statusMessage = string.Create(CultureInfo.InvariantCulture, $"Imported {importedCount} photo(s) from {files.Count} file(s).");
+            }
         }
         catch (Exception exception)
         {
             errorMessage = exception.Message;
+            errorDetails = exception.ToString();
+            await ReportClientErrorAsync("Unexpected import failure", exception);
         }
         finally
         {
@@ -179,6 +208,7 @@
     {
         errorMessage = null;
         statusMessage = null;
+        errorDetails = null;
 
         if (importedPhotos.Count == 0)
         {
@@ -200,6 +230,8 @@
         catch (Exception exception)
         {
             errorMessage = exception.Message;
+            errorDetails = exception.ToString();
+            await ReportClientErrorAsync("Export failed", exception);
         }
         finally
         {
@@ -212,7 +244,16 @@
         importedPhotos.Clear();
         importedSourceFiles.Clear();
         errorMessage = null;
+        errorDetails = null;
         statusMessage = "Cleared the current import set.";
+    }
+
+    private static string GetPreviewStyle(ImportedPhoto photo) => $"aspect-ratio: {photo.Width} / {photo.Height};";
+
+    private async Task ReportClientErrorAsync(string message, Exception exception)
+    {
+        string details = $"{message}{Environment.NewLine}{exception}";
+        await JS.InvokeVoidAsync("gbrgbdumpDiagnostics.logError", details);
     }
 
     private static string GetExportLabel(ExportFormat format) => format switch

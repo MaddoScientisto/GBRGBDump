@@ -18,3 +18,9 @@ window.gbrgbdumpDownloads = {
         URL.revokeObjectURL(url);
     }
 };
+
+window.gbrgbdumpDiagnostics = {
+    logError: function (message) {
+        console.error(message);
+    }
+};

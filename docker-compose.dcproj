@@ -16,6 +16,9 @@
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="GBRGBDump.Web.Static\GBRGBDump.Web.Static.csproj" />
+  </ItemGroup>
   <Target Name="Pack">
   </Target>
 </Project>

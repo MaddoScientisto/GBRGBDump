@@ -231,6 +231,25 @@ public class GameBoyCameraCompatibilityTests
         Assert.Equal(8 + (224 * 16), bytes.Length);
     }
 
+    [Fact]
+    public void LoadGbBinAlbum_preserves_framed_dimensions_when_round_tripping()
+    {
+        using Image<Rgba32> image = CreateRenderedImage(GameBoyCameraConstants.FramedPhotoTileWidth, GameBoyCameraConstants.FramedPhotoTileHeight);
+        using MemoryStream stream = new();
+
+        GameBoyCameraCompatibility.ExportGbBin(image, stream);
+        stream.Position = 0;
+
+        GbcAlbum album = GameBoyCameraCompatibility.LoadGbBinAlbum(stream, new GameBoyCameraLoadOptions
+        {
+            FrameMode = GameBoyCameraFrameMode.Keep,
+        });
+
+        GbcPhoto photo = Assert.Single(album.Photos);
+        Assert.Equal(GameBoyCameraConstants.FramedPhotoTileWidth, photo.TileGrid.WidthInTiles);
+        Assert.Equal(GameBoyCameraConstants.FramedPhotoTileHeight, photo.TileGrid.HeightInTiles);
+    }
+
     private static byte[] CreateTileBytes(int tileCount)
     {
         byte[] bytes = new byte[tileCount * GameBoyCameraConstants.TileByteCount];

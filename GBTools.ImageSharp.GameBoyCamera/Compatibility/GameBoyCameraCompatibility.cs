@@ -160,9 +160,7 @@ public static class GameBoyCameraCompatibility
         }
 
         int tileCount = tileBytes.Length / GameBoyCameraConstants.TileByteCount;
-        int preferredWidth = tileCount >= GameBoyCameraConstants.RawPhotoTileWidth && tileCount % GameBoyCameraConstants.RawPhotoTileWidth == 0
-            ? GameBoyCameraConstants.RawPhotoTileWidth
-            : tileCount;
+        int preferredWidth = InferGbBinWidthInTiles(tileCount);
 
         GbcTileGrid grid = GameBoyCameraImageCodec.ParseBinaryTilePayload(tileBytes, preferredWidth);
         if (grid.WidthInTiles == GameBoyCameraConstants.FramedPhotoTileWidth && options.FrameMode != GameBoyCameraFrameMode.Keep)
@@ -272,5 +270,29 @@ public static class GameBoyCameraCompatibility
         using MemoryStream copy = new();
         stream.CopyTo(copy);
         return copy.ToArray();
+    }
+
+    private static int InferGbBinWidthInTiles(int tileCount)
+    {
+        if (tileCount == GameBoyCameraConstants.RawPhotoTileWidth * GameBoyCameraConstants.RawPhotoTileHeight)
+        {
+            return GameBoyCameraConstants.RawPhotoTileWidth;
+        }
+
+        if (tileCount == GameBoyCameraConstants.FramedPhotoTileWidth * GameBoyCameraConstants.FramedPhotoTileHeight)
+        {
+            return GameBoyCameraConstants.FramedPhotoTileWidth;
+        }
+
+        int minimumCandidate = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(tileCount)));
+        for (int candidate = minimumCandidate; candidate <= tileCount; candidate++)
+        {
+            if (tileCount % candidate == 0)
+            {
+                return candidate;
+            }
+        }
+
+        return tileCount;
     }
 }
