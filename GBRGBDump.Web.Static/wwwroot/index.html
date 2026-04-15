@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GBRGBDump Web Static</title>
+    <base href="/GBRGBDump/" />
+    <meta name="description" content="Static Blazor app for importing Game Boy Camera files and exporting them from the browser." />
+    <link rel="stylesheet" href="app.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-shell">
+            <div class="loading-shell__card">
+                <div class="loading-shell__dot"></div>
+                <p>Loading the static Game Boy Camera exporter...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">x</span>
+    </div>
+
+    <script src="downloads.js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>

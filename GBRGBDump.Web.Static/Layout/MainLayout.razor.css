@@ -1,0 +1,50 @@
+.shell {
+    min-height: 100vh;
+    padding: 2rem 1.25rem 3rem;
+}
+
+.shell__header {
+    display: grid;
+    gap: 0.9rem;
+    margin: 0 auto 1.5rem;
+    max-width: 1100px;
+}
+
+.shell__eyebrow {
+    margin: 0;
+    color: var(--accent-strong);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+.shell__title {
+    margin: 0.25rem 0 0;
+    font-size: clamp(2rem, 4vw, 3.8rem);
+    line-height: 0.95;
+}
+
+.shell__subtitle {
+    margin: 0;
+    max-width: 60rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.shell__main {
+    margin: 0 auto;
+    max-width: 1100px;
+}
+
+@media (min-width: 900px) {
+    .shell {
+        padding-top: 2.5rem;
+    }
+
+    .shell__header {
+        grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.9fr);
+        align-items: end;
+    }
+}

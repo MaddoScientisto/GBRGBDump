@@ -1,0 +1,17 @@
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <section class="missing-page">
+                <p class="eyebrow">Missing page</p>
+                <h1>That route does not exist.</h1>
+                <p>Return to the importer to load Game Boy Camera files and export them again.</p>
+                <a class="action-link" href="/GBRGBDump/">Open importer</a>
+            </section>
+        </LayoutView>
+    </NotFound>
+</Router>

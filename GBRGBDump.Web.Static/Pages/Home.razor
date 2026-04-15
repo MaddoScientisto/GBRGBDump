@@ -1,0 +1,239 @@
+@page "/"
+@inject GameBoyCameraWebCodec Codec
+@inject IJSRuntime JS
+
+<section class="panel hero-panel">
+    <div class="hero-panel__copy">
+        <p class="eyebrow">Static workflow</p>
+        <h2>Drop Game Boy Camera files straight into the browser.</h2>
+        <p class="lede">This first pass accepts supported Game Boy Camera inputs, flattens every discovered shot into one preview grid, and exports the whole set either as one JSON document or a zip of the selected image format.</p>
+    </div>
+
+    <div class="hero-panel__meta">
+        <div>
+            <span class="metric">@importedPhotos.Count</span>
+            <span class="metric-label">photos ready</span>
+        </div>
+        <div>
+            <span class="metric">@importedSourceFiles.Count</span>
+            <span class="metric-label">source files</span>
+        </div>
+    </div>
+</section>
+
+<section class="panel controls-panel">
+    <div class="control-stack">
+        <label class="field-label" for="filePicker">Import files</label>
+        <InputFile id="filePicker"
+                   OnChange="HandleFilesSelected"
+                   class="picker"
+                   accept="@AcceptedExtensions"
+                   multiple />
+        <p class="helper-text">Accepted: @string.Join(", ", Codec.SupportedImportExtensions)</p>
+    </div>
+
+    <div class="control-stack">
+        <label class="field-label" for="exportFormat">Export format</label>
+        <select id="exportFormat" class="select-field" @bind="selectedFormat">
+            @foreach (ExportFormat format in Enum.GetValues<ExportFormat>())
+            {
+                <option value="@format">@GetExportLabel(format)</option>
+            }
+        </select>
+        <p class="helper-text">JSON exports the full import as one document. Every other format downloads as a zip.</p>
+    </div>
+
+    <div class="button-row">
+        <button type="button" class="action-button action-button--primary" @onclick="DownloadExportAsync" disabled="@(isBusy || importedPhotos.Count == 0)">
+            @(isBusy ? "Working..." : $"Download {GetExportLabel(selectedFormat)}")
+        </button>
+        <button type="button" class="action-button action-button--secondary" @onclick="ClearImports" disabled="@(isBusy || importedPhotos.Count == 0)">Clear</button>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <section class="panel message-panel message-panel--error">
+        <p class="message-title">Import/export failed</p>
+        <p>@errorMessage</p>
+    </section>
+}
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <section class="panel message-panel message-panel--status">
+        <p>@statusMessage</p>
+    </section>
+}
+
+@if (importedSourceFiles.Count > 0)
+{
+    <section class="panel source-panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Imported files</p>
+            <h2>Source set</h2>
+        </div>
+        <div class="chip-row">
+            @foreach (string sourceFile in importedSourceFiles)
+            {
+                <span class="chip">@sourceFile</span>
+            }
+        </div>
+    </section>
+}
+
+<section class="panel preview-panel">
+    <div class="panel-heading">
+        <p class="eyebrow">Preview grid</p>
+        <h2>Imported shots</h2>
+    </div>
+
+    @if (importedPhotos.Count == 0)
+    {
+        <div class="empty-state">
+            <p>No photos loaded yet.</p>
+            <p>Select one or more supported files to populate the grid.</p>
+        </div>
+    }
+    else
+    {
+        <div class="preview-grid">
+            @foreach (ImportedPhoto photo in importedPhotos)
+            {
+                <article class="preview-card">
+                    <img src="@photo.PreviewDataUrl" alt="@photo.DisplayName" loading="lazy" />
+                    <div class="preview-card__body">
+                        <div>
+                            <h3>@photo.DisplayName</h3>
+                            <p>@photo.SourceFileName</p>
+                        </div>
+                        <dl>
+                            <div>
+                                <dt>Format</dt>
+                                <dd>@GetSourceLabel(photo.SourceKind)</dd>
+                            </div>
+                            <div>
+                                <dt>Size</dt>
+                                <dd>@photo.Width x @photo.Height</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private const long MaxUploadSizeBytes = 32 * 1024 * 1024;
+    private readonly List<ImportedPhoto> importedPhotos = [];
+    private readonly HashSet<string> importedSourceFiles = new(StringComparer.OrdinalIgnoreCase);
+
+    private ExportFormat selectedFormat = ExportFormat.Json;
+    private bool isBusy;
+    private string? errorMessage;
+    private string? statusMessage;
+
+    private string AcceptedExtensions => string.Join(",", Codec.SupportedImportExtensions);
+
+    private async Task HandleFilesSelected(InputFileChangeEventArgs args)
+    {
+        errorMessage = null;
+        statusMessage = null;
+
+        IReadOnlyList<IBrowserFile> files = args.GetMultipleFiles();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            int importedCount = 0;
+            foreach (IBrowserFile file in files)
+            {
+                using Stream fileStream = file.OpenReadStream(MaxUploadSizeBytes);
+                using MemoryStream buffer = new();
+                await fileStream.CopyToAsync(buffer);
+
+                IReadOnlyList<ImportedPhoto> photos = Codec.Import(file.Name, buffer.ToArray());
+                importedPhotos.AddRange(photos);
+                importedSourceFiles.Add(file.Name);
+                importedCount += photos.Count;
+            }
+
+            statusMessage = string.Create(CultureInfo.InvariantCulture, $"Imported {importedCount} photo(s) from {files.Count} file(s).");
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DownloadExportAsync()
+    {
+        errorMessage = null;
+        statusMessage = null;
+
+        if (importedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            ExportDownload download = await Codec.ExportAsync(importedPhotos, selectedFormat);
+            await JS.InvokeVoidAsync(
+                "gbrgbdumpDownloads.saveBase64File",
+                download.FileName,
+                download.ContentType,
+                Convert.ToBase64String(download.Bytes));
+
+            statusMessage = $"Downloaded {download.FileName}.";
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void ClearImports()
+    {
+        importedPhotos.Clear();
+        importedSourceFiles.Clear();
+        errorMessage = null;
+        statusMessage = "Cleared the current import set.";
+    }
+
+    private static string GetExportLabel(ExportFormat format) => format switch
+    {
+        ExportFormat.Json => "JSON",
+        ExportFormat.Png => "PNG",
+        ExportFormat.Gif => "GIF",
+        ExportFormat.Jpeg => "JPEG",
+        ExportFormat.Bmp => "BMP",
+        ExportFormat.GbBin => "GB-BIN01",
+        ExportFormat.Gbci => "GBCI",
+        _ => format.ToString(),
+    };
+
+    private static string GetSourceLabel(GameBoyCameraSourceKind sourceKind) => sourceKind switch
+    {
+        GameBoyCameraSourceKind.SaveDump => "Save dump",
+        GameBoyCameraSourceKind.RomDump => "ROM dump",
+        GameBoyCameraSourceKind.GbBin => "GB-BIN01",
+        GameBoyCameraSourceKind.GbPrinterWebJson => "gb-printer-web JSON",
+        GameBoyCameraSourceKind.Canonical => "Canonical GBCI",
+        _ => sourceKind.ToString(),
+    };
+}

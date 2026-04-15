@@ -1,0 +1,53 @@
+name: Publish Static Blazor App
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - .github/workflows/publish-github-pages.yml
+      - Directory.Build.props
+      - GBRGBDump.sln
+      - GBRGBDump.Web.Static/**
+      - GBTools.ImageSharp.GameBoyCamera/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-github-pages:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore solution
+        run: dotnet restore --locked-mode ./GBRGBDump.sln
+
+      - name: Publish static app
+        run: dotnet publish ./GBRGBDump.Web.Static/GBRGBDump.Web.Static.csproj --configuration Release --output publish/github-pages
+
+      - name: Prepare GitHub Pages payload
+        shell: bash
+        run: |
+          touch publish/github-pages/wwwroot/GBRGBDump/.nojekyll
+          cp publish/github-pages/wwwroot/GBRGBDump/index.html publish/github-pages/wwwroot/GBRGBDump/404.html
+
+      - name: Deploy to gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4.6.8
+        with:
+          branch: gh-pages
+          folder: publish/github-pages/wwwroot/GBRGBDump
+          clean: true
