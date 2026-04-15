@@ -91,10 +91,12 @@ jobs:
     # Build Executables
 
     - name: Build GBRGBDump.GUI
+      if: false # Legacy project disabled for now
       run: |
         dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
 
     - name: Build GBRGBDump WebUi
+      if: false # Legacy project disabled for now
       run: |
         dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
 
@@ -122,6 +124,7 @@ jobs:
     # Upload Artifacts
 
     - name: Upload WebUi Artifact
+      if: false # Legacy artifact disabled for now
       uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-webui-win-x64
@@ -129,6 +132,7 @@ jobs:
         if-no-files-found: error
 
     - name: Upload Artifact
+      if: false # Legacy artifact disabled for now
       uses: actions/upload-artifact@v4
       with:
         name: GBRGBDump-GUI-win-x64
@@ -150,6 +154,7 @@ jobs:
         if-no-files-found: error
 
   build-gbrgbdump:
+    if: false # Legacy job disabled for now
     runs-on: ubuntu-latest
     # Avoid running time-expensive matrix build if the GUI fails
     needs: build-gbrgbdump-gui
@@ -240,7 +245,7 @@ jobs:
       # TODO: tag as latest only if it's a release
 
   publish-release:
-    needs: [build-gbrgbdump, build-gbrgbdump-gui]
+    needs: [build-gbrgbdump-gui]
     runs-on: ubuntu-latest
     env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -310,6 +315,7 @@ jobs:
     # Merge Docker Packages
     # Build and publish docker image
     - name: Build and publish Docker
+      if: false # Legacy docker release disabled for now
       run: |
           LOWERCASE_OWNER=$(echo "${{ env.NUGET_OWNER }}" | tr '[:upper:]' '[:lower:]')
           docker login --username ${{ env.NUGET_OWNER }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
