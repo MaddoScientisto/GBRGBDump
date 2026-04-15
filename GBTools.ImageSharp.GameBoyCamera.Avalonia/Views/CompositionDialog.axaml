@@ -1,0 +1,84 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.CompositionDialog"
+        x:DataType="vm:CompositionDialogViewModel"
+        Width="760"
+        Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Title}">
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="1.1*,1*" Margin="20" ColumnSpacing="20">
+        <StackPanel Spacing="12">
+            <TextBlock Text="{Binding Description}"
+                       TextWrapping="Wrap" />
+
+                        <StackPanel Spacing="6"
+                                                IsVisible="{Binding IsRgbDialog}">
+                <TextBlock Text="Channel order" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding ChannelOrderOptions}"
+                                                    SelectedItem="{Binding ChannelOrder, Mode=TwoWay}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6"
+                                                IsVisible="{Binding IsSmartAverageDialog}">
+                <TextBlock Text="Average mode" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding AverageModeOptions}"
+                          SelectedItem="{Binding AverageMode, Mode=TwoWay}" />
+            </StackPanel>
+
+            <Border Background="#221F1F1F"
+                    BorderBrush="#44FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="10"
+                    IsVisible="{Binding HasValidationMessage}">
+                <TextBlock Text="{Binding ValidationMessage}"
+                           Foreground="#FFD8A7A7"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <TextBlock Text="{Binding PreviewSummary}"
+                       TextWrapping="Wrap"
+                       Opacity="0.85" />
+        </StackPanel>
+
+        <Border Grid.Column="1"
+                Background="#12000000"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="12">
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding PreviewTitle}"
+                           FontWeight="SemiBold" />
+
+                <Border BorderBrush="#40FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="6"
+                        HorizontalAlignment="Center">
+                    <Image Source="{Binding PreviewBitmap}"
+                           Width="160"
+                           Height="144"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapInterpolationMode="None" />
+                </Border>
+
+                <TextBlock Text="The preview updates immediately when the composition options change."
+                           TextWrapping="Wrap"
+                           Opacity="0.7" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1"
+                    Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" />
+            <Button Content="Create" Command="{Binding ConfirmCommand}" MinWidth="90" />
+        </StackPanel>
+    </Grid>
+</Window>
