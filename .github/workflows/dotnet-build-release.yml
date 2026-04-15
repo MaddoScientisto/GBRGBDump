@@ -98,10 +98,18 @@ jobs:
       run: |
         dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
 
+    - name: Build GBTools.ImageSharp.GameBoyCamera.Avalonia win-x64
+      run: |
+        dotnet publish ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/win-x64
+
+    - name: Build GBTools.ImageSharp.GameBoyCamera.Avalonia linux-x64
+      run: |
+        dotnet publish ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj --configuration Release --runtime linux-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/linux-x64
+
     # Build NuGet Packages
     - run: |
-        dotnet sln ./GBRGBDump.sln remove docker-compose.dcproj
-        dotnet pack ./GBRGBDump.sln -v d --configuration Release --output ${{ env.NuGetDirectory }}
+        dotnet pack ./GBTools.ImageSharp.GameBoyCamera/GBTools.ImageSharp.GameBoyCamera.csproj -v d --configuration Release --output ${{ env.NuGetDirectory }}
+        dotnet pack ./GBTools.ImageSharp.GameBoyCamera.Lite/GBTools.ImageSharp.GameBoyCamera.Lite.csproj -v d --configuration Release --output ${{ env.NuGetDirectory }}
 
     # Upload NuGet Packages Artifacts
     - name: Upload NuGet Artifact
@@ -125,6 +133,20 @@ jobs:
       with:
         name: GBRGBDump-GUI-win-x64
         path: publish/GBRGBDump.GUI/win-x64/**
+        if-no-files-found: error
+
+    - name: Upload Avalonia Artifact win-x64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.ImageSharp.GameBoyCamera.Avalonia-win-x64
+        path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/win-x64/**
+        if-no-files-found: error
+
+    - name: Upload Avalonia Artifact linux-x64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.ImageSharp.GameBoyCamera.Avalonia-linux-x64
+        path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/linux-x64/**
         if-no-files-found: error
 
   build-gbrgbdump:
