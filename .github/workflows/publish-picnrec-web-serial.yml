@@ -17,9 +17,6 @@ permissions:
 jobs:
   publish-library:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./picnrec-web-serial
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,12 +31,15 @@ jobs:
           scope: '@maddoscientisto'
 
       - name: Install workspace dependencies
+        working-directory: ./picnrec-web-serial
         run: npm ci
 
       - name: Build library package
-        run: npm run build:lib
+        working-directory: ./picnrec-web-serial/packages/picnrec-web-serial
+        run: npm run build
 
       - name: Publish library package
-        run: npm publish --workspace ./packages/picnrec-web-serial
+        working-directory: ./picnrec-web-serial/packages/picnrec-web-serial
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
