@@ -40,6 +40,6 @@ jobs:
         run: npm run build:lib
 
       - name: Publish library package
-        run: npm publish --workspace @maddoscientisto/picnrec-web-serial
+        run: npm publish --workspace ./packages/picnrec-web-serial
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
