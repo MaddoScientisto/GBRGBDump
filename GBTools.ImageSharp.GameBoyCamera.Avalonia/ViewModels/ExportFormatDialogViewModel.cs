@@ -13,7 +13,9 @@ public sealed partial class ExportFormatDialogViewModel : ViewModelBase
     {
         ChooseCanonicalCommand = new RelayCommand(ChooseCanonical);
         ChooseGbBinCommand = new RelayCommand(ChooseGbBin);
+        ChooseGbBinBase64Command = new RelayCommand(ChooseGbBinBase64);
         ChooseJsonCommand = new RelayCommand(ChooseJson);
+        ChooseTxtCommand = new RelayCommand(ChooseTxt);
         ChoosePngCommand = new RelayCommand(ChoosePng);
         CancelCommand = new RelayCommand(Cancel);
     }
@@ -22,7 +24,11 @@ public sealed partial class ExportFormatDialogViewModel : ViewModelBase
 
     public IRelayCommand ChooseGbBinCommand { get; }
 
+    public IRelayCommand ChooseGbBinBase64Command { get; }
+
     public IRelayCommand ChooseJsonCommand { get; }
+
+    public IRelayCommand ChooseTxtCommand { get; }
 
     public IRelayCommand ChoosePngCommand { get; }
 
@@ -34,9 +40,13 @@ public sealed partial class ExportFormatDialogViewModel : ViewModelBase
 
     private void ChooseGbBin() => CloseRequested?.Invoke(new ExportRequest(ExportFormat.GbBin));
 
+    private void ChooseGbBinBase64() => CloseRequested?.Invoke(new ExportRequest(ExportFormat.GbBinBase64));
+
     private void ChooseJson() => CloseRequested?.Invoke(new ExportRequest(
         ExportFormat.GbPrinterWebJson,
         ExportSelectedToSingleFile: ExportSelectedToSingleFile));
+
+    private void ChooseTxt() => CloseRequested?.Invoke(new ExportRequest(ExportFormat.Txt));
 
     private void ChoosePng() => CloseRequested?.Invoke(new ExportRequest(ExportFormat.Png));
 

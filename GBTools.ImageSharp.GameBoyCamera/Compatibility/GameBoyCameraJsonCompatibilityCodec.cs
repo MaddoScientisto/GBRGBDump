@@ -452,19 +452,152 @@ internal static class GameBoyCameraJsonCompatibilityCodec
 
     private static GbcTileGrid LoadGridFromStoredPayload(string compressedPayload, JsonElement imageElement, JsonElement root, GameBoyCameraFrameMode frameMode, out GbcFrameOverlay? frameOverlay)
     {
-        string inflated = InflateLatin1String(compressedPayload);
-        string[] rawTiles = inflated.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        GbcTileGrid grid = CreateGridFromJsonTiles(rawTiles, imageElement, root, out frameOverlay);
+        byte[] inflated = InflateLatin1Bytes(compressedPayload);
+        GbcTileGrid grid = CreateGridFromPayload(inflated, imageElement, root, out frameOverlay);
         return ApplyFrameMode(grid, frameMode);
     }
 
     private static GbcTileGrid LoadGridFromStoredPayload(string compressedPayload, int declaredTileCount, GameBoyCameraFrameMode frameMode)
     {
-        string inflated = InflateLatin1String(compressedPayload);
-        string[] rawTiles = inflated.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        GbcTileGrid grid = CreateGridFromJsonTiles(rawTiles, declaredTileCount);
+        byte[] inflated = InflateLatin1Bytes(compressedPayload);
+        GbcTileGrid grid = CreateGridFromPayload(inflated, declaredTileCount);
         return ApplyFrameMode(grid, frameMode);
     }
+
+    private static GbcTileGrid CreateGridFromPayload(byte[] inflatedPayload, JsonElement imageElement, JsonElement root, out GbcFrameOverlay? frameOverlay)
+    {
+        int declaredTileCount = TryGetDeclaredTileCount(imageElement);
+        if (TryParseTextTilePayload(inflatedPayload, out string[] rawTiles))
+        {
+            return CreateGridFromJsonTiles(rawTiles, imageElement, root, out frameOverlay);
+        }
+
+        if (IsEmptyPayload(inflatedPayload) && declaredTileCount > 0)
+        {
+            frameOverlay = null;
+            return CreateGridFromJsonTiles([], declaredTileCount);
+        }
+
+        frameOverlay = null;
+        GbcTileGrid grid = CreateGridFromBinaryPayload(inflatedPayload);
+
+        if (imageElement.TryGetProperty("frame", out JsonElement frameElement) && frameElement.ValueKind == JsonValueKind.String)
+        {
+            string? frameHash = frameElement.GetString();
+            if (!string.IsNullOrWhiteSpace(frameHash))
+            {
+                string frameKey = root.TryGetProperty($"frame-{frameHash}", out JsonElement prefixedFrameElement) && prefixedFrameElement.ValueKind == JsonValueKind.String
+                    ? $"frame-{frameHash}"
+                    : frameHash;
+
+                if (root.TryGetProperty(frameKey, out JsonElement storedFrameElement) && storedFrameElement.ValueKind == JsonValueKind.String)
+                {
+                    GbcFrameOverlay overlay = GameBoyCameraFrameCodec.ParseFrameOverlay(InflateLatin1String(storedFrameElement.GetString()!));
+                    frameOverlay = overlay;
+                    grid = grid.WidthInTiles == GameBoyCameraConstants.FramedPhotoTileWidth
+                        ? GameBoyCameraFrameCodec.ApplyFrame(GameBoyCameraFrameCodec.StripFrame(grid, 2), overlay, 2)
+                        : GameBoyCameraFrameCodec.ApplyFrame(grid, overlay, 2);
+                }
+            }
+        }
+
+        return grid;
+    }
+
+    private static GbcTileGrid CreateGridFromPayload(byte[] inflatedPayload, int declaredTileCount)
+    {
+        if (TryParseTextTilePayload(inflatedPayload, out string[] rawTiles))
+        {
+            return CreateGridFromJsonTiles(rawTiles, declaredTileCount);
+        }
+
+        if (IsEmptyPayload(inflatedPayload) && declaredTileCount > 0)
+        {
+            return CreateGridFromJsonTiles([], declaredTileCount);
+        }
+
+        return CreateGridFromBinaryPayload(inflatedPayload);
+    }
+
+    private static GbcTileGrid CreateGridFromBinaryPayload(byte[] inflatedPayload)
+    {
+        if (inflatedPayload.Length == 0 || inflatedPayload.Length % GameBoyCameraConstants.TileByteCount != 0)
+        {
+            throw new InvalidDataException("gb-printer-web JSON image payload did not contain a supported tile payload.");
+        }
+
+        int tileCount = inflatedPayload.Length / GameBoyCameraConstants.TileByteCount;
+        int widthInTiles = GetJsonTileGridWidth(tileCount);
+        return GameBoyCameraTileGridFactory.CreateFromBinary(inflatedPayload, widthInTiles);
+    }
+
+    private static bool TryParseTextTilePayload(byte[] inflatedPayload, out string[] rawTiles)
+    {
+        rawTiles = [];
+        ReadOnlySpan<byte> payload = inflatedPayload;
+        if (HasUtf8Bom(payload))
+        {
+            payload = payload[3..];
+        }
+
+        if (payload.Length == 0)
+        {
+            return false;
+        }
+
+        bool hasHexDigit = false;
+        foreach (byte value in payload)
+        {
+            if ((value >= (byte)'0' && value <= (byte)'9')
+                || (value >= (byte)'A' && value <= (byte)'F')
+                || (value >= (byte)'a' && value <= (byte)'f'))
+            {
+                hasHexDigit = true;
+                continue;
+            }
+
+            if (value is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n')
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        if (!hasHexDigit)
+        {
+            return false;
+        }
+
+        string inflated = Encoding.UTF8.GetString(payload);
+        rawTiles = inflated.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return rawTiles.Length > 0;
+    }
+
+    private static bool IsEmptyPayload(byte[] inflatedPayload)
+    {
+        ReadOnlySpan<byte> payload = inflatedPayload;
+        if (HasUtf8Bom(payload))
+        {
+            payload = payload[3..];
+        }
+
+        foreach (byte value in payload)
+        {
+            if (value is not (byte)' ' and not (byte)'\t' and not (byte)'\r' and not (byte)'\n')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasUtf8Bom(ReadOnlySpan<byte> payload)
+        => payload.Length >= 3
+            && payload[0] == 0xEF
+            && payload[1] == 0xBB
+            && payload[2] == 0xBF;
 
     private static GbcTileGrid TryEncodeRenderedGrid(Image<Rgba32> rendered, GbcTileGrid fallbackGrid)
     {
@@ -961,9 +1094,7 @@ internal static class GameBoyCameraJsonCompatibilityCodec
             return null;
         }
 
-        int? contrast = metaElement.TryGetProperty("contrast", out JsonElement contrastElement) && contrastElement.TryGetInt32(out int parsedContrast)
-            ? parsedContrast
-            : null;
+        int? contrast = TryParseOptionalInt(metaElement, "contrast");
 
         return new GameBoyCameraFrameMetadata(
             -1,
@@ -977,7 +1108,7 @@ internal static class GameBoyCameraJsonCompatibilityCodec
             GetOptionalString(metaElement, "bloodType"),
             GetOptionalString(metaElement, "comment"),
             metaElement.TryGetProperty("isCopy", out JsonElement isCopyElement) && isCopyElement.ValueKind is JsonValueKind.True or JsonValueKind.False && isCopyElement.GetBoolean(),
-            GetOptionalString(metaElement, "romType"),
+            GetOptionalString(metaElement, "romType", "saveType"),
             GetOptionalString(metaElement, "exposure"),
             GetOptionalString(metaElement, "captureMode"),
             GetOptionalString(metaElement, "edgeExclusive"),
@@ -988,15 +1119,52 @@ internal static class GameBoyCameraJsonCompatibilityCodec
             GetOptionalString(metaElement, "voltageRef"),
             GetOptionalString(metaElement, "zeroPoint"),
             GetOptionalString(metaElement, "vOut"),
-            GetOptionalString(metaElement, "ditherset"),
+            GetOptionalString(metaElement, "ditherset", "dithering"),
             contrast);
     }
 
-    private static string? GetOptionalString(JsonElement objectElement, string propertyName)
+    private static int TryGetDeclaredTileCount(JsonElement imageElement)
     {
-        return objectElement.TryGetProperty(propertyName, out JsonElement valueElement) && valueElement.ValueKind == JsonValueKind.String
-            ? valueElement.GetString()
-            : null;
+        return imageElement.TryGetProperty("lines", out JsonElement linesElement) && linesElement.TryGetInt32(out int declaredTileCount)
+            ? declaredTileCount
+            : 0;
+    }
+
+    private static string? GetOptionalString(JsonElement objectElement, params string[] propertyNames)
+    {
+        foreach (string propertyName in propertyNames)
+        {
+            if (objectElement.TryGetProperty(propertyName, out JsonElement valueElement) && valueElement.ValueKind == JsonValueKind.String)
+            {
+                return valueElement.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static int? TryParseOptionalInt(JsonElement objectElement, params string[] propertyNames)
+    {
+        foreach (string propertyName in propertyNames)
+        {
+            if (!objectElement.TryGetProperty(propertyName, out JsonElement valueElement))
+            {
+                continue;
+            }
+
+            if (valueElement.ValueKind == JsonValueKind.Number && valueElement.TryGetInt32(out int numericValue))
+            {
+                return numericValue;
+            }
+
+            if (valueElement.ValueKind == JsonValueKind.String
+                && int.TryParse(valueElement.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int stringValue))
+            {
+                return stringValue;
+            }
+        }
+
+        return null;
     }
 
     private static byte[] CreatePngBytes(Image<Rgba32> rendered)

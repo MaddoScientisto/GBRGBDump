@@ -11,7 +11,9 @@ public enum ExportFormat
     Jpeg,
     Bmp,
     GbBin,
+    GbBinBase64,
     Gbci,
+    Txt,
 }
 
 public sealed record ImportedPhoto(

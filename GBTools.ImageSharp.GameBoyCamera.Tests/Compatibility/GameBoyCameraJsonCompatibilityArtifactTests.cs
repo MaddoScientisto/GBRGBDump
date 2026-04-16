@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Globalization;
+using GBTools.ImageSharp.GameBoyCamera.Codec;
 using GBTools.ImageSharp.GameBoyCamera.Compatibility;
 using GBTools.ImageSharp.GameBoyCamera.Model;
 using SixLabors.ImageSharp;
@@ -133,6 +134,55 @@ public class GameBoyCameraJsonCompatibilityArtifactTests
         Assert.Null(album.Photos[0].Metadata);
         Assert.Equal("806ms", album.Photos[1].Metadata?.Exposure);
         Assert.Equal("3.3ms", album.Photos[2].Metadata?.Exposure);
+    }
+
+    [Fact]
+    public void LoadSaveAlbum_picnrec_export_imports_single_photo()
+    {
+        using FileStream stream = File.OpenRead(GetArtifactPath("picnrec_export_test.sav"));
+
+        GbcAlbum album = GameBoyCameraCompatibility.LoadSaveAlbum(stream, new GameBoyCameraLoadOptions
+        {
+            FrameMode = GameBoyCameraFrameMode.Keep,
+        });
+
+        GbcPhoto photo = Assert.Single(album.Photos);
+        Assert.Equal(16, photo.TileGrid.WidthInTiles);
+        Assert.Equal(14, photo.TileGrid.HeightInTiles);
+
+        using Image<Rgba32> rendered = GameBoyCameraImageCodec.RenderPhoto(photo);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(GetArtifactPath("picnrec_export_test_expected.png"));
+
+        Assert.Equal(expected.Width, rendered.Width);
+        Assert.Equal(expected.Height, rendered.Height);
+
+        for (int y = 0; y < expected.Height; y++)
+        {
+            for (int x = 0; x < expected.Width; x++)
+            {
+                Assert.Equal(expected[x, y], rendered[x, y]);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadGbPrinterWebAlbum_android_gallery_export_imports_photos()
+    {
+        using FileStream stream = File.OpenRead(GetArtifactPath("android_gallery_export.json"));
+
+        GbcAlbum album = GameBoyCameraCompatibility.LoadGbPrinterWebAlbum(stream, new GameBoyCameraLoadOptions
+        {
+            FrameMode = GameBoyCameraFrameMode.Keep,
+        });
+
+        Assert.Equal(3, album.Photos.Count);
+        Assert.All(album.Photos, static photo =>
+        {
+            Assert.Equal(20, photo.TileGrid.WidthInTiles);
+            Assert.Equal(18, photo.TileGrid.HeightInTiles);
+        });
+        Assert.Equal("79ms", album.Photos[0].Metadata?.Exposure);
+        Assert.Equal("Photo!", album.Photos[0].Metadata?.RomType);
     }
 
     [Fact]

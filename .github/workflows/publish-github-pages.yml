@@ -8,13 +8,15 @@ on:
     paths:
       - .github/workflows/publish-github-pages.yml
       - Directory.Build.props
-      - GBRGBDump.sln
+      - GBRGBDump.slnx
       - GBRGBDump.Web.Static/**
       - GBTools.ImageSharp.GameBoyCamera/**
+      - GBTools.PicNRec.Serial/**
   workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   publish-github-pages:
@@ -25,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -35,10 +39,36 @@ jobs:
           cache-dependency-path: '**/packages.lock.json'
 
       - name: Restore solution
-        run: dotnet restore --locked-mode ./GBRGBDump.sln
+        run: dotnet restore --locked-mode ./GBRGBDump.slnx
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.1.2
+        with:
+          versionSpec: '6.0.x'
+
+      - name: Determine Version
+        id: version_step
+        uses: gittools/actions/gitversion/execute@v3.1.2
+
+      - name: Update Version
+        uses: gittools/actions/gitversion/command@v3.1.2
+        with:
+          arguments: /updateprojectfiles
 
       - name: Publish static app
         run: dotnet publish ./GBRGBDump.Web.Static/GBRGBDump.Web.Static.csproj --configuration Release --output publish/github-pages
+
+      - name: Pack GBTools.PicNRec.Serial
+        run: dotnet pack ./GBTools.PicNRec.Serial/GBTools.PicNRec.Serial.csproj --configuration Release --output publish/nuget
+
+      - name: Add GitHub Packages NuGet source
+        run: dotnet nuget add source --username ${{ github.repository_owner }} --store-password-in-clear-text --password ${{ secrets.GITHUB_TOKEN }} --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+      - name: Publish GBTools.PicNRec.Serial package
+        run: |
+          for file in publish/nuget/*.nupkg; do
+            dotnet nuget push "$file" --source github --skip-duplicate
+          done
 
       - name: Prepare GitHub Pages payload
         shell: bash

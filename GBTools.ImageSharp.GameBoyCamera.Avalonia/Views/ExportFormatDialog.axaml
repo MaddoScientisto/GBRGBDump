@@ -21,9 +21,15 @@
                 <Button Content="GB-BIN01 (*.bin)"
                         Command="{Binding ChooseGbBinCommand}"
                         HorizontalAlignment="Stretch" />
+                <Button Content="GB-BIN01 base64 (*.b64)"
+                    Command="{Binding ChooseGbBinBase64Command}"
+                    HorizontalAlignment="Stretch" />
                 <Button Content="gb-printer-web JSON (*.json)"
                         Command="{Binding ChooseJsonCommand}"
                         HorizontalAlignment="Stretch" />
+                <Button Content="gb-printer-web TXT (*.txt)"
+                    Command="{Binding ChooseTxtCommand}"
+                    HorizontalAlignment="Stretch" />
                 <Button Content="PNG image (*.png)"
                     Command="{Binding ChoosePngCommand}"
                     HorizontalAlignment="Stretch" />

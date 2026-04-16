@@ -22,6 +22,11 @@ public static class GameBoyCameraCompatibility
         options ??= new GameBoyCameraLoadOptions { SourceKind = GameBoyCameraSourceKind.SaveDump };
         byte[] data = ReadAllBytes(stream);
 
+        if (TryLoadSinglePhotoTileAlbum(data, options.SourceKind, options.FrameMode, out GbcAlbum? rawTileAlbum))
+        {
+            return rawTileAlbum;
+        }
+
         ValidateMagic(data, options.ForceMagicCheck);
 
         List<int> addresses = Enumerable.Range(0, (int)Math.Ceiling(data.Length / 4096d))
@@ -118,6 +123,37 @@ public static class GameBoyCameraCompatibility
         {
             stream.Write(tile.Bytes.Span);
         }
+    }
+
+    public static void ExportTxt(Image image, Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(stream);
+
+        using Image<Rgba32> rgba = image.CloneAs<Rgba32>();
+        GbcTileGrid grid = GameBoyCameraImageCodec.EncodeToTileGrid(rgba, GameBoyCameraPalette.Default);
+        string payload = string.Join(
+            "\n",
+            GameBoyCameraImageCodec.FormatTiles(grid)
+                .Select(static tile => tile.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant()));
+
+        using StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true);
+        writer.Write(payload);
+        writer.Flush();
+    }
+
+    public static void ExportGbBinBase64(Image image, Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(stream);
+
+        using MemoryStream binaryStream = new();
+        ExportGbBin(image, binaryStream);
+
+        string payload = Convert.ToBase64String(binaryStream.ToArray());
+        using StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true);
+        writer.Write(payload);
+        writer.Flush();
     }
 
     public static Image<Rgba32> LoadRomDump(Stream stream, GameBoyCameraLoadOptions? options = null)
@@ -294,5 +330,33 @@ public static class GameBoyCameraCompatibility
         }
 
         return tileCount;
+    }
+
+    private static bool TryLoadSinglePhotoTileAlbum(byte[] data, GameBoyCameraSourceKind sourceKind, GameBoyCameraFrameMode frameMode, out GbcAlbum? album)
+    {
+        album = null;
+
+        if (data.Length % GameBoyCameraConstants.TileByteCount != 0)
+        {
+            return false;
+        }
+
+        int tileCount = data.Length / GameBoyCameraConstants.TileByteCount;
+        if (tileCount != GameBoyCameraConstants.RawPhotoTileWidth * GameBoyCameraConstants.RawPhotoTileHeight
+            && tileCount != GameBoyCameraConstants.FramedPhotoTileWidth * GameBoyCameraConstants.FramedPhotoTileHeight)
+        {
+            return false;
+        }
+
+        GbcTileGrid grid = GameBoyCameraImageCodec.ParseBinaryTilePayload(data, InferGbBinWidthInTiles(tileCount));
+        if (grid.WidthInTiles == GameBoyCameraConstants.FramedPhotoTileWidth && frameMode != GameBoyCameraFrameMode.Keep)
+        {
+            grid = GameBoyCameraFrameCodec.StripFrame(grid, 2);
+        }
+
+        album = new GbcAlbum(
+            new GameBoyCameraAlbumMetadata(sourceKind, null, 1, "single-photo-tile-export", null),
+            [new GbcPhoto(grid, null, null, null)]);
+        return true;
     }
 }

@@ -72,7 +72,7 @@ jobs:
       run: ls -R
 
     - name: Restore dependencies
-      run: dotnet restore --locked-mode ./GBRGBDump.sln
+      run: dotnet restore --locked-mode ./GBRGBDump.slnx
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3.1.2
@@ -180,7 +180,7 @@ jobs:
         cache-dependency-path: '**/packages.lock.json'
 
     - name: Restore dependencies
-      run: dotnet restore --locked-mode ./GBRGBDump.sln
+      run: dotnet restore --locked-mode ./GBRGBDump.slnx
 
     - name: Add NuGet package source
       run : |

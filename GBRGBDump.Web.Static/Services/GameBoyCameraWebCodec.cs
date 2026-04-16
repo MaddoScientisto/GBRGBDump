@@ -153,8 +153,14 @@ public sealed class GameBoyCameraWebCodec
             case ExportFormat.GbBin:
                 WriteGbBin(stream, photo);
                 break;
+            case ExportFormat.GbBinBase64:
+                WriteGbBinBase64(stream, photo);
+                break;
             case ExportFormat.Gbci:
                 WriteCanonical(stream, photo);
+                break;
+            case ExportFormat.Txt:
+                WriteTxt(stream, photo);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format.");
@@ -191,6 +197,28 @@ public sealed class GameBoyCameraWebCodec
         {
             stream.Write(tile.Bytes.Span);
         }
+    }
+
+    private static void WriteGbBinBase64(Stream stream, GbcPhoto photo)
+    {
+        using MemoryStream binaryStream = new();
+        WriteGbBin(binaryStream, photo);
+
+        using StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true);
+        writer.Write(Convert.ToBase64String(binaryStream.ToArray()));
+        writer.Flush();
+    }
+
+    private static void WriteTxt(Stream stream, GbcPhoto photo)
+    {
+        string payload = string.Join(
+            "\n",
+            GameBoyCameraImageCodec.FormatTiles(photo.TileGrid)
+                .Select(static tile => tile.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant()));
+
+        using StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true);
+        writer.Write(payload);
+        writer.Flush();
     }
 
     private static void WriteCanonical(Stream stream, GbcPhoto photo)
@@ -307,7 +335,9 @@ public sealed class GameBoyCameraWebCodec
         ExportFormat.Jpeg => "jpg",
         ExportFormat.Bmp => "bmp",
         ExportFormat.GbBin => "bin",
+        ExportFormat.GbBinBase64 => "b64",
         ExportFormat.Gbci => GameBoyCameraConstants.DefaultFileExtension,
+        ExportFormat.Txt => "txt",
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format."),
     };
 
@@ -319,7 +349,9 @@ public sealed class GameBoyCameraWebCodec
         ExportFormat.Jpeg => "image/jpeg",
         ExportFormat.Bmp => "image/bmp",
         ExportFormat.GbBin => "application/octet-stream",
+        ExportFormat.GbBinBase64 => "text/plain",
         ExportFormat.Gbci => GameBoyCameraConstants.DefaultMimeType,
+        ExportFormat.Txt => "text/plain",
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported export format."),
     };
 

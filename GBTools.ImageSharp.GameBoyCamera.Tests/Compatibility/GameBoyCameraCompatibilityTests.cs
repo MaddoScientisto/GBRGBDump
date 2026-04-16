@@ -232,6 +232,41 @@ public class GameBoyCameraCompatibilityTests
     }
 
     [Fact]
+    public void ExportTxt_writes_gb_printer_web_style_tile_lines()
+    {
+        using Image<Rgba32> image = CreateRenderedImage(GameBoyCameraConstants.RawPhotoTileWidth, GameBoyCameraConstants.RawPhotoTileHeight);
+        using MemoryStream stream = new();
+
+        GameBoyCameraCompatibility.ExportTxt(image, stream);
+
+        string text = Encoding.UTF8.GetString(stream.ToArray());
+        string[] lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        Assert.Equal(224, lines.Length);
+        Assert.All(lines, static line =>
+        {
+            Assert.Equal(32, line.Length);
+            Assert.Matches("^[0-9A-F]{32}$", line);
+        });
+    }
+
+    [Fact]
+    public void ExportGbBinBase64_matches_gbbin_payload_when_decoded()
+    {
+        using Image<Rgba32> image = CreateRenderedImage(GameBoyCameraConstants.RawPhotoTileWidth, GameBoyCameraConstants.RawPhotoTileHeight);
+        using MemoryStream binaryStream = new();
+        using MemoryStream base64Stream = new();
+
+        GameBoyCameraCompatibility.ExportGbBin(image, binaryStream);
+        GameBoyCameraCompatibility.ExportGbBinBase64(image, base64Stream);
+
+        byte[] expected = binaryStream.ToArray();
+        byte[] actual = Convert.FromBase64String(Encoding.UTF8.GetString(base64Stream.ToArray()));
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void LoadGbBinAlbum_preserves_framed_dimensions_when_round_tripping()
     {
         using Image<Rgba32> image = CreateRenderedImage(GameBoyCameraConstants.FramedPhotoTileWidth, GameBoyCameraConstants.FramedPhotoTileHeight);

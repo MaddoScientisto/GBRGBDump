@@ -112,8 +112,8 @@
                                                         Padding="6">
                                                        <Image Source="{Binding ThumbnailBitmap}"
                                                            RenderOptions.BitmapInterpolationMode="None"
-                                                           Width="160"
-                                                           Height="144"
+                                                           MaxWidth="160"
+                                                           MaxHeight="144"
                                                            Stretch="Uniform" />
                                                 </Border>
                                             </Button>

@@ -59,8 +59,8 @@
                         Padding="6"
                         HorizontalAlignment="Center">
                     <Image Source="{Binding PreviewBitmap}"
-                           Width="160"
-                           Height="144"
+                              MaxWidth="160"
+                              MaxHeight="144"
                            Stretch="Uniform"
                            RenderOptions.BitmapInterpolationMode="None" />
                 </Border>

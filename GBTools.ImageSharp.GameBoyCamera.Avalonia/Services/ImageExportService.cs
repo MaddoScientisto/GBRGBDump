@@ -72,8 +72,14 @@ public sealed class ImageExportService : IImageExportService
             case ExportFormat.GbBin:
                 GameBoyCameraCompatibility.ExportGbBin(image, stream);
                 break;
+            case ExportFormat.GbBinBase64:
+                GameBoyCameraCompatibility.ExportGbBinBase64(image, stream);
+                break;
             case ExportFormat.GbPrinterWebJson:
                 await ExportJsonAsync(photoRequest, stream, cancellationToken).ConfigureAwait(false);
+                break;
+            case ExportFormat.Txt:
+                GameBoyCameraCompatibility.ExportTxt(image, stream);
                 break;
             case ExportFormat.Png:
                 await ExportPngAsync(image, stream, request.PngMagnification, cancellationToken).ConfigureAwait(false);

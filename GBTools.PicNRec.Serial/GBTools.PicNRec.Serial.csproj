@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <AssemblyName>GBTools.PicNRec.Serial</AssemblyName>
+    <RootNamespace>GBTools.PicNRec.Serial</RootNamespace>
+    <PackageId>GBTools.PicNRec.Serial</PackageId>
+    <Title>GBTools.PicNRec.Serial</Title>
+    <Description>PicNRec serial protocol client library for GBRGBDump tools.</Description>
+    <Authors>GBRGBDump</Authors>
+    <PackageTags>picnrec;serial;gameboy;camera;gbtools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,34 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Console/">
+    <Project Path="GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj" />
+    <Project Path="GBRGBDump/GBRGBDump.csproj" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="GBTools.PicNRec.Serial/GBTools.PicNRec.Serial.csproj" />
+    <Project Path="GBTools.Bootstrapper/GBTools.Bootstrapper.csproj" />
+    <Project Path="GBTools.Common/GBTools.Common.csproj" />
+    <Project Path="GBTools.Decoder/GBTools.Decoder.csproj" />
+    <Project Path="GBTools.Graphics/GBTools.Graphics.csproj" />
+    <Project Path="GBTools.ImageSharp.GameBoyCamera.Lite/GBTools.ImageSharp.GameBoyCamera.Lite.csproj" />
+    <Project Path="GBTools.ImageSharp.GameBoyCamera.Tests/GBTools.ImageSharp.GameBoyCamera.Tests.csproj" />
+    <Project Path="GBTools.ImageSharp.GameBoyCamera/GBTools.ImageSharp.GameBoyCamera.csproj" />
+  </Folder>
+  <Folder Name="/GUI/">
+    <Project Path="GBRGBDump.GUI/GBRGBDump.GUI.csproj" />
+  </Folder>
+  <Folder Name="/Web/">
+    <Project Path="GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj" />
+    <Project Path="GBRGBDump.Web.Shared/GBRGBDump.Web.Shared.csproj" />
+    <Project Path="GBRGBDump.Web.Static/GBRGBDump.Web.Static.csproj" />
+    <Project Path="GBRGBDump.Web/GBRGBDump.Web.csproj" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build Solution="*|Any CPU" />
+  </Project>
+  <Project Path="GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj" />
+</Solution>

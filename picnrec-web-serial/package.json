@@ -1,0 +1,24 @@
+{
+  "name": "picnrec-web-serial-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build:lib && npm run build:demo",
+    "build:demo": "npm run build --workspace picnrec-web-serial-test-app",
+    "build:lib": "npm run build --workspace @maddoscientisto/picnrec-web-serial",
+    "dev": "npm run dev --workspace picnrec-web-serial-test-app",
+    "lint": "npm run typecheck --workspace @maddoscientisto/picnrec-web-serial && npm run typecheck --workspace picnrec-web-serial-test-app"
+  },
+  "devDependencies": {
+    "@types/w3c-web-serial": "^1.0.6",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.21"
+  }
+}
