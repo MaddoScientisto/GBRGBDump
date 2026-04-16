@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text;
 using GBRGBDump.Web.Static.Models;
 using GBTools.ImageSharp.GameBoyCamera;
 using GBTools.ImageSharp.GameBoyCamera.Codec;
