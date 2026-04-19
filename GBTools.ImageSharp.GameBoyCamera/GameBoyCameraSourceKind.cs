@@ -7,4 +7,5 @@ public enum GameBoyCameraSourceKind
     RomDump = 2,
     GbBin = 3,
     GbPrinterWebJson = 4,
+    PicoGbPrinterPacket = 5,
 }

@@ -4,10 +4,12 @@ using System.Globalization;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
 using GBTools.ImageSharp.GameBoyCamera.Codec;
 using GBTools.ImageSharp.GameBoyCamera.Compatibility;
+using GBTools.ImageSharp.GameBoyCamera.Lite;
 using GBTools.ImageSharp.GameBoyCamera.Metadata;
 using GBTools.ImageSharp.GameBoyCamera.Model;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -49,6 +51,7 @@ public sealed class AlbumLoadService : IAlbumLoadService
             GameBoyCameraSourceKind.RomDump => GameBoyCameraCompatibility.LoadRomAlbum(stream, loadOptions),
             GameBoyCameraSourceKind.GbBin => GameBoyCameraCompatibility.LoadGbBinAlbum(stream, loadOptions),
             GameBoyCameraSourceKind.GbPrinterWebJson => GameBoyCameraCompatibility.LoadGbPrinterWebAlbum(stream, loadOptions),
+            GameBoyCameraSourceKind.PicoGbPrinterPacket => LoadPicoGbPrinterPacketAlbum(stream),
             _ => throw new InvalidDataException($"Unsupported source kind: {detectedSourceKind}."),
         };
 
@@ -93,6 +96,11 @@ public sealed class AlbumLoadService : IAlbumLoadService
         {
             return GameBoyCameraSourceKind.GbBin;
         }
+        if (PicoGbPrinterPacketDecoder.LooksLikePicoStream(actualHeader))
+        {
+            return GameBoyCameraSourceKind.PicoGbPrinterPacket;
+        }
+
 
         string extension = Path.GetExtension(path).ToLowerInvariant();
         return extension switch
@@ -111,6 +119,55 @@ public sealed class AlbumLoadService : IAlbumLoadService
     {
         string trimmed = Encoding.UTF8.GetString(header).TrimStart();
         return trimmed.StartsWith("{", StringComparison.Ordinal);
+    }
+
+    private static GbcAlbum LoadPicoGbPrinterPacketAlbum(Stream stream)
+    {
+        byte[] bytes;
+        using (MemoryStream buffer = new())
+        {
+            stream.CopyTo(buffer);
+            bytes = buffer.ToArray();
+        }
+
+        IReadOnlyList<Image<Rgba32>> images = PicoGbPrinterPacketDecoder.DecodeAll(bytes);
+        if (images.Count == 0)
+        {
+            throw new InvalidDataException("Pico GB Printer stream contained no renderable frames.");
+        }
+
+        List<GbcPhoto> photos = new(images.Count);
+        foreach (Image<Rgba32> image in images)
+        {
+            using (image)
+            {
+                int width = image.Width;
+                int height = image.Height;
+                byte[] rgba = new byte[width * height * 4];
+                image.CopyPixelDataTo(rgba);
+                photos.Add(new GbcPhoto(
+                    TileGrid: CreatePlaceholderTileGrid(),
+                    FrameOverlay: null,
+                    Metadata: null,
+                    Thumbnail: null,
+                    RenderedRgbaPixels: rgba,
+                    RenderedWidth: width,
+                    RenderedHeight: height));
+            }
+        }
+
+        return new GbcAlbum(
+            new GameBoyCameraAlbumMetadata(GameBoyCameraSourceKind.PicoGbPrinterPacket, null, photos.Count, null, null),
+            photos);
+    }
+
+    private static GbcTileGrid CreatePlaceholderTileGrid()
+    {
+        // GbcPhoto requires a non-null TileGrid, but when RenderedRgbaPixels is
+        // present the grid is never consulted by RenderPhoto. Provide a single
+        // blank tile so the grid validates without bloating memory.
+        byte[] blank = new byte[GameBoyCameraConstants.TileByteCount];
+        return new GbcTileGrid(1, 1, [new GbcTile2Bpp(blank)]);
     }
 
     private static string CreateTitle(string path, int index) => $"{Path.GetFileName(path)} {index + 1:D2}";

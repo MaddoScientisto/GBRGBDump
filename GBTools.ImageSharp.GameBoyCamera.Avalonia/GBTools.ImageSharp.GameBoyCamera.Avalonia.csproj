@@ -30,5 +30,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GBTools.ImageSharp.GameBoyCamera\GBTools.ImageSharp.GameBoyCamera.csproj" />
+    <ProjectReference Include="..\GBTools.ImageSharp.GameBoyCamera.Lite\GBTools.ImageSharp.GameBoyCamera.Lite.csproj" />
   </ItemGroup>
 </Project>
