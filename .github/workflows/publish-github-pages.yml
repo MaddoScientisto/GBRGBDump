@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   publish-github-pages:
@@ -57,18 +56,6 @@ jobs:
 
       - name: Publish static app
         run: dotnet publish ./GBRGBDump.Web.Static/GBRGBDump.Web.Static.csproj --configuration Release --output publish/github-pages
-
-      - name: Pack GBTools.PicNRec.Serial
-        run: dotnet pack ./GBTools.PicNRec.Serial/GBTools.PicNRec.Serial.csproj --configuration Release --output publish/nuget
-
-      - name: Add GitHub Packages NuGet source
-        run: dotnet nuget add source --username ${{ github.repository_owner }} --store-password-in-clear-text --password ${{ secrets.GITHUB_TOKEN }} --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-
-      - name: Publish GBTools.PicNRec.Serial package
-        run: |
-          for file in publish/nuget/*.nupkg; do
-            dotnet nuget push "$file" --source github --skip-duplicate
-          done
 
       - name: Prepare GitHub Pages payload
         shell: bash

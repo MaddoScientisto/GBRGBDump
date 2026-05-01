@@ -59,7 +59,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4.2.0
       with:
-        dotnet-version: '9.0.x'
+        global-json-file: ./global.json
+        dotnet-version: '10.0.202'
         cache: true
         cache-dependency-path: '**/packages.lock.json'
 
@@ -90,28 +91,34 @@ jobs:
 
     # Build Executables
 
-    - name: Build GBRGBDump.GUI
-      if: false # Legacy project disabled for now
+    - name: Build release binaries
+      shell: bash
       run: |
-        dotnet publish ./GBRGBDump.GUI/GBRGBDump.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump.GUI/win-x64
+        declare -a publish_targets=(
+          "GBTools.ImageSharp.GameBoyCamera.Avalonia ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj win-x64"
+          "GBTools.ImageSharp.GameBoyCamera.Avalonia ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj win-arm64"
+          "GBTools.ImageSharp.GameBoyCamera.Avalonia ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj linux-x64"
+          "GBTools.ImageSharp.GameBoyCamera.Avalonia ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj linux-arm64"
+          "GBTools.PicNRec.Serial.Console ./GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj win-x64"
+          "GBTools.PicNRec.Serial.Console ./GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj win-arm64"
+          "GBTools.PicNRec.Serial.Console ./GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj linux-x64"
+          "GBTools.PicNRec.Serial.Console ./GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj linux-arm64"
+        )
 
-    - name: Build GBRGBDump WebUi
-      if: false # Legacy project disabled for now
-      run: |
-        dotnet publish ./GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBRGBDump-webui/win-x64
+        for target in "${publish_targets[@]}"; do
+          read -r output_name project_path runtime <<< "$target"
+          dotnet publish "$project_path" --configuration Release --runtime "$runtime" --self-contained true -p:PublishSingleFile=true --output "publish/$output_name/$runtime"
+        done
 
-    - name: Build GBTools.ImageSharp.GameBoyCamera.Avalonia win-x64
+    - name: Build static web app
       run: |
-        dotnet publish ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/win-x64
-
-    - name: Build GBTools.ImageSharp.GameBoyCamera.Avalonia linux-x64
-      run: |
-        dotnet publish ./GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj --configuration Release --runtime linux-x64 --self-contained true -p:PublishSingleFile=true --output publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/linux-x64
+        dotnet publish ./GBRGBDump.Web.Static/GBRGBDump.Web.Static.csproj --configuration Release --output publish/GBRGBDump.Web.Static
 
     # Build NuGet Packages
     - run: |
         dotnet pack ./GBTools.ImageSharp.GameBoyCamera/GBTools.ImageSharp.GameBoyCamera.csproj -v d --configuration Release --output ${{ env.NuGetDirectory }}
         dotnet pack ./GBTools.ImageSharp.GameBoyCamera.Lite/GBTools.ImageSharp.GameBoyCamera.Lite.csproj -v d --configuration Release --output ${{ env.NuGetDirectory }}
+        dotnet pack ./GBTools.PicNRec.Serial/GBTools.PicNRec.Serial.csproj -v d --configuration Release --output ${{ env.NuGetDirectory }}
 
     # Upload NuGet Packages Artifacts
     - name: Upload NuGet Artifact
@@ -123,22 +130,6 @@ jobs:
 
     # Upload Artifacts
 
-    - name: Upload WebUi Artifact
-      if: false # Legacy artifact disabled for now
-      uses: actions/upload-artifact@v4
-      with:
-        name: GBRGBDump-webui-win-x64
-        path: publish/GBRGBDump-webui/win-x64/**
-        if-no-files-found: error
-
-    - name: Upload Artifact
-      if: false # Legacy artifact disabled for now
-      uses: actions/upload-artifact@v4
-      with:
-        name: GBRGBDump-GUI-win-x64
-        path: publish/GBRGBDump.GUI/win-x64/**
-        if-no-files-found: error
-
     - name: Upload Avalonia Artifact win-x64
       uses: actions/upload-artifact@v4
       with:
@@ -146,11 +137,60 @@ jobs:
         path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/win-x64/**
         if-no-files-found: error
 
+    - name: Upload Avalonia Artifact win-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.ImageSharp.GameBoyCamera.Avalonia-win-arm64
+        path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/win-arm64/**
+        if-no-files-found: error
+
     - name: Upload Avalonia Artifact linux-x64
       uses: actions/upload-artifact@v4
       with:
         name: GBTools.ImageSharp.GameBoyCamera.Avalonia-linux-x64
         path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/linux-x64/**
+        if-no-files-found: error
+
+    - name: Upload Avalonia Artifact linux-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.ImageSharp.GameBoyCamera.Avalonia-linux-arm64
+        path: publish/GBTools.ImageSharp.GameBoyCamera.Avalonia/linux-arm64/**
+        if-no-files-found: error
+
+    - name: Upload PicNRec Console Artifact win-x64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.PicNRec.Serial.Console-win-x64
+        path: publish/GBTools.PicNRec.Serial.Console/win-x64/**
+        if-no-files-found: error
+
+    - name: Upload PicNRec Console Artifact win-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.PicNRec.Serial.Console-win-arm64
+        path: publish/GBTools.PicNRec.Serial.Console/win-arm64/**
+        if-no-files-found: error
+
+    - name: Upload PicNRec Console Artifact linux-x64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.PicNRec.Serial.Console-linux-x64
+        path: publish/GBTools.PicNRec.Serial.Console/linux-x64/**
+        if-no-files-found: error
+
+    - name: Upload PicNRec Console Artifact linux-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBTools.PicNRec.Serial.Console-linux-arm64
+        path: publish/GBTools.PicNRec.Serial.Console/linux-arm64/**
+        if-no-files-found: error
+
+    - name: Upload Static Web App Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GBRGBDump.Web.Static
+        path: publish/GBRGBDump.Web.Static/**
         if-no-files-found: error
 
   build-gbrgbdump:
@@ -175,7 +215,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4.2.0
       with:
-        dotnet-version: '9.0.x'
+        global-json-file: ./global.json
+        dotnet-version: '10.0.202'
         cache: true
         cache-dependency-path: '**/packages.lock.json'
 
