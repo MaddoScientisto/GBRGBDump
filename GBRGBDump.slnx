@@ -20,6 +20,7 @@
   </Folder>
   <Folder Name="/GUI/">
     <Project Path="GBRGBDump.GUI/GBRGBDump.GUI.csproj" />
+    <Project Path="GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj" />
   </Folder>
   <Folder Name="/Web/">
     <Project Path="GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj" />
@@ -30,5 +31,4 @@
   <Project Path="docker-compose.dcproj">
     <Build Solution="*|Any CPU" />
   </Project>
-  <Project Path="GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj" />
 </Solution>

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <None Include="ffmpeg-video-args.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,5 +32,6 @@
   <ItemGroup>
     <ProjectReference Include="..\GBTools.ImageSharp.GameBoyCamera\GBTools.ImageSharp.GameBoyCamera.csproj" />
     <ProjectReference Include="..\GBTools.ImageSharp.GameBoyCamera.Lite\GBTools.ImageSharp.GameBoyCamera.Lite.csproj" />
+    <ProjectReference Include="..\GBTools.PicNRec.Serial\GBTools.PicNRec.Serial.csproj" />
   </ItemGroup>
 </Project>

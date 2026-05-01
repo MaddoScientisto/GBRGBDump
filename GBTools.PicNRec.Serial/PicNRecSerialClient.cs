@@ -74,6 +74,14 @@ public sealed class PicNRecSerialClient : IDisposable
         await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            try
+            {
+                await SafeStopCoreAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+
             ClosePort();
         }
         finally
@@ -343,7 +351,12 @@ public sealed class PicNRecSerialClient : IDisposable
         {
             try
             {
-                await _reader.WaitForSignalAsync(_options.FlushSilenceMs, cancellationToken).ConfigureAwait(false);
+                bool receivedSignal = await _reader.WaitForSignalAsync(_options.FlushSilenceMs, cancellationToken).ConfigureAwait(false);
+                if (!receivedSignal)
+                {
+                    return;
+                }
+
                 DiscardInBufferSafe();
                 _reader.Clear();
             }

@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.FfmpegOutputDialog"
+        x:DataType="vm:FfmpegOutputDialogViewModel"
+        Width="760"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        Title="ffmpeg Output">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20" RowSpacing="12">
+        <TextBlock Text="{Binding StatusText}"
+                   TextWrapping="Wrap" />
+
+        <Border Grid.Row="1"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="8">
+            <ScrollViewer x:Name="FfmpegOutputScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto">
+                <TextBlock Text="{Binding ConsoleOutput}"
+                           TextWrapping="NoWrap"
+                           FontFamily="Consolas"
+                           FontSize="12" />
+            </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Open Folder" Command="{Binding OpenFolderCommand}" MinWidth="110" />
+            <Button Content="Close" Command="{Binding CloseCommand}" MinWidth="90" />
+        </StackPanel>
+    </Grid>
+</Window>

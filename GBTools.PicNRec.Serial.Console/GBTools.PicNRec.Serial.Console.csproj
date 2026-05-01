@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="ffmpeg-video-args.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GBTools.PicNRec.Serial\GBTools.PicNRec.Serial.csproj" />
     <ProjectReference Include="..\GBTools.ImageSharp.GameBoyCamera\GBTools.ImageSharp.GameBoyCamera.csproj" />
   </ItemGroup>

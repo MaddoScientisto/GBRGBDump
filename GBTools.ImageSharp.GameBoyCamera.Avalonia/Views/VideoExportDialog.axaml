@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.VideoExportDialog"
+        x:DataType="vm:VideoExportDialogViewModel"
+        Width="560"
+        Height="320"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Export Video">
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="120,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="8">
+                <TextBlock Text="Output"
+                           VerticalAlignment="Center" />
+                <TextBox Grid.Column="1"
+                         Text="{Binding OutputPath, Mode=TwoWay}" />
+                <Button Grid.Column="2"
+                        Content="Browse"
+                        Command="{Binding BrowseCommand}" />
+
+                <TextBlock Grid.Row="1"
+                           Text="Magnification"
+                           VerticalAlignment="Center" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         Grid.ColumnSpan="2"
+                         Text="{Binding MagnificationText, Mode=TwoWay}"
+                         HorizontalContentAlignment="Right" />
+
+                <TextBlock Grid.Row="2"
+                           Text="Frame rate"
+                           VerticalAlignment="Center" />
+                <TextBox Grid.Row="2"
+                         Grid.Column="1"
+                         Grid.ColumnSpan="2"
+                         Text="{Binding FrameRateText, Mode=TwoWay}"
+                         HorizontalContentAlignment="Right" />
+            </Grid>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#FFD8A7A7"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasError}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,16,0,0">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" />
+            <Button Content="Export" Command="{Binding ConfirmCommand}" MinWidth="90" />
+        </StackPanel>
+    </Grid>
+</Window>

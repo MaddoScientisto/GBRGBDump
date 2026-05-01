@@ -15,7 +15,15 @@ public interface IDialogService
 
     Task<SmartAverageCompositionRequest?> SelectRgbAverageCompositionRequestAsync(IReadOnlyList<GbcPhoto> sourcePhotos);
 
+    Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo);
+
     Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension);
+
+    Task<VideoExportRequest?> SelectVideoExportRequestAsync(string suggestedFileNameWithoutExtension);
+
+    Task ShowFfmpegOutputAsync(
+        string outputPath,
+        Func<IProgress<string>, CancellationToken, Task> exportAction);
 
     Task<string?> PickExportFolderAsync();
 }

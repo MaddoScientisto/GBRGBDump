@@ -31,6 +31,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IBitmapFactory _bitmapFactory;
     private readonly IDialogService _dialogService;
     private readonly IImageExportService _imageExportService;
+    private readonly IPicNRecImportService _picNRecImportService;
+    private readonly IVideoExportService _videoExportService;
     private readonly ILogger<MainWindowViewModel> _logger;
     private List<PhotoItemViewModel> _sortedPhotos = [];
     private int _currentPageIndex;
@@ -38,6 +40,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private PhotoItemViewModel? _pendingSelectionPhoto;
     private bool _pendingShiftRangeSelection;
     private bool _isUpdatingSelectionInBulk;
+    private CancellationTokenSource? _operationCancellation;
+    private DateTime? _picNRecDownloadStartedAt;
 
     [ObservableProperty]
     private PhotoItemViewModel? selectedPhoto;
@@ -55,6 +59,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool isLoadingPhotos;
 
     [ObservableProperty]
+    private string operationProgressText = string.Empty;
+
+    [ObservableProperty]
+    private string operationLogText = string.Empty;
+
+    [ObservableProperty]
+    private double operationProgressValue;
+
+    [ObservableProperty]
+    private double operationProgressMaximum = 1d;
+
+    [ObservableProperty]
     private string pageNumberText = "1";
 
     [ObservableProperty]
@@ -68,18 +84,25 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         IBitmapFactory bitmapFactory,
         IDialogService dialogService,
         IImageExportService imageExportService,
+        IPicNRecImportService picNRecImportService,
+        IVideoExportService videoExportService,
         ILogger<MainWindowViewModel> logger)
     {
         _albumLoadService = albumLoadService;
         _bitmapFactory = bitmapFactory;
         _dialogService = dialogService;
         _imageExportService = imageExportService;
+        _picNRecImportService = picNRecImportService;
+        _videoExportService = videoExportService;
         _logger = logger;
 
         Photos = [];
         VisiblePhotos = [];
         LoadImagesCommand = new AsyncRelayCommand(LoadImagesAsync, CanRunCommands);
+        DownloadPicNRecCommand = new AsyncRelayCommand(DownloadPicNRecAsync, CanRunCommands);
+        CancelOperationCommand = new RelayCommand(CancelOperation, () => CanCancelOperation);
         ExportSelectedCommand = new AsyncRelayCommand(ExportSelectedAsync, CanExportSelected);
+        ExportSelectedVideoCommand = new AsyncRelayCommand(ExportSelectedVideoAsync, CanExportSelected);
         ComposeRgbCommand = new AsyncRelayCommand(ComposeRgbAsync, CanComposeRgb);
         ComposeAverageCommand = new AsyncRelayCommand(ComposeAverageAsync, CanComposeAverage);
         ComposeRgbAverageCommand = new AsyncRelayCommand(ComposeRgbAverageAsync, CanComposeSmartAverage);
@@ -98,7 +121,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public IAsyncRelayCommand LoadImagesCommand { get; }
 
+    public IAsyncRelayCommand DownloadPicNRecCommand { get; }
+
+    public IRelayCommand CancelOperationCommand { get; }
+
     public IAsyncRelayCommand ExportSelectedCommand { get; }
+
+    public IAsyncRelayCommand ExportSelectedVideoCommand { get; }
 
     public IAsyncRelayCommand ComposeRgbCommand { get; }
 
@@ -125,6 +154,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool HasPhotos => Photos.Count > 0;
 
     public bool IsEmptyStateVisible => !IsLoadingPhotos && !HasPhotos;
+
+    public bool HasOperationProgress => IsLoadingPhotos && !string.IsNullOrWhiteSpace(OperationProgressText);
+
+    public bool HasOperationLog => !string.IsNullOrWhiteSpace(OperationLogText);
+
+    public bool CanCancelOperation => _operationCancellation is not null && !_operationCancellation.IsCancellationRequested;
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
@@ -203,7 +238,25 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsBusyChanged(bool value)
     {
         LoadImagesCommand.NotifyCanExecuteChanged();
+        DownloadPicNRecCommand.NotifyCanExecuteChanged();
+        CancelOperationCommand.NotifyCanExecuteChanged();
         ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsLoadingPhotosChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasOperationProgress));
+    }
+
+    partial void OnOperationProgressTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasOperationProgress));
+    }
+
+    partial void OnOperationLogTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasOperationLog));
     }
 
     partial void OnPageSizeChanged(int value)
@@ -292,12 +345,211 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to export selected images.");
-            ErrorMessage = ex.Message;
+            ErrorMessage = FormatUserVisibleException(ex);
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private async Task ExportSelectedVideoAsync()
+    {
+        IReadOnlyList<PhotoItemViewModel> selectedPhotos = Photos.Where(static photo => photo.IsSelected).ToArray();
+        if (selectedPhotos.Count == 0)
+        {
+            return;
+        }
+
+        VideoExportRequest? request = await _dialogService.SelectVideoExportRequestAsync(selectedPhotos[0].SafeFileStem).ConfigureAwait(true);
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            IReadOnlyList<PhotoExportRequest> exportRequests = selectedPhotos
+                .Select(static photo => new PhotoExportRequest(photo.SafeFileStem, photo.Title, photo.Created, photo.Photo))
+                .ToArray();
+
+            await _dialogService.ShowFfmpegOutputAsync(
+                request.OutputPath,
+                (consoleOutput, cancellationToken) => _videoExportService.ExportAsync(exportRequests, request, consoleOutput, cancellationToken)).ConfigureAwait(true);
+            SourceSummary = $"Exported {selectedPhotos.Count} selected image(s) to video at {request.Magnification}x magnification.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export selected images as video.");
+            ErrorMessage = FormatUserVisibleException(ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task DownloadPicNRecAsync()
+    {
+        PicNRecDownloadRequest? request = null;
+        List<LoadedPhotoInfo> downloadedPhotos = [];
+
+        try
+        {
+            CancellationTokenSource operationCancellation = BeginCancellableOperation();
+            IsBusy = true;
+            IsLoadingPhotos = true;
+            ErrorMessage = string.Empty;
+            OperationLogText = string.Empty;
+            OperationProgressText = "Detecting PicNRec device...";
+            OperationProgressValue = 0;
+            OperationProgressMaximum = 1;
+
+            Progress<PicNRecDiscoveryProgress> discoveryProgress = new(UpdatePicNRecDiscoveryProgress);
+            PicNRecDeviceInfo deviceInfo = await _picNRecImportService.DetectAsync(discoveryProgress, operationCancellation.Token).ConfigureAwait(true);
+            SourceSummary = $"Detected PicNRec on {deviceInfo.PortName}. Available images: {deviceInfo.ImageCount}.";
+            IsLoadingPhotos = false;
+            IsBusy = false;
+            OperationProgressText = string.Empty;
+            EndCancellableOperation();
+
+            request = await _dialogService.SelectPicNRecDownloadRequestAsync(deviceInfo).ConfigureAwait(true);
+            if (request is null)
+            {
+                return;
+            }
+
+            operationCancellation = BeginCancellableOperation();
+            IsBusy = true;
+            IsLoadingPhotos = true;
+            OperationLogText = string.Empty;
+            OperationProgressMaximum = request.ImageCount;
+            OperationProgressValue = 0;
+            _picNRecDownloadStartedAt = DateTime.UtcNow;
+            OperationProgressText = $"Preparing to download images {request.StartImageNumber} to {request.EndImageNumber}.";
+
+            Progress<PicNRecDownloadProgress> progress = new(progress => UpdatePicNRecProgress(progress, downloadedPhotos));
+            LoadedAlbumResult loadedAlbum = await _picNRecImportService.DownloadImagesAsync(request, progress, operationCancellation.Token).ConfigureAwait(true);
+            ReplacePhotos(loadedAlbum.Photos);
+            SourceSummary = $"Downloaded {Photos.Count} image(s) from PicNRec images {request.StartImageNumber} to {request.EndImageNumber}.";
+        }
+        catch (OperationCanceledException)
+        {
+            if (downloadedPhotos.Count > 0)
+            {
+                ReplacePhotos(downloadedPhotos);
+                SourceSummary = $"PicNRec operation canceled. Showing {downloadedPhotos.Count} downloaded image(s).";
+            }
+            else
+            {
+                SourceSummary = request is null ? "PicNRec detection canceled." : "PicNRec download canceled before any images were downloaded.";
+            }
+
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            if (request is not null)
+            {
+                ClearPhotos();
+            }
+
+            _logger.LogError(ex, "Failed to download images from PicNRec.");
+            ErrorMessage = FormatUserVisibleException(ex);
+            SourceSummary = request is null ? SourceSummary : "No file loaded.";
+        }
+        finally
+        {
+            IsLoadingPhotos = false;
+            IsBusy = false;
+            OperationProgressText = string.Empty;
+            EndCancellableOperation();
+        }
+    }
+
+    private void UpdatePicNRecDiscoveryProgress(PicNRecDiscoveryProgress progress)
+    {
+        OperationProgressText = progress.Message;
+        AppendOperationLog(progress.Message);
+
+        if (progress.Succeeded == true)
+        {
+            OperationProgressValue = OperationProgressMaximum;
+        }
+    }
+
+    private void UpdatePicNRecProgress(PicNRecDownloadProgress progress, List<LoadedPhotoInfo> downloadedPhotos)
+    {
+        if (progress.ClearsDownloadedPhotos)
+        {
+            downloadedPhotos.Clear();
+        }
+
+        if (progress.DownloadedPhoto is not null)
+        {
+            downloadedPhotos.Add(progress.DownloadedPhoto);
+        }
+
+        OperationProgressMaximum = Math.Max(1, progress.TotalImageCount);
+        OperationProgressValue = Math.Clamp(progress.CompletedImageCount, 0, progress.TotalImageCount);
+        string etaText = FormatEstimatedTimeRemaining(progress.CompletedImageCount, progress.TotalImageCount);
+        OperationProgressText = string.IsNullOrWhiteSpace(etaText)
+            ? $"{progress.Message} ({progress.CompletedImageCount}/{progress.TotalImageCount})"
+            : $"{progress.Message} ({progress.CompletedImageCount}/{progress.TotalImageCount}, ETA {etaText})";
+        AppendOperationLog(OperationProgressText);
+    }
+
+    private string FormatEstimatedTimeRemaining(int completedImageCount, int totalImageCount)
+    {
+        if (_picNRecDownloadStartedAt is not DateTime startedAt
+            || completedImageCount <= 0
+            || completedImageCount >= totalImageCount)
+        {
+            return string.Empty;
+        }
+
+        TimeSpan elapsed = DateTime.UtcNow - startedAt;
+        double secondsPerImage = elapsed.TotalSeconds / completedImageCount;
+        double remainingSeconds = Math.Max(0, (totalImageCount - completedImageCount) * secondsPerImage);
+        TimeSpan remaining = TimeSpan.FromSeconds(remainingSeconds);
+        return remaining.TotalHours >= 1
+            ? remaining.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
+            : remaining.ToString(@"m\:ss", CultureInfo.InvariantCulture);
+    }
+
+    private CancellationTokenSource BeginCancellableOperation()
+    {
+        EndCancellableOperation();
+        _operationCancellation = new CancellationTokenSource();
+        OnPropertyChanged(nameof(CanCancelOperation));
+        CancelOperationCommand.NotifyCanExecuteChanged();
+        return _operationCancellation;
+    }
+
+    private void EndCancellableOperation()
+    {
+        _operationCancellation?.Dispose();
+        _operationCancellation = null;
+        OnPropertyChanged(nameof(CanCancelOperation));
+        CancelOperationCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CancelOperation()
+    {
+        OperationProgressText = "Canceling PicNRec operation...";
+        _operationCancellation?.Cancel();
+        OnPropertyChanged(nameof(CanCancelOperation));
+        CancelOperationCommand.NotifyCanExecuteChanged();
+    }
+
+    private void AppendOperationLog(string message)
+    {
+        OperationLogText = string.IsNullOrWhiteSpace(OperationLogText)
+            ? message
+            : OperationLogText + Environment.NewLine + message;
     }
 
     private async Task ComposeRgbAsync()
@@ -330,7 +582,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create RGB composites.");
-            ErrorMessage = ex.Message;
+            ErrorMessage = FormatUserVisibleException(ex);
         }
         finally
         {
@@ -367,7 +619,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create average composites.");
-            ErrorMessage = ex.Message;
+            ErrorMessage = FormatUserVisibleException(ex);
         }
         finally
         {
@@ -410,7 +662,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create RGB+average composites.");
-            ErrorMessage = ex.Message;
+            ErrorMessage = FormatUserVisibleException(ex);
         }
         finally
         {
@@ -428,33 +680,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             LoadedAlbumResult loadedAlbum = await _albumLoadService.LoadAsync(path).ConfigureAwait(true);
 
-            ClearPhotos();
-
-            foreach (LoadedPhotoInfo photo in loadedAlbum.Photos)
-            {
-                PhotoItemViewModel viewModel = new(
-                    photo.Title,
-                    photo.Created,
-                    photo.Photo,
-                    _bitmapFactory.CreateThumbnailBitmap(photo.Photo),
-                    () => _bitmapFactory.CreatePreviewBitmap(photo.Photo),
-                    photo.MetadataEntries,
-                    SelectPhoto);
-                viewModel.PropertyChanged += OnPhotoPropertyChanged;
-                Photos.Add(viewModel);
-            }
-
-            ApplyOrderingAndPagination(preserveSelection: false);
+            ReplacePhotos(loadedAlbum.Photos);
             SourceSummary = $"Loaded {Photos.Count} image(s) from {Path.GetFileName(path)} as {loadedAlbum.SourceKind}.";
-            OnPropertyChanged(nameof(HasPhotos));
-            OnPropertyChanged(nameof(IsEmptyStateVisible));
-            ExportSelectedCommand.NotifyCanExecuteChanged();
         }
         catch (Exception ex)
         {
             ClearPhotos();
             _logger.LogError(ex, "Failed to load images from {Path}", path);
-            ErrorMessage = ex.Message;
+            ErrorMessage = FormatUserVisibleException(ex);
             SourceSummary = "No file loaded.";
         }
         finally
@@ -530,6 +763,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasSelectedPhotos));
         OnPropertyChanged(nameof(ToggleSelectAllButtonText));
         UpdateNavigationState();
+    }
+
+    private void ReplacePhotos(IReadOnlyList<LoadedPhotoInfo> photos)
+    {
+        ClearPhotos();
+
+        foreach (LoadedPhotoInfo photo in photos)
+        {
+            PhotoItemViewModel viewModel = new(
+                photo.Title,
+                photo.Created,
+                photo.Photo,
+                _bitmapFactory.CreateThumbnailBitmap(photo.Photo),
+                () => _bitmapFactory.CreatePreviewBitmap(photo.Photo),
+                photo.MetadataEntries,
+                SelectPhoto);
+            viewModel.PropertyChanged += OnPhotoPropertyChanged;
+            Photos.Add(viewModel);
+        }
+
+        ApplyOrderingAndPagination(preserveSelection: false);
+        OnPropertyChanged(nameof(HasPhotos));
+        OnPropertyChanged(nameof(IsEmptyStateVisible));
+        ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
     }
 
     private IReadOnlyList<PhotoItemViewModel> GetSelectedMonochromePhotos()
@@ -692,6 +950,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         PreviousSelectedPhotoCommand.NotifyCanExecuteChanged();
         NextSelectedPhotoCommand.NotifyCanExecuteChanged();
         ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
         ComposeRgbCommand.NotifyCanExecuteChanged();
         ComposeAverageCommand.NotifyCanExecuteChanged();
         ComposeRgbAverageCommand.NotifyCanExecuteChanged();
@@ -761,9 +1020,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasSelectedPhotos));
         OnPropertyChanged(nameof(ToggleSelectAllButtonText));
         ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
         ComposeRgbCommand.NotifyCanExecuteChanged();
         ComposeAverageCommand.NotifyCanExecuteChanged();
         ComposeRgbAverageCommand.NotifyCanExecuteChanged();
         ToggleSelectAllCommand.NotifyCanExecuteChanged();
     }
+
+    private static string FormatUserVisibleException(Exception error)
+        => $"{error.GetType().Name}: {error.Message}";
 }

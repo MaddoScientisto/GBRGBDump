@@ -18,11 +18,19 @@ public sealed class DialogService : IDialogService
 
     private readonly MainWindowProvider _mainWindowProvider;
     private readonly IBitmapFactory _bitmapFactory;
+    private readonly IPicNRecImportService _picNRecImportService;
+    private readonly IAppSettingsService _settings;
 
-    public DialogService(MainWindowProvider mainWindowProvider, IBitmapFactory bitmapFactory)
+    public DialogService(
+        MainWindowProvider mainWindowProvider,
+        IBitmapFactory bitmapFactory,
+        IPicNRecImportService picNRecImportService,
+        IAppSettingsService settings)
     {
         _mainWindowProvider = mainWindowProvider;
         _bitmapFactory = bitmapFactory;
+        _picNRecImportService = picNRecImportService;
+        _settings = settings;
     }
 
     public async Task<string?> OpenSupportedImageAsync()
@@ -91,6 +99,16 @@ public sealed class DialogService : IDialogService
         return dialog.ShowDialog<SmartAverageCompositionRequest?>(RequireWindow());
     }
 
+    public Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo)
+    {
+        PicNRecRangeDialog dialog = new()
+        {
+            DataContext = new PicNRecRangeDialogViewModel(deviceInfo, _picNRecImportService, _bitmapFactory),
+        };
+
+        return dialog.ShowDialog<PicNRecDownloadRequest?>(RequireWindow());
+    }
+
     public async Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension)
     {
         IStorageFile? file = await RequireWindow().StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
@@ -102,6 +120,96 @@ public sealed class DialogService : IDialogService
         }).ConfigureAwait(true);
 
         return file?.TryGetLocalPath();
+    }
+
+    public async Task<VideoExportRequest?> SelectVideoExportRequestAsync(string suggestedFileNameWithoutExtension)
+    {
+        VideoExportDialogViewModel viewModel = new()
+        {
+            OutputPath = _settings.LastVideoExportPath ?? string.Empty,
+        };
+        VideoExportDialog dialog = new()
+        {
+            DataContext = viewModel,
+        };
+
+        viewModel.BrowseRequested += async () =>
+        {
+            IStorageFile? file = await RequireWindow().StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Export selected images as video",
+                SuggestedFileName = CreateSuggestedVideoFileName(suggestedFileNameWithoutExtension),
+                DefaultExtension = "mp4",
+                FileTypeChoices = [new FilePickerFileType("MP4 video") { Patterns = ["*.mp4"] }],
+            }).ConfigureAwait(true);
+
+            string? outputPath = file?.TryGetLocalPath();
+            if (!string.IsNullOrWhiteSpace(outputPath))
+            {
+                viewModel.OutputPath = outputPath;
+            }
+        };
+
+        VideoExportRequest? request = await dialog.ShowDialog<VideoExportRequest?>(RequireWindow()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return null;
+        }
+
+        if (File.Exists(request.OutputPath))
+        {
+            bool overwrite = await ConfirmAsync(
+                "Replace Video File",
+                $"A file already exists at:{Environment.NewLine}{request.OutputPath}{Environment.NewLine}{Environment.NewLine}Replace it?",
+                "Replace",
+                "Cancel").ConfigureAwait(true);
+            if (!overwrite)
+            {
+                return null;
+            }
+        }
+
+        _settings.LastVideoExportPath = request.OutputPath;
+        _settings.Save();
+        return request;
+    }
+
+    public async Task ShowFfmpegOutputAsync(
+        string outputPath,
+        Func<IProgress<string>, CancellationToken, Task> exportAction)
+    {
+        ArgumentNullException.ThrowIfNull(exportAction);
+
+        FfmpegOutputDialogViewModel viewModel = new(outputPath);
+        FfmpegOutputDialog dialog = new()
+        {
+            DataContext = viewModel,
+        };
+
+        Exception? exportError = null;
+        dialog.Opened += async (_, _) =>
+        {
+            Progress<string> progress = new(viewModel.AppendLine);
+            try
+            {
+                await exportAction(progress, CancellationToken.None).ConfigureAwait(true);
+            }
+            catch (Exception error)
+            {
+                exportError = error;
+                viewModel.AppendLine($"ERROR: {error}");
+            }
+            finally
+            {
+                viewModel.MarkFinished(exportError);
+            }
+        };
+
+        await dialog.ShowDialog(RequireWindow()).ConfigureAwait(true);
+        if (exportError is not null)
+        {
+            throw new InvalidOperationException("ffmpeg video export failed. See the ffmpeg output window for details.", exportError);
+        }
     }
 
     public async Task<string?> PickExportFolderAsync()
@@ -119,6 +227,31 @@ public sealed class DialogService : IDialogService
     {
         Patterns = [$"*.{format.GetDefaultExtension()}"]
     };
+
+    private async Task<bool> ConfirmAsync(string title, string message, string confirmText, string cancelText)
+    {
+        ConfirmationDialog dialog = new()
+        {
+            DataContext = new ConfirmationDialogViewModel(title, message, confirmText, cancelText),
+        };
+
+        return await dialog.ShowDialog<bool>(RequireWindow()).ConfigureAwait(true);
+    }
+
+    private string CreateSuggestedVideoFileName(string suggestedFileNameWithoutExtension)
+    {
+        string? rememberedPath = _settings.LastVideoExportPath;
+        if (!string.IsNullOrWhiteSpace(rememberedPath))
+        {
+            string rememberedName = Path.GetFileName(rememberedPath);
+            if (!string.IsNullOrWhiteSpace(rememberedName))
+            {
+                return rememberedName;
+            }
+        }
+
+        return $"{suggestedFileNameWithoutExtension}.mp4";
+    }
 
     private Window RequireWindow() => _mainWindowProvider.MainWindow
         ?? throw new InvalidOperationException("The main window is not available yet.");

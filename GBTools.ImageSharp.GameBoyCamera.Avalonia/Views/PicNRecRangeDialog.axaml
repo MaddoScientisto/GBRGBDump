@@ -1,0 +1,100 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.PicNRecRangeDialog"
+        x:DataType="vm:PicNRecRangeDialogViewModel"
+        Width="720"
+        Height="640"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Download PicNRec Images">
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <Grid ColumnDefinitions="1.1*,0.9*" ColumnSpacing="16">
+        <StackPanel Spacing="10">
+            <TextBlock Text="{Binding DeviceSummary}"
+                       TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                <TextBlock Text="Start image"
+                           VerticalAlignment="Center" />
+                <TextBox Grid.Column="1"
+                         Text="{Binding StartImageNumberText, Mode=TwoWay}"
+                         HorizontalContentAlignment="Right" />
+                <TextBlock Grid.Row="1"
+                           Text="End image"
+                           VerticalAlignment="Center" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         Text="{Binding EndImageNumberText, Mode=TwoWay}"
+                         HorizontalContentAlignment="Right" />
+            </Grid>
+
+            <TextBlock Text="{Binding LastImageMarkerText}"
+                       TextWrapping="Wrap"
+                       Opacity="0.78" />
+            <ProgressBar Minimum="0"
+                         Maximum="{Binding MaxSupportedImageNumber}"
+                         Value="{Binding LastImageMarker}" />
+            <TextBlock Text="{Binding PreviewImageNumberText}"
+                       FontWeight="SemiBold" />
+            <Slider Minimum="0"
+                    Maximum="{Binding MaxSupportedImageNumber}"
+                    Value="{Binding PreviewImageNumber, Mode=TwoWay}"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True" />
+            <NumericUpDown Minimum="0"
+                           Maximum="{Binding MaxSupportedImageNumber}"
+                           Increment="1"
+                           ClipValueToMinMax="True"
+                           Value="{Binding PreviewImageNumber, Mode=TwoWay}" />
+            <TextBlock Text="{Binding PreviewPositionText}"
+                       TextWrapping="Wrap"
+                       Opacity="0.78" />
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#FFD8A7A7"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasError}" />
+        </StackPanel>
+
+        <Border Grid.Column="1"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+                <TextBlock Text="Preview"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+                <Border Grid.Row="1"
+                        BorderBrush="#40FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="8">
+                    <Grid>
+                        <TextBlock Text="No preview loaded."
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{Binding IsPreviewEmpty}" />
+                        <Image Source="{Binding PreviewBitmap}"
+                               RenderOptions.BitmapInterpolationMode="None"
+                               Stretch="Uniform"
+                               MaxHeight="320"
+                               IsVisible="{Binding HasPreview}" />
+                    </Grid>
+                </Border>
+                <StackPanel Grid.Row="2" Spacing="8">
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsPreviewLoading}" />
+                    <TextBlock Text="{Binding PreviewStatus}"
+                               TextWrapping="Wrap"
+                               FontSize="12" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,16,0,0">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" />
+            <Button Content="Download" Command="{Binding ConfirmCommand}" MinWidth="100" />
+        </StackPanel>
+    </Grid>
+</Window>

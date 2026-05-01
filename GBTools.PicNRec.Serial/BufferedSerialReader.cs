@@ -12,8 +12,7 @@ internal sealed class BufferedSerialReader : IDisposable
     private readonly List<TaskCompletionSource<object>> _waiters = new List<TaskCompletionSource<object>>();
     private readonly Queue<ArraySegment<byte>> _chunks = new Queue<ArraySegment<byte>>();
     private readonly SerialPort _serialPort;
-    private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
-    private readonly Task _pumpTask;
+    private readonly int _readChunkSize;
 
     private Exception? _fault;
     private int _bufferedBytes;
@@ -33,7 +32,8 @@ internal sealed class BufferedSerialReader : IDisposable
         }
 
         _serialPort = serialPort;
-        _pumpTask = Task.Run(() => ReadLoop(readChunkSize));
+        _readChunkSize = readChunkSize;
+        _serialPort.DataReceived += OnDataReceived;
     }
 
     public async Task<byte[]> ReadExactAsync(int length, int timeoutMs, CancellationToken cancellationToken)
@@ -44,6 +44,7 @@ internal sealed class BufferedSerialReader : IDisposable
         }
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        DrainAvailableBytes();
         var lastObservedBytes = GetBufferedBytes();
 
         while (GetBufferedBytes() < length)
@@ -57,21 +58,23 @@ internal sealed class BufferedSerialReader : IDisposable
             }
 
             await WaitForBufferGrowthAsync(lastObservedBytes, remaining, cancellationToken).ConfigureAwait(false);
+            DrainAvailableBytes();
             lastObservedBytes = GetBufferedBytes();
         }
 
         return Consume(length);
     }
 
-    public async Task WaitForSignalAsync(int timeoutMs, CancellationToken cancellationToken)
+    public async Task<bool> WaitForSignalAsync(int timeoutMs, CancellationToken cancellationToken)
     {
+        DrainAvailableBytes();
         if (GetBufferedBytes() > 0)
         {
-            return;
+            return true;
         }
 
         ThrowIfFaultedOrCompleted(0);
-        await WaitForBufferGrowthAsync(0, TimeSpan.FromMilliseconds(timeoutMs), cancellationToken).ConfigureAwait(false);
+        return await WaitForBufferGrowthAsync(0, TimeSpan.FromMilliseconds(timeoutMs), cancellationToken).ConfigureAwait(false);
     }
 
     public void Clear()
@@ -91,17 +94,15 @@ internal sealed class BufferedSerialReader : IDisposable
         }
 
         _disposed = true;
-        _cancellation.Cancel();
-
         try
         {
-            _pumpTask.Wait(250);
+            _serialPort.DataReceived -= OnDataReceived;
         }
         catch
         {
         }
 
-        _cancellation.Dispose();
+        Complete();
     }
 
     private int GetBufferedBytes()
@@ -112,11 +113,17 @@ internal sealed class BufferedSerialReader : IDisposable
         }
     }
 
-    private async Task WaitForBufferGrowthAsync(int previousBufferedBytes, TimeSpan timeout, CancellationToken cancellationToken)
+    private async Task<bool> WaitForBufferGrowthAsync(int previousBufferedBytes, TimeSpan timeout, CancellationToken cancellationToken)
     {
         if (GetBufferedBytes() > previousBufferedBytes)
         {
-            return;
+            return true;
+        }
+
+        DrainAvailableBytes();
+        if (GetBufferedBytes() > previousBufferedBytes)
+        {
+            return true;
         }
 
         TaskCompletionSource<object> waiter;
@@ -124,7 +131,7 @@ internal sealed class BufferedSerialReader : IDisposable
         {
             if (_bufferedBytes > previousBufferedBytes)
             {
-                return;
+                return true;
             }
 
             if (_fault != null)
@@ -152,10 +159,11 @@ internal sealed class BufferedSerialReader : IDisposable
         if (completedTask == delayTask)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new TimeoutException("Timed out waiting for more serial data.");
+            return false;
         }
 
         await waiter.Task.ConfigureAwait(false);
+        return true;
     }
 
     private byte[] Consume(int length)
@@ -199,52 +207,52 @@ internal sealed class BufferedSerialReader : IDisposable
         return output;
     }
 
-    private void ReadLoop(int readChunkSize)
+    private void OnDataReceived(object sender, SerialDataReceivedEventArgs eventArgs)
     {
-        var buffer = new byte[readChunkSize];
-
         try
         {
-            while (!_cancellation.IsCancellationRequested)
-            {
-                try
-                {
-                    var bytesRead = _serialPort.Read(buffer, 0, buffer.Length);
-                    if (bytesRead <= 0)
-                    {
-                        continue;
-                    }
-
-                    var chunk = new byte[bytesRead];
-                    Buffer.BlockCopy(buffer, 0, chunk, 0, bytesRead);
-
-                    lock (_sync)
-                    {
-                        _chunks.Enqueue(new ArraySegment<byte>(chunk));
-                        _bufferedBytes += bytesRead;
-                    }
-
-                    WakeWaiters();
-                }
-                catch (TimeoutException)
-                {
-                }
-                catch (OperationCanceledException) when (!_cancellation.IsCancellationRequested && _serialPort.IsOpen)
-                {
-                }
-                catch (InvalidOperationException) when (_cancellation.IsCancellationRequested)
-                {
-                    break;
-                }
-            }
+            DrainAvailableBytes();
         }
         catch (Exception error)
         {
             Fail(error);
+        }
+    }
+
+    private void DrainAvailableBytes()
+    {
+        if (_disposed || !_serialPort.IsOpen)
+        {
             return;
         }
 
-        Complete();
+        byte[] buffer = new byte[_readChunkSize];
+
+        while (!_disposed && _serialPort.IsOpen)
+        {
+            int availableBytes = _serialPort.BytesToRead;
+            if (availableBytes <= 0)
+            {
+                return;
+            }
+
+            int bytesRead = _serialPort.Read(buffer, 0, Math.Min(buffer.Length, availableBytes));
+            if (bytesRead <= 0)
+            {
+                return;
+            }
+
+            byte[] chunk = new byte[bytesRead];
+            Buffer.BlockCopy(buffer, 0, chunk, 0, bytesRead);
+
+            lock (_sync)
+            {
+                _chunks.Enqueue(new ArraySegment<byte>(chunk));
+                _bufferedBytes += bytesRead;
+            }
+
+            WakeWaiters();
+        }
     }
 
     private void ThrowIfFaultedOrCompleted(int expectedLength)

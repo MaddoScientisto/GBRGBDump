@@ -1,0 +1,71 @@
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+
+namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.Services;
+
+public sealed class AppSettingsService : IAppSettingsService
+{
+    private readonly ILogger<AppSettingsService> _logger;
+    private readonly string _settingsPath;
+    private AppSettingsState _state;
+
+    public AppSettingsService(ILogger<AppSettingsService> logger)
+    {
+        _logger = logger;
+        _settingsPath = CreateSettingsPath();
+        _state = Load();
+    }
+
+    public string? LastVideoExportPath
+    {
+        get => _state.LastVideoExportPath;
+        set => _state.LastVideoExportPath = value;
+    }
+
+    public void Save()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath) ?? AppContext.BaseDirectory);
+            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(_state, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception error)
+        {
+            _logger.LogWarning(error, "Failed to save Avalonia app settings to {Path}.", _settingsPath);
+        }
+    }
+
+    private AppSettingsState Load()
+    {
+        try
+        {
+            if (!File.Exists(_settingsPath))
+            {
+                return new AppSettingsState();
+            }
+
+            return JsonSerializer.Deserialize<AppSettingsState>(File.ReadAllText(_settingsPath)) ?? new AppSettingsState();
+        }
+        catch (Exception error)
+        {
+            _logger.LogWarning(error, "Failed to load Avalonia app settings from {Path}.", _settingsPath);
+            return new AppSettingsState();
+        }
+    }
+
+    private static string CreateSettingsPath()
+    {
+        string basePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        if (string.IsNullOrWhiteSpace(basePath))
+        {
+            basePath = AppContext.BaseDirectory;
+        }
+
+        return Path.Combine(basePath, "GBTools.ImageSharp.GameBoyCamera.Avalonia", "settings.json");
+    }
+
+    private sealed class AppSettingsState
+    {
+        public string? LastVideoExportPath { get; set; }
+    }
+}

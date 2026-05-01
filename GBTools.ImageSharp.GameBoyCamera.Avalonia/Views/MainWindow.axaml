@@ -10,29 +10,36 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Game Boy Camera ImageSharp Tester"
-        MinWidth="1100"
-        MinHeight="720">
+        MinWidth="900"
+        MinHeight="620">
 
     <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="2.1*,1*" Margin="20">
         <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-            <Button Content="Load Images"
-                    Command="{Binding LoadImagesCommand}"
-                    MinWidth="120" />
-            <Button Content="Export Selected"
-                    Command="{Binding ExportSelectedCommand}"
-                    MinWidth="130" />
+            <Menu VerticalAlignment="Center">
+                <MenuItem Header="Load Images">
+                    <MenuItem Header="From File..."
+                              Command="{Binding LoadImagesCommand}" />
+                    <MenuItem Header="From PicNRec..."
+                              Command="{Binding DownloadPicNRecCommand}" />
+                </MenuItem>
+                <MenuItem Header="Export">
+                    <MenuItem Header="Export Selected..."
+                              Command="{Binding ExportSelectedCommand}" />
+                    <MenuItem Header="Video Selected..."
+                              Command="{Binding ExportSelectedVideoCommand}" />
+                </MenuItem>
+                <MenuItem Header="Compose">
+                    <MenuItem Header="RGB"
+                              Command="{Binding ComposeRgbCommand}" />
+                    <MenuItem Header="Average"
+                              Command="{Binding ComposeAverageCommand}" />
+                    <MenuItem Header="RGB + Average"
+                              Command="{Binding ComposeRgbAverageCommand}" />
+                </MenuItem>
+            </Menu>
             <Button Content="{Binding ToggleSelectAllButtonText}"
                     Command="{Binding ToggleSelectAllCommand}"
                     MinWidth="120" />
-            <Button Content="Compose RGB"
-                Command="{Binding ComposeRgbCommand}"
-                MinWidth="130" />
-            <Button Content="Compose Average"
-                Command="{Binding ComposeAverageCommand}"
-                MinWidth="150" />
-            <Button Content="Compose RGB+Average"
-                Command="{Binding ComposeRgbAverageCommand}"
-                MinWidth="180" />
             <TextBlock Text="{Binding SourceSummary}"
                        VerticalAlignment="Center"
                        TextWrapping="Wrap"
@@ -133,11 +140,35 @@
                             CornerRadius="10">
                         <StackPanel HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
+                                MaxWidth="560"
                                     Spacing="12">
                             <ProgressBar Width="180"
-                                         IsIndeterminate="True" />
-                            <TextBlock Text="Loading images..."
-                                       HorizontalAlignment="Center" />
+                                 IsIndeterminate="False"
+                                 Minimum="0"
+                                 Maximum="{Binding OperationProgressMaximum}"
+                                 Value="{Binding OperationProgressValue}" />
+                            <TextBlock Text="{Binding OperationProgressText}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap" />
+                            <Button Content="Cancel"
+                                Command="{Binding CancelOperationCommand}"
+                                IsVisible="{Binding CanCancelOperation}"
+                                MinWidth="100" />
+                            <Border Background="#AA000000"
+                                BorderBrush="#33FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8"
+                                IsVisible="{Binding HasOperationLog}">
+                                <ScrollViewer x:Name="OperationLogScrollViewer"
+                                              Width="520"
+                                      Height="180">
+                                <TextBlock Text="{Binding OperationLogText}"
+                                       FontFamily="Consolas"
+                                       FontSize="12"
+                                       TextWrapping="Wrap" />
+                            </ScrollViewer>
+                            </Border>
                         </StackPanel>
                     </Border>
                 </Grid>

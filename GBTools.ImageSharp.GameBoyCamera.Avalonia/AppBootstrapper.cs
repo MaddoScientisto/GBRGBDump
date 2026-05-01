@@ -35,10 +35,14 @@ internal static class AppBootstrapper
         });
 
         serviceCollection.AddSingleton<MainWindowProvider>();
+        serviceCollection.AddSingleton<IAppSettingsService, AppSettingsService>();
         serviceCollection.AddSingleton<IBitmapFactory, BitmapFactory>();
         serviceCollection.AddSingleton<IAlbumLoadService, AlbumLoadService>();
         serviceCollection.AddSingleton<IDialogService, DialogService>();
         serviceCollection.AddSingleton<IImageExportService, ImageExportService>();
+        serviceCollection.AddSingleton<IPicNRecImportService, PicNRecImportService>();
+        serviceCollection.AddSingleton<GBTools.ImageSharp.GameBoyCamera.Video.FfmpegVideoExporter>();
+        serviceCollection.AddSingleton<IVideoExportService, VideoExportService>();
         serviceCollection.AddSingleton<MainWindowViewModel>();
         serviceCollection.AddSingleton<MainWindow>();
 

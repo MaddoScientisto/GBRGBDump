@@ -1,19 +1,46 @@
 using System.Linq;
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.Views;
 
 public partial class MainWindow : Window
 {
+    private MainWindowViewModel? _subscribedViewModel;
+
     public MainWindow()
     {
         InitializeComponent();
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (_subscribedViewModel is not null)
+        {
+            _subscribedViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
+        _subscribedViewModel = DataContext as MainWindowViewModel;
+        if (_subscribedViewModel is not null)
+        {
+            _subscribedViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.OperationLogText))
+        {
+            Dispatcher.UIThread.Post(OperationLogScrollViewer.ScrollToEnd, DispatcherPriority.Background);
+        }
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)

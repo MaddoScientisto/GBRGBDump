@@ -1,0 +1,1 @@
+-y -framerate {FrameRate} -start_number 0 -i "{InputPattern}" -vf "scale={Magnification}*iw:{Magnification}*ih:flags=neighbor,format=yuv420p" -c:v libx264 -profile:v high -level 4.1 -preset medium -crf 18 -movflags +faststart -pix_fmt yuv420p "{OutputPath}"
