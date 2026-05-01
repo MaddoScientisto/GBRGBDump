@@ -16,6 +16,10 @@
             <TextBlock Text="{Binding StatusText}"
                        TextWrapping="Wrap"
                        Opacity="0.82" />
+            <ProgressBar Minimum="0"
+                         Maximum="{Binding ProgressMaximum}"
+                         Value="{Binding ProgressValue}"
+                         Height="10" />
         </StackPanel>
 
         <Border Grid.Row="1"

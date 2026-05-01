@@ -18,6 +18,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private const string NameAscendingLabel = "Name ascending";
     private const string NameDescendingLabel = "Name descending";
+    private const string NaturalNameAscendingLabel = "Natural name order";
+    private const string NaturalNameDescendingLabel = "Natural name order (reverse)";
     private const string DateAscendingLabel = "Date ascending";
     private const string DateDescendingLabel = "Date descending";
 
@@ -25,9 +27,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     [
         NameAscendingLabel,
         NameDescendingLabel,
+        NaturalNameAscendingLabel,
+        NaturalNameDescendingLabel,
         DateAscendingLabel,
         DateDescendingLabel,
     ];
+
+    private static readonly IComparer<string> NaturalNameComparer = Comparer<string>.Create(CompareNaturalNames);
 
     private readonly IAlbumLoadService _albumLoadService;
     private readonly IBitmapFactory _bitmapFactory;
@@ -46,6 +52,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool _isUpdatingSelectionInBulk;
     private CancellationTokenSource? _operationCancellation;
     private DateTime? _picNRecDownloadStartedAt;
+
+    [ObservableProperty]
+    private bool isImportSourceBusy;
 
     [ObservableProperty]
     private PhotoItemViewModel? selectedPhoto;
@@ -257,13 +266,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     partial void OnIsBusyChanged(bool value)
     {
+        CancelOperationCommand.NotifyCanExecuteChanged();
+        ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsImportSourceBusyChanged(bool value)
+    {
         LoadImagesCommand.NotifyCanExecuteChanged();
         DownloadGbxCartCommand.NotifyCanExecuteChanged();
         DownloadPicoGbPrinterCommand.NotifyCanExecuteChanged();
         DownloadPicNRecCommand.NotifyCanExecuteChanged();
-        CancelOperationCommand.NotifyCanExecuteChanged();
-        ExportSelectedCommand.NotifyCanExecuteChanged();
-        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsLoadingPhotosChanged(bool value)
@@ -301,7 +314,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         ApplyOrderingAndPagination();
     }
 
-    private bool CanRunCommands() => !IsBusy;
+    private bool CanRunCommands() => !IsImportSourceBusy;
 
     private bool CanExportSelected() => !IsBusy && Photos.Any(static photo => photo.IsSelected);
 
@@ -421,6 +434,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
+            IsImportSourceBusy = true;
             CancellationTokenSource operationCancellation = BeginCancellableOperation();
             IsBusy = true;
             IsLoadingPhotos = true;
@@ -480,6 +494,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         finally
         {
+            IsImportSourceBusy = false;
             IsLoadingPhotos = false;
             IsBusy = false;
             OperationProgressText = string.Empty;
@@ -512,6 +527,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             try
             {
+                IsImportSourceBusy = true;
                 CancellationTokenSource operationCancellation = BeginCancellableOperation();
                 IsBusy = true;
                 IsLoadingPhotos = true;
@@ -550,6 +566,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
             finally
             {
+                IsImportSourceBusy = false;
                 IsLoadingPhotos = false;
                 IsBusy = false;
                 OperationProgressText = string.Empty;
@@ -590,10 +607,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             try
             {
+                IsImportSourceBusy = true;
                 CancellationTokenSource operationCancellation = BeginCancellableOperation();
                 bool galleryUpdatedFromProgress = false;
-                IsBusy = true;
-                IsLoadingPhotos = true;
                 ErrorMessage = string.Empty;
                 OperationLogText = string.Empty;
                 OperationProgressMaximum = 1;
@@ -602,6 +618,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 AppendOperationLog(OperationProgressText);
                 logWindow.AppendLine(OperationProgressText);
                 logWindow.SetStatus(OperationProgressText);
+                logWindow.SetProgress(0, 1);
 
                 Progress<PicoGbPrinterImportProgress> progress = new(progress => UpdatePicoGbPrinterProgress(progress, logWindow, ref galleryUpdatedFromProgress));
                 PicoGbPrinterImportResult importResult = await _picoGbPrinterImportService
@@ -649,8 +666,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             finally
             {
                 logWindow.StopRequested -= HandleStopRequested;
-                IsLoadingPhotos = false;
-                IsBusy = false;
+                IsImportSourceBusy = false;
                 OperationProgressText = string.Empty;
                 EndCancellableOperation();
             }
@@ -667,7 +683,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void UpdatePicoGbPrinterProgress(PicoGbPrinterImportProgress progress, PicoGbPrinterLogWindowViewModel logWindow, ref bool galleryUpdatedFromProgress)
     {
+        OperationProgressMaximum = Math.Max(1, progress.TotalSteps);
+        OperationProgressValue = Math.Clamp(progress.CompletedSteps, 0, progress.TotalSteps);
         logWindow.SetStatus(progress.Message);
+        logWindow.SetProgress(OperationProgressValue, OperationProgressMaximum);
         if (progress.AppendToLog)
         {
             AppendOperationLog(progress.Message);
@@ -886,6 +905,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
+            IsImportSourceBusy = true;
             IsBusy = true;
             IsLoadingPhotos = true;
             ErrorMessage = string.Empty;
@@ -902,6 +922,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         finally
         {
+            IsImportSourceBusy = false;
             IsLoadingPhotos = false;
             IsBusy = false;
         }
@@ -1091,10 +1112,107 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         return SelectedOrdering switch
         {
             NameDescendingLabel => photos.OrderByDescending(static photo => photo.Title, StringComparer.OrdinalIgnoreCase),
+            NaturalNameAscendingLabel => photos.OrderBy(static photo => photo.Title, NaturalNameComparer),
+            NaturalNameDescendingLabel => photos.OrderByDescending(static photo => photo.Title, NaturalNameComparer),
             DateAscendingLabel => photos.OrderBy(static photo => photo.Created, StringComparer.Ordinal),
             DateDescendingLabel => photos.OrderByDescending(static photo => photo.Created, StringComparer.Ordinal),
             _ => photos.OrderBy(static photo => photo.Title, StringComparer.OrdinalIgnoreCase),
         };
+    }
+
+    private static int CompareNaturalNames(string? left, string? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return 0;
+        }
+
+        if (left is null)
+        {
+            return -1;
+        }
+
+        if (right is null)
+        {
+            return 1;
+        }
+
+        int leftIndex = 0;
+        int rightIndex = 0;
+
+        while (leftIndex < left.Length && rightIndex < right.Length)
+        {
+            char leftChar = left[leftIndex];
+            char rightChar = right[rightIndex];
+            bool leftIsDigit = char.IsDigit(leftChar);
+            bool rightIsDigit = char.IsDigit(rightChar);
+
+            if (leftIsDigit && rightIsDigit)
+            {
+                int leftNumberStart = leftIndex;
+                int rightNumberStart = rightIndex;
+
+                while (leftIndex < left.Length && char.IsDigit(left[leftIndex]))
+                {
+                    leftIndex++;
+                }
+
+                while (rightIndex < right.Length && char.IsDigit(right[rightIndex]))
+                {
+                    rightIndex++;
+                }
+
+                ReadOnlySpan<char> leftDigits = left.AsSpan(leftNumberStart, leftIndex - leftNumberStart);
+                ReadOnlySpan<char> rightDigits = right.AsSpan(rightNumberStart, rightIndex - rightNumberStart);
+                ReadOnlySpan<char> leftTrimmedDigits = TrimLeadingZeros(leftDigits);
+                ReadOnlySpan<char> rightTrimmedDigits = TrimLeadingZeros(rightDigits);
+
+                int digitLengthComparison = leftTrimmedDigits.Length.CompareTo(rightTrimmedDigits.Length);
+                if (digitLengthComparison != 0)
+                {
+                    return digitLengthComparison;
+                }
+
+                for (int digitIndex = 0; digitIndex < leftTrimmedDigits.Length; digitIndex++)
+                {
+                    int digitComparison = leftTrimmedDigits[digitIndex].CompareTo(rightTrimmedDigits[digitIndex]);
+                    if (digitComparison != 0)
+                    {
+                        return digitComparison;
+                    }
+                }
+
+                int originalDigitLengthComparison = leftDigits.Length.CompareTo(rightDigits.Length);
+                if (originalDigitLengthComparison != 0)
+                {
+                    return originalDigitLengthComparison;
+                }
+
+                continue;
+            }
+
+            int characterComparison = char.ToUpperInvariant(leftChar).CompareTo(char.ToUpperInvariant(rightChar));
+            if (characterComparison != 0)
+            {
+                return characterComparison;
+            }
+
+            leftIndex++;
+            rightIndex++;
+        }
+
+        return left.Length.CompareTo(right.Length);
+    }
+
+    private static ReadOnlySpan<char> TrimLeadingZeros(ReadOnlySpan<char> digits)
+    {
+        int zeroCount = 0;
+        while (zeroCount < digits.Length - 1 && digits[zeroCount] == '0')
+        {
+            zeroCount++;
+        }
+
+        return digits[zeroCount..];
     }
 
     private void RefreshVisiblePhotos()

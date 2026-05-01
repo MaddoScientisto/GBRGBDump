@@ -20,6 +20,12 @@ public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool canStop = true;
 
+    [ObservableProperty]
+    private double progressValue;
+
+    [ObservableProperty]
+    private double progressMaximum = 1d;
+
     public PicoGbPrinterLogWindowViewModel(string title)
     {
         Title = title;
@@ -48,6 +54,8 @@ public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
         Error = null;
         IsFinished = false;
         CanStop = true;
+        ProgressValue = 0;
+        ProgressMaximum = 1;
         StopCommand.NotifyCanExecuteChanged();
     }
 
@@ -59,6 +67,12 @@ public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
     public void SetStatus(string status)
     {
         StatusText = status;
+    }
+
+    public void SetProgress(double value, double maximum)
+    {
+        ProgressMaximum = Math.Max(1d, maximum);
+        ProgressValue = Math.Clamp(value, 0d, ProgressMaximum);
     }
 
     public void MarkFinished(string status, Exception? error)

@@ -77,7 +77,7 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
             _serialPort = new SerialPort(_options.PortName, _options.BaudRate, Parity.None, 8, StopBits.One)
             {
                 Handshake = Handshake.None,
-                ReadTimeout = _options.PortReadTimeoutMs,
+                ReadTimeout = SerialPort.InfiniteTimeout,
                 WriteTimeout = _options.PortWriteTimeoutMs,
                 DtrEnable = _options.EnableDtr,
                 RtsEnable = _options.EnableRts,
@@ -173,10 +173,12 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
             ushort combinedFlags = 0;
             var captureCount = 0;
             var stopRequested = false;
+            var receivedAnyCapture = false;
 
             async Task HandleCapturedFrameAsync(PicoGbPrinterFrame frame)
             {
                 captureCount++;
+                receivedAnyCapture = true;
                 combinedFlags |= frame.Flags;
                 combinedPayload.Write(frame.Payload, 0, frame.Payload.Length);
                 Trace($"Captured session frame {captureCount} with {frame.Payload.Length} bytes. Session total: {combinedPayload.Length} bytes.");
@@ -199,26 +201,8 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
                     Trace("Stop requested. Draining any in-flight capture frames before finishing the session.");
                 }
 
-                try
-                {
-                    var frame = await ReadFrameCoreAsync(_options.CaptureIdleTimeoutMs, progress, cancellationToken).ConfigureAwait(false);
-                    if (frame.Type == PicoGbPrinterProtocolConstants.HelloFrame)
-                    {
-                        Trace("< HELLO");
-                        continue;
-                    }
-
-                    if (frame.Type == PicoGbPrinterProtocolConstants.JobFrame)
-                    {
-                        await HandleCapturedFrameAsync(frame).ConfigureAwait(false);
-
-                        continue;
-                    }
-
-                    ThrowIfErrorFrame(frame);
-                    Trace($"Ignoring unexpected frame 0x{frame.Type:x2} while live capture is active.");
-                }
-                catch (TimeoutException) when (_options.CaptureIdleTimeoutMs > 0)
+                PicoGbPrinterFrame? frame = await TryReadFrameCoreAsync(_options.CaptureIdleTimeoutMs, progress, cancellationToken).ConfigureAwait(false);
+                if (frame is null)
                 {
                     if (captureCount > 0 && !stopRequested)
                     {
@@ -247,16 +231,33 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
 
                     if (stopRequested)
                     {
-                        if (captureCount == 0)
+                        if (!receivedAnyCapture)
                         {
                             Trace("Stop requested before any live capture arrived.");
                             throw new OperationCanceledException("Capture stopped before any Pico GB Printer data was received.", cancellationToken);
                         }
 
-                        Trace($"Stop requested after {captureCount} capture frame(s); final session size {combinedPayload.Length} bytes.");
+                        Trace($"Stop requested after receiving {combinedPayload.Length} total session bytes.");
                         return new PicoGbPrinterCapture(combinedPayload.ToArray(), combinedFlags);
                     }
+
+                    continue;
                 }
+
+                if (frame.Type == PicoGbPrinterProtocolConstants.HelloFrame)
+                {
+                    Trace("< HELLO");
+                    continue;
+                }
+
+                if (frame.Type == PicoGbPrinterProtocolConstants.JobFrame)
+                {
+                    await HandleCapturedFrameAsync(frame).ConfigureAwait(false);
+                    continue;
+                }
+
+                ThrowIfErrorFrame(frame);
+                Trace($"Ignoring unexpected frame 0x{frame.Type:x2} while live capture is active.");
             }
         }
         finally
@@ -370,6 +371,49 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
         return new PicoGbPrinterFrame(type, flags, payload);
     }
 
+    private async Task<PicoGbPrinterFrame?> TryReadFrameCoreAsync(int timeoutMs, IProgress<long>? progress, CancellationToken cancellationToken)
+    {
+        bool foundMagic = await TryReadMagicAsync(timeoutMs, cancellationToken).ConfigureAwait(false);
+        if (!foundMagic)
+        {
+            return null;
+        }
+
+        var headerRest = await _reader!.ReadExactAsync(PicoGbPrinterProtocolConstants.FrameHeaderLength - 4, timeoutMs, cancellationToken).ConfigureAwait(false);
+
+        if (headerRest[0] != PicoGbPrinterProtocolConstants.FrameVersion)
+        {
+            throw new InvalidOperationException($"Unsupported Pico GB Printer frame version {headerRest[0]}.");
+        }
+
+        var type = headerRest[1];
+        var flags = ReadUInt16(headerRest, 2);
+        var length = ReadUInt32(headerRest, 4);
+        if (length > int.MaxValue)
+        {
+            throw new InvalidOperationException($"Frame payload is too large: {length} bytes.");
+        }
+
+        Trace($"Receiving frame 0x{type:x2} with {length} payload bytes.");
+
+        var payload = length == 0
+            ? Array.Empty<byte>()
+            : await _reader.ReadExactAsync((int)length, timeoutMs, cancellationToken).ConfigureAwait(false);
+        progress?.Report(payload.Length);
+
+        var crcBytes = await _reader.ReadExactAsync(PicoGbPrinterProtocolConstants.FrameCrcLength, timeoutMs, cancellationToken).ConfigureAwait(false);
+        var expectedCrc = ReadUInt32(crcBytes, 0);
+        var actualCrc = Crc32(payload);
+        if (expectedCrc != actualCrc)
+        {
+            throw new InvalidOperationException($"Frame CRC mismatch. Expected 0x{expectedCrc:x8}, got 0x{actualCrc:x8}.");
+        }
+
+        Trace($"Validated frame 0x{type:x2} with CRC 0x{actualCrc:x8}.");
+
+        return new PicoGbPrinterFrame(type, flags, payload);
+    }
+
     private async Task ReadMagicAsync(int timeoutMs, CancellationToken cancellationToken)
     {
         var matched = 0;
@@ -387,6 +431,39 @@ public sealed class PicoGbPrinterSerialClient : IDisposable
                 matched = data[0] == magic[0] ? 1 : 0;
             }
         }
+    }
+
+    private async Task<bool> TryReadMagicAsync(int timeoutMs, CancellationToken cancellationToken)
+    {
+        var matched = 0;
+        var magic = new byte[] { (byte)'P', (byte)'G', (byte)'B', (byte)'S' };
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+
+        while (matched < magic.Length)
+        {
+            int remainingMs = Math.Max(1, (int)(deadline - DateTime.UtcNow).TotalMilliseconds);
+            if (remainingMs <= 0)
+            {
+                return false;
+            }
+
+            var data = await _reader!.TryReadExactAsync(1, remainingMs, cancellationToken).ConfigureAwait(false);
+            if (data is null)
+            {
+                return false;
+            }
+
+            if (data[0] == magic[matched])
+            {
+                matched++;
+            }
+            else
+            {
+                matched = data[0] == magic[0] ? 1 : 0;
+            }
+        }
+
+        return true;
     }
 
     private static PicoGbPrinterStatus ParseStatus(PicoGbPrinterFrame frame)

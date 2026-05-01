@@ -139,24 +139,6 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <Border IsVisible="{Binding IsLoadingPhotos}"
-                            Background="#66000000"
-                            CornerRadius="10">
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                MaxWidth="560"
-                                    Spacing="12">
-                            <ProgressBar Width="180"
-                                 IsIndeterminate="False"
-                                 Minimum="0"
-                                 Maximum="{Binding OperationProgressMaximum}"
-                                 Value="{Binding OperationProgressValue}" />
-                            <Button Content="Cancel"
-                                Command="{Binding CancelOperationCommand}"
-                                IsVisible="{Binding CanCancelOperation}"
-                                MinWidth="100" />
-                        </StackPanel>
-                    </Border>
                 </Grid>
 
                 <Grid Grid.Row="2"
