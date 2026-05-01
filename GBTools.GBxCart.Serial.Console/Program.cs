@@ -76,6 +76,17 @@ internal static class ProgramEntry
                     return 0;
                 }).ConfigureAwait(false);
 
+            case "dump-photo-album":
+                return await RunWithClientAsync(command, async client =>
+                {
+                    string outputPath = command.GetRequiredString("output");
+                    byte[] album = await client.ReadGameBoyCameraPhotoAlbumAsync().ConfigureAwait(false);
+                    EnsureParentDirectoryExists(outputPath);
+                    await File.WriteAllBytesAsync(outputPath, album).ConfigureAwait(false);
+                    LogInfo($"Saved {album.Length} photo album bytes to {outputPath}.");
+                    return 0;
+                }).ConfigureAwait(false);
+
             case "dump-rom":
                 return await RunWithClientAsync(command, async client =>
                 {
@@ -190,6 +201,7 @@ internal static class ProgramEntry
         Console.WriteLine("  connect-test [--port COM6]");
         Console.WriteLine("  read-header --output header.bin [--port COM6]");
         Console.WriteLine("  dump-save --output camera.sav [--port COM6]");
+        Console.WriteLine("  dump-photo-album --output camera.sav [--port COM6]");
         Console.WriteLine("  dump-rom --output camera.gb [--port COM6]");
         Console.WriteLine("  dump-both --output-dir artifacts\\gbxcart [--port COM6]");
         Console.WriteLine("  smoke-test [--port COM6]");

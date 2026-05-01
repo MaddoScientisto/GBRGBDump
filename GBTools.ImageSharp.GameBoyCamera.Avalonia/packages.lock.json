@@ -257,6 +257,55 @@
         "resolved": "3.0.1",
         "contentHash": "s/s20YTVY9r9TPfTrN5g8zPF1YhwxyqO6PxUkrYTGI2B+OGPe9AdajWZrLhFqXIvqIW23fnUE4+ztrUWNU1+9g=="
       },
+      "RJCP.Core.Environment": {
+        "type": "Transitive",
+        "resolved": "0.3.1",
+        "contentHash": "/pcfOmN0EI/ob1w1XMYHwLxSbgL4yWyx7c1rhCPnR3VzTXv/NEoSbrYiovvPcyk/d7EKmysiDOU3fEJ9c02kOw=="
+      },
+      "RJCP.Core.SysCompat": {
+        "type": "Transitive",
+        "resolved": "0.2.1",
+        "contentHash": "WL4DAC8HxrxQU9Xh5Zqub7yr51rfbbJdr6piIal/3nul/mExQHmznX3grbikf8h8LI8evCdKbxwAMEnpbc0GDg=="
+      },
+      "RJCP.Diagnostics.Trace": {
+        "type": "Transitive",
+        "resolved": "0.2.2",
+        "contentHash": "n/zIpVOBUQww1EKbt3qohuI+Mrkrf6Yk6A0GgBIqBvzefR2eefwGvimAarxG4BRWjNW3pN/TYkF4vCy6/9ysfQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
+          "RJCP.Core.SysCompat": "0.2.1"
+        }
+      },
+      "RJCP.IO.Buffer": {
+        "type": "Transitive",
+        "resolved": "0.2.3",
+        "contentHash": "oICAG1EamSua+Uxfe5QBB+OI57KwAYTmn9NqFnX8FxKx4PUYcr3OyOiK0SRLGOvco+sDMZmpEOQE2PIaDmdO2g==",
+        "dependencies": {
+          "RJCP.Core.SysCompat": "0.2.1"
+        }
+      },
+      "RJCP.IO.Device": {
+        "type": "Transitive",
+        "resolved": "0.8.4",
+        "contentHash": "SXX9vwzFCU59s1CJLJLnYa6hp8O+wlrQXFZKAPNkS67zkaMo7lrgn76o8+wusLDZonQFhr8MPV8Oex2OKIpCww==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
+          "RJCP.Core.Environment": "0.3.1",
+          "RJCP.Diagnostics.Trace": "0.2.2"
+        }
+      },
+      "RJCP.SerialPortStream": {
+        "type": "Transitive",
+        "resolved": "3.0.5",
+        "contentHash": "w0JDK0MQMwgvmegjj9HbUX5SfniGCfoCXjSvNUyS6cONSQg8bNsoV49La8QrVWNvaIGRAlFZRAGNoicl9USouQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
+          "RJCP.Core.SysCompat": "0.2.1",
+          "RJCP.Diagnostics.Trace": "0.2.2",
+          "RJCP.IO.Buffer": "0.2.3",
+          "RJCP.IO.Device": "0.8.4"
+        }
+      },
       "runtime.linux-arm.runtime.native.System.IO.Ports": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -357,6 +406,7 @@
       "gbtools.gbxcart.serial": {
         "type": "Project",
         "dependencies": {
+          "RJCP.SerialPortStream": "[3.0.5, )",
           "System.IO.Ports": "[8.0.0, )",
           "System.Management": "[8.0.0, )"
         }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO.Ports;
 using System.Threading;
 using System.Threading.Tasks;
+using GBTools.GBxCart.Serial.Serial;
 
 namespace GBTools.GBxCart.Serial;
 
@@ -10,9 +10,12 @@ public sealed class GbxCartSerialClient : IDisposable
 {
     private static readonly IReadOnlyDictionary<string, byte> DeviceCommands = new Dictionary<string, byte>(StringComparer.Ordinal)
     {
+        ["QUERY_FW_INFO"] = 0xA1,
         ["OFW_CART_PWR_ON"] = 0x2F,
         ["OFW_CART_PWR_OFF"] = 0x2E,
         ["OFW_QUERY_CART_PWR"] = 0x5D,
+        ["CART_PWR_ON"] = 0xF2,
+        ["CART_PWR_OFF"] = 0xF3,
         ["SET_MODE_DMG"] = 0xA3,
         ["SET_VOLTAGE_5V"] = 0xA5,
         ["SET_VARIABLE"] = 0xA6,
@@ -33,8 +36,10 @@ public sealed class GbxCartSerialClient : IDisposable
     private readonly SemaphoreSlim _operationLock = new SemaphoreSlim(1, 1);
     private readonly GbxCartClientOptions _options;
 
-    private SerialPort? _serialPort;
-    private BufferedSerialReader? _reader;
+    private IGbxCartSerialConnection? _serialConnection;
+    private int _firmwareVersion;
+    private bool _requiresAcknowledgements;
+    private bool _dmgReady;
     private bool _disposed;
 
     public GbxCartSerialClient(GbxCartClientOptions options)
@@ -42,9 +47,9 @@ public sealed class GbxCartSerialClient : IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    public string PortName => _serialPort?.PortName ?? _options.PortName;
+    public string PortName => _serialConnection?.PortName ?? _options.PortName;
 
-    public bool IsConnected => _serialPort is { IsOpen: true };
+    public bool IsConnected => _serialConnection is { IsOpen: true };
 
     public static IReadOnlyList<GbxCartPortInfo> GetAvailablePorts() => SerialPortDiscovery.GetAvailablePorts();
 
@@ -101,18 +106,9 @@ public sealed class GbxCartSerialClient : IDisposable
                 throw new InvalidOperationException("A serial port name is required.");
             }
 
-            _serialPort = new SerialPort(_options.PortName, _options.BaudRate, Parity.None, 8, StopBits.One)
-            {
-                Handshake = Handshake.None,
-                ReadTimeout = _options.PortReadTimeoutMs,
-                WriteTimeout = _options.PortWriteTimeoutMs,
-                DtrEnable = false,
-                RtsEnable = false,
-            };
-            _serialPort.Open();
-            _serialPort.DiscardInBuffer();
-            _serialPort.DiscardOutBuffer();
-            _reader = new BufferedSerialReader(_serialPort, GbxCartProtocolConstants.MaxTransferSize);
+            _serialConnection = GbxCartSerialConnectionFactory.Create(_options);
+            _serialConnection.Open();
+            await InitializeFirmwareInfoAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -126,7 +122,7 @@ public sealed class GbxCartSerialClient : IDisposable
         await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_serialPort is null)
+            if (_serialConnection is null)
             {
                 return;
             }
@@ -141,17 +137,13 @@ public sealed class GbxCartSerialClient : IDisposable
 
             try
             {
-                if (_serialPort.IsOpen)
-                {
-                    _serialPort.Close();
-                }
+                _serialConnection.Close();
             }
             finally
             {
-                _reader?.Dispose();
-                _reader = null;
-                _serialPort.Dispose();
-                _serialPort = null;
+                _serialConnection.Dispose();
+                _serialConnection = null;
+                _dmgReady = false;
             }
         }
         finally
@@ -192,7 +184,7 @@ public sealed class GbxCartSerialClient : IDisposable
             ? await ReadGameBoyCameraSaveAsync(cancellationToken: cancellationToken).ConfigureAwait(false)
             : null;
         byte[]? romData = mode is GbxCartDumpMode.Rom or GbxCartDumpMode.SaveAndRom
-            ? await ReadGameBoyCameraRomAsync(cancellationToken: cancellationToken).ConfigureAwait(false)
+            ? await ReadGameBoyCameraRomAsync(info.RomSizeBytes, cancellationToken: cancellationToken).ConfigureAwait(false)
             : null;
 
         return new GbxCartDumpResult(info, saveData, romData);
@@ -233,28 +225,80 @@ public sealed class GbxCartSerialClient : IDisposable
         }
     }
 
+    public async Task<byte[]> ReadGameBoyCameraPhotoAlbumAsync(
+        IProgress<GbxCartTransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        byte[] album = new byte[GbxCartProtocolConstants.GameBoyCameraPhotoAlbumSizeBytes];
+        byte[] save = await ReadGameBoyCameraSaveAsync(progress, cancellationToken).ConfigureAwait(false);
+        Buffer.BlockCopy(save, 0, album, 0, save.Length);
+
+        int totalSteps = GbxCartProtocolConstants.GameBoyCameraSaveBankCount + GbxCartProtocolConstants.GameBoyCameraPhotoAlbumRomBankCount;
+        progress?.Report(new GbxCartTransferProgress(
+            "PhotoAlbum",
+            GbxCartProtocolConstants.GameBoyCameraSaveBankCount,
+            totalSteps,
+            "Read Game Boy Camera save banks."));
+
+        for (int bank = GbxCartProtocolConstants.GameBoyCameraPhotoAlbumFirstRomBank; bank < GbxCartProtocolConstants.GameBoyCameraRomBankCount; bank++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await WriteRomRegisterAsync(0x2000, bank & 0xFF, cancellationToken).ConfigureAwait(false);
+            byte[] bankBytes = await ReadRomWindowAsync(0x4000, GbxCartProtocolConstants.GameBoyCameraRomBankSize, cancellationToken).ConfigureAwait(false);
+            int albumOffset = GbxCartProtocolConstants.GameBoyCameraSaveSizeBytes
+                + ((bank - GbxCartProtocolConstants.GameBoyCameraPhotoAlbumFirstRomBank) * GbxCartProtocolConstants.GameBoyCameraRomBankSize);
+            Buffer.BlockCopy(bankBytes, 0, album, albumOffset, bankBytes.Length);
+
+            int completed = GbxCartProtocolConstants.GameBoyCameraSaveBankCount
+                + bank - GbxCartProtocolConstants.GameBoyCameraPhotoAlbumFirstRomBank + 1;
+            progress?.Report(new GbxCartTransferProgress(
+                "PhotoAlbum",
+                completed,
+                totalSteps,
+                $"Read photo album ROM bank {bank}/{GbxCartProtocolConstants.GameBoyCameraRomBankCount - 1}."));
+        }
+
+        return album;
+    }
+
     public async Task<byte[]> ReadGameBoyCameraRomAsync(
+        IProgress<GbxCartTransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        GbxCartCartridgeInfo info = await ReadCartridgeInfoAsync(cancellationToken).ConfigureAwait(false);
+        return await ReadGameBoyCameraRomAsync(info.RomSizeBytes, progress, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<byte[]> ReadGameBoyCameraRomAsync(
+        int romSizeBytes,
         IProgress<GbxCartTransferProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         await EnsureDmgReadyAsync(cancellationToken).ConfigureAwait(false);
 
+        if (romSizeBytes <= 0 || romSizeBytes % GbxCartProtocolConstants.GameBoyCameraRomBankSize != 0)
+        {
+            throw new InvalidOperationException($"Unsupported Game Boy Camera ROM size {romSizeBytes} bytes.");
+        }
+
+        int romBankCount = romSizeBytes / GbxCartProtocolConstants.GameBoyCameraRomBankSize;
+
         progress?.Report(new GbxCartTransferProgress(
             "Rom",
             0,
-            GbxCartProtocolConstants.GameBoyCameraRomBankCount,
+            romBankCount,
             "Preparing Game Boy Camera ROM dump."));
 
-        byte[] rom = new byte[GbxCartProtocolConstants.GameBoyCameraRomSizeBytes];
+        byte[] rom = new byte[romSizeBytes];
         byte[] bank0 = await ReadRomWindowAsync(0x0000, GbxCartProtocolConstants.GameBoyCameraRomBankSize, cancellationToken).ConfigureAwait(false);
         Buffer.BlockCopy(bank0, 0, rom, 0, bank0.Length);
         progress?.Report(new GbxCartTransferProgress(
             "Rom",
             1,
-            GbxCartProtocolConstants.GameBoyCameraRomBankCount,
-            $"Read ROM bank 1/{GbxCartProtocolConstants.GameBoyCameraRomBankCount}."));
+            romBankCount,
+            $"Read ROM bank 1/{romBankCount}."));
 
-        for (int bank = 1; bank < GbxCartProtocolConstants.GameBoyCameraRomBankCount; bank++)
+        for (int bank = 1; bank < romBankCount; bank++)
         {
             await WriteRomRegisterAsync(0x2000, bank & 0xFF, cancellationToken).ConfigureAwait(false);
             byte[] bankBytes = await ReadRomWindowAsync(0x4000, GbxCartProtocolConstants.GameBoyCameraRomBankSize, cancellationToken).ConfigureAwait(false);
@@ -262,8 +306,8 @@ public sealed class GbxCartSerialClient : IDisposable
             progress?.Report(new GbxCartTransferProgress(
                 "Rom",
                 bank + 1,
-                GbxCartProtocolConstants.GameBoyCameraRomBankCount,
-                $"Read ROM bank {bank + 1}/{GbxCartProtocolConstants.GameBoyCameraRomBankCount}."));
+                romBankCount,
+                $"Read ROM bank {bank + 1}/{romBankCount}."));
         }
 
         return rom;
@@ -279,13 +323,11 @@ public sealed class GbxCartSerialClient : IDisposable
         _disposed = true;
         try
         {
-            _reader?.Dispose();
-            _serialPort?.Dispose();
+            _serialConnection?.Dispose();
         }
         finally
         {
-            _reader = null;
-            _serialPort = null;
+            _serialConnection = null;
             _operationLock.Dispose();
         }
     }
@@ -297,21 +339,36 @@ public sealed class GbxCartSerialClient : IDisposable
         try
         {
             EnsureConnected();
-            await SendCommandAsync(DeviceCommands["OFW_CART_PWR_OFF"], cancellationToken).ConfigureAwait(false);
-            await Task.Delay(_options.PowerSettleDelayMs, cancellationToken).ConfigureAwait(false);
-            await SendCommandAsync(DeviceCommands["SET_MODE_DMG"], cancellationToken).ConfigureAwait(false);
-            await SendCommandAsync(DeviceCommands["SET_VOLTAGE_5V"], cancellationToken).ConfigureAwait(false);
-            await SetVariableAsync("DMG_READ_METHOD", 1, cancellationToken).ConfigureAwait(false);
-            await SetVariableAsync("CART_MODE", 1, cancellationToken).ConfigureAwait(false);
-            await SetVariableAsync("ADDRESS", 0, cancellationToken).ConfigureAwait(false);
-            await SendCommandAsync(DeviceCommands["OFW_QUERY_CART_PWR"], cancellationToken).ConfigureAwait(false);
-            byte[] powerState = await ReadExactAsync(1, cancellationToken).ConfigureAwait(false);
-            if (powerState[0] == 0)
+            if (_dmgReady)
             {
-                await SendCommandAsync(DeviceCommands["OFW_CART_PWR_ON"], cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            await SendCommandAsync(DeviceCommands["SET_MODE_DMG"], cancellationToken, waitForAcknowledgement: _requiresAcknowledgements).ConfigureAwait(false);
+            await SendCommandAsync(DeviceCommands["SET_VOLTAGE_5V"], cancellationToken, waitForAcknowledgement: _requiresAcknowledgements).ConfigureAwait(false);
+            if (_requiresAcknowledgements)
+            {
+                await SendCommandAsync(GetPowerOnCommand(), cancellationToken, waitForAcknowledgement: true).ConfigureAwait(false);
                 await Task.Delay(_options.PowerSettleDelayMs, cancellationToken).ConfigureAwait(false);
                 DiscardInputBuffer();
+                await SetVariableAsync("DMG_READ_METHOD", 1, cancellationToken).ConfigureAwait(false);
             }
+            else
+            {
+                await SendCommandAsync(DeviceCommands["OFW_QUERY_CART_PWR"], cancellationToken).ConfigureAwait(false);
+                byte[] powerState = await ReadExactAsync(1, cancellationToken).ConfigureAwait(false);
+                if (powerState[0] == 0)
+                {
+                    await SendCommandAsync(DeviceCommands["OFW_CART_PWR_ON"], cancellationToken).ConfigureAwait(false);
+                    await Task.Delay(_options.PowerSettleDelayMs, cancellationToken).ConfigureAwait(false);
+                    DiscardInputBuffer();
+                }
+
+                await SetVariableAsync("DMG_READ_METHOD", 1, cancellationToken).ConfigureAwait(false);
+                await SetVariableAsync("CART_MODE", 1, cancellationToken).ConfigureAwait(false);
+            }
+
+            _dmgReady = true;
         }
         finally
         {
@@ -326,7 +383,7 @@ public sealed class GbxCartSerialClient : IDisposable
         try
         {
             EnsureConnected();
-            return await ReadWindowCoreAsync(address, length, 1, false, cancellationToken).ConfigureAwait(false);
+            return await ReadWindowCoreAsync(address, length, 1, true, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -365,7 +422,7 @@ public sealed class GbxCartSerialClient : IDisposable
 
         while (offset < length)
         {
-            int chunkLength = Math.Min(GbxCartProtocolConstants.MaxTransferSize, length - offset);
+            int chunkLength = Math.Min(GetReadChunkSize(), length - offset);
             int chunkAddress = address + offset;
 
             if (chunkLength != configuredTransferSize)
@@ -385,7 +442,7 @@ public sealed class GbxCartSerialClient : IDisposable
                 }
             }
 
-            int contiguousChunkCount = Math.Min((length - offset) / chunkLength, (GbxCartProtocolConstants.MaxTransferSize == chunkLength ? int.MaxValue : 1));
+            int contiguousChunkCount = Math.Min((length - offset) / chunkLength, (GetReadChunkSize() == chunkLength ? int.MaxValue : 1));
             if (contiguousChunkCount == 0)
             {
                 contiguousChunkCount = 1;
@@ -497,7 +554,7 @@ public sealed class GbxCartSerialClient : IDisposable
             buffer[0] = DeviceCommands["DMG_CART_WRITE"];
             WriteBigEndian(buffer, 1, address);
             buffer[5] = unchecked((byte)value);
-            await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+            await WriteAsync(buffer, cancellationToken, waitForAcknowledgement: _requiresAcknowledgements).ConfigureAwait(false);
             if (_options.RegisterWriteDelayMs > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -526,7 +583,7 @@ public sealed class GbxCartSerialClient : IDisposable
         buffer[1] = byteWidth;
         WriteBigEndian(buffer, 2, key);
         WriteBigEndian(buffer, 6, value);
-        await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+        await WriteAsync(buffer, cancellationToken, waitForAcknowledgement: _requiresAcknowledgements).ConfigureAwait(false);
         if (_options.SetVariableDelayMs > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -534,20 +591,67 @@ public sealed class GbxCartSerialClient : IDisposable
         }
     }
 
-    private Task PowerOffAsync(CancellationToken cancellationToken) => SendCommandAsync(DeviceCommands["OFW_CART_PWR_OFF"], cancellationToken);
+    private Task PowerOffAsync(CancellationToken cancellationToken)
+        => SendCommandAsync(GetPowerOffCommand(), cancellationToken, waitForAcknowledgement: _requiresAcknowledgements);
 
-    private Task SendCommandAsync(byte command, CancellationToken cancellationToken) => WriteAsync(new[] { command }, cancellationToken);
+    private Task SendCommandAsync(byte command, CancellationToken cancellationToken, bool waitForAcknowledgement = false)
+        => WriteAsync(new[] { command }, cancellationToken, waitForAcknowledgement);
 
-    private async Task WriteAsync(byte[] buffer, CancellationToken cancellationToken)
+    private async Task WriteAsync(byte[] buffer, CancellationToken cancellationToken, bool waitForAcknowledgement = false)
     {
         EnsureConnected();
         cancellationToken.ThrowIfCancellationRequested();
-        _serialPort!.Write(buffer, 0, buffer.Length);
+        _serialConnection!.Write(buffer, 0, buffer.Length);
+        if (waitForAcknowledgement)
+        {
+            await WaitForAcknowledgementAsync(cancellationToken).ConfigureAwait(false);
+        }
         if (_options.InterCommandDelayMs > 0)
         {
             await Task.Delay(_options.InterCommandDelayMs, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    private async Task InitializeFirmwareInfoAsync(CancellationToken cancellationToken)
+    {
+        DiscardInputBuffer();
+        _requiresAcknowledgements = false;
+        _firmwareVersion = 0;
+
+        _serialConnection!.Write(new[] { DeviceCommands["QUERY_FW_INFO"] }, 0, 1);
+        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        byte[] response = ReadAvailableBytes();
+
+        if (response.Length >= 4)
+        {
+            _firmwareVersion = (response[2] << 8) | response[3];
+            _requiresAcknowledgements = _firmwareVersion >= 12;
+        }
+
+        DiscardInputBuffer();
+    }
+
+    private async Task WaitForAcknowledgementAsync(CancellationToken cancellationToken)
+    {
+        byte[] acknowledgement = await ReadExactAsync(1, cancellationToken).ConfigureAwait(false);
+        if (acknowledgement[0] != 0x01 && acknowledgement[0] != 0x03)
+        {
+            throw new InvalidOperationException($"Unexpected GBxCart acknowledgement byte 0x{acknowledgement[0]:X2} from {PortName}.");
+        }
+    }
+
+    private byte[] ReadAvailableBytes()
+    {
+        EnsureConnected();
+
+        return _serialConnection!.ReadAvailableBytes();
+    }
+
+    private byte GetPowerOnCommand() => _requiresAcknowledgements ? DeviceCommands["CART_PWR_ON"] : DeviceCommands["OFW_CART_PWR_ON"];
+
+    private byte GetPowerOffCommand() => _requiresAcknowledgements ? DeviceCommands["CART_PWR_OFF"] : DeviceCommands["OFW_CART_PWR_OFF"];
+
+    private int GetReadChunkSize() => _requiresAcknowledgements ? GbxCartProtocolConstants.LatestFirmwareTransferSize : GbxCartProtocolConstants.LegacyTransferSize;
 
     private Task<byte[]> ReadExactAsync(int count, CancellationToken cancellationToken)
     {
@@ -559,8 +663,8 @@ public sealed class GbxCartSerialClient : IDisposable
     {
         try
         {
-            return await _reader!
-                .ReadExactAsync(count, _options.CommandTimeoutMs, cancellationToken)
+            return await _serialConnection!
+                .ReadExactAsync(count, _options.CommandTimeoutMs, _options.PortReadTimeoutMs, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (TimeoutException ex)
@@ -571,15 +675,7 @@ public sealed class GbxCartSerialClient : IDisposable
 
     private void DiscardInputBuffer()
     {
-        _reader?.Clear();
-
-        try
-        {
-            _serialPort?.DiscardInBuffer();
-        }
-        catch
-        {
-        }
+        _serialConnection?.DiscardInBuffer();
     }
 
     private static void WriteBigEndian(byte[] destination, int offset, int value)
