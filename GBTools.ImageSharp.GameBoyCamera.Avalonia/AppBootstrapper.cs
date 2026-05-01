@@ -40,6 +40,7 @@ internal static class AppBootstrapper
         serviceCollection.AddSingleton<IAlbumLoadService, AlbumLoadService>();
         serviceCollection.AddSingleton<IDialogService, DialogService>();
         serviceCollection.AddSingleton<IImageExportService, ImageExportService>();
+        serviceCollection.AddSingleton<IGBxCartImportService, GbxCartImportService>();
         serviceCollection.AddSingleton<IPicNRecImportService, PicNRecImportService>();
         serviceCollection.AddSingleton<GBTools.ImageSharp.GameBoyCamera.Video.FfmpegVideoExporter>();
         serviceCollection.AddSingleton<IVideoExportService, VideoExportService>();

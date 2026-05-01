@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using GBTools.GBxCart.Serial;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Infrastructure;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
@@ -97,6 +98,20 @@ public sealed class DialogService : IDialogService
         };
 
         return dialog.ShowDialog<SmartAverageCompositionRequest?>(RequireWindow());
+    }
+
+    public Task<GbxCartImportRequest?> SelectGbxCartImportRequestAsync(
+        IReadOnlyList<GbxCartPortInfo> ports,
+        GbxCartImportRequest? initialRequest = null,
+        string? errorMessage = null)
+    {
+        GbxCartImportRequest seedRequest = initialRequest ?? CreateStoredGbxCartRequest();
+        GbxCartImportDialog dialog = new()
+        {
+            DataContext = new GbxCartImportDialogViewModel(ports, seedRequest, errorMessage),
+        };
+
+        return ShowGbxCartDialogAndPersistAsync(dialog);
     }
 
     public Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo)
@@ -236,6 +251,37 @@ public sealed class DialogService : IDialogService
         };
 
         return await dialog.ShowDialog<bool>(RequireWindow()).ConfigureAwait(true);
+    }
+
+    private GbxCartImportRequest CreateStoredGbxCartRequest()
+    {
+        GbxCartDumpMode mode = Enum.TryParse(_settings.LastGbxCartMode, ignoreCase: true, out GbxCartDumpMode parsedMode)
+            ? parsedMode
+            : GbxCartDumpMode.Save;
+
+        return new GbxCartImportRequest(
+            _settings.LastGbxCartPortName,
+            mode,
+            _settings.IgnoreDeletedPhotosForGbxCart,
+            _settings.IgnoreLastSeenPhotoForGbxCart,
+            _settings.AcceptBadDumpsForGbxCart);
+    }
+
+    private async Task<GbxCartImportRequest?> ShowGbxCartDialogAndPersistAsync(GbxCartImportDialog dialog)
+    {
+        GbxCartImportRequest? request = await dialog.ShowDialog<GbxCartImportRequest?>(RequireWindow()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return null;
+        }
+
+        _settings.LastGbxCartPortName = request.PortName;
+        _settings.LastGbxCartMode = request.Mode.ToString();
+        _settings.IgnoreDeletedPhotosForGbxCart = request.IgnoreDeletedPhotos;
+        _settings.IgnoreLastSeenPhotoForGbxCart = request.IgnoreLastSeenPhoto;
+        _settings.AcceptBadDumpsForGbxCart = request.AcceptBadDumps;
+        _settings.Save();
+        return request;
     }
 
     private string CreateSuggestedVideoFileName(string suggestedFileNameWithoutExtension)

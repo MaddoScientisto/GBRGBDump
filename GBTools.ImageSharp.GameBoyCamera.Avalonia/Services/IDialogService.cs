@@ -15,6 +15,11 @@ public interface IDialogService
 
     Task<SmartAverageCompositionRequest?> SelectRgbAverageCompositionRequestAsync(IReadOnlyList<GbcPhoto> sourcePhotos);
 
+    Task<GbxCartImportRequest?> SelectGbxCartImportRequestAsync(
+        IReadOnlyList<GBTools.GBxCart.Serial.GbxCartPortInfo> ports,
+        GbxCartImportRequest? initialRequest = null,
+        string? errorMessage = null);
+
     Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo);
 
     Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension);

@@ -22,6 +22,36 @@ public sealed class AppSettingsService : IAppSettingsService
         set => _state.LastVideoExportPath = value;
     }
 
+    public string? LastGbxCartPortName
+    {
+        get => _state.LastGbxCartPortName;
+        set => _state.LastGbxCartPortName = value;
+    }
+
+    public string? LastGbxCartMode
+    {
+        get => _state.LastGbxCartMode;
+        set => _state.LastGbxCartMode = value;
+    }
+
+    public bool IgnoreDeletedPhotosForGbxCart
+    {
+        get => _state.IgnoreDeletedPhotosForGbxCart;
+        set => _state.IgnoreDeletedPhotosForGbxCart = value;
+    }
+
+    public bool IgnoreLastSeenPhotoForGbxCart
+    {
+        get => _state.IgnoreLastSeenPhotoForGbxCart;
+        set => _state.IgnoreLastSeenPhotoForGbxCart = value;
+    }
+
+    public bool AcceptBadDumpsForGbxCart
+    {
+        get => _state.AcceptBadDumpsForGbxCart;
+        set => _state.AcceptBadDumpsForGbxCart = value;
+    }
+
     public void Save()
     {
         try
@@ -67,5 +97,15 @@ public sealed class AppSettingsService : IAppSettingsService
     private sealed class AppSettingsState
     {
         public string? LastVideoExportPath { get; set; }
+
+        public string? LastGbxCartPortName { get; set; }
+
+        public string? LastGbxCartMode { get; set; } = GBTools.GBxCart.Serial.GbxCartDumpMode.Save.ToString();
+
+        public bool IgnoreDeletedPhotosForGbxCart { get; set; } = true;
+
+        public bool IgnoreLastSeenPhotoForGbxCart { get; set; }
+
+        public bool AcceptBadDumpsForGbxCart { get; set; }
     }
 }

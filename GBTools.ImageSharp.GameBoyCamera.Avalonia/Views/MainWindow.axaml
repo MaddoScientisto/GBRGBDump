@@ -21,6 +21,8 @@
                               Command="{Binding LoadImagesCommand}" />
                     <MenuItem Header="From PicNRec..."
                               Command="{Binding DownloadPicNRecCommand}" />
+                    <MenuItem Header="From GBxCart..."
+                              Command="{Binding DownloadGbxCartCommand}" />
                 </MenuItem>
                 <MenuItem Header="Export">
                     <MenuItem Header="Export Selected..."
@@ -261,7 +263,7 @@
                                     BorderThickness="1"
                                     CornerRadius="10"
                                     Padding="10">
-                                <Image Source="{Binding SelectedPhoto.PreviewBitmap}"
+                                <Image Source="{Binding SelectedPhotoPreviewBitmap}"
                                         RenderOptions.BitmapInterpolationMode="None"
                                        MaxHeight="360"
                                        Stretch="Uniform" />
@@ -271,7 +273,7 @@
                                        FontSize="16"
                                        FontWeight="SemiBold" />
 
-                            <ItemsControl ItemsSource="{Binding SelectedPhoto.MetadataEntries}">
+                            <ItemsControl ItemsSource="{Binding SelectedPhotoMetadataEntries}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:MetadataEntry">
                                         <Grid ColumnDefinitions="150,*" Margin="0,0,0,8">

@@ -84,7 +84,12 @@ public static class GameBoyCameraCompatibility
             ? photos
             : photos.OrderBy(static photo => photo.Metadata?.AlbumIndex ?? int.MaxValue).ToArray();
 
-        string? romType = orderedPhotos.Select(static photo => photo.Metadata?.RomType).Where(static value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).SingleOrDefault();
+        string[] romTypes = orderedPhotos
+            .Select(static photo => photo.Metadata?.RomType)
+            .OfType<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        string? romType = romTypes.Length == 1 ? romTypes[0] : null;
         GameBoyCameraAlbumMetadata albumMetadata = new(
             options.SourceKind,
             romType,

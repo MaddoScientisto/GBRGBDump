@@ -2,8 +2,10 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GBTools.GBxCart.Serial;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Services;
 using GBTools.ImageSharp.GameBoyCamera.Composition;
@@ -30,6 +32,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAlbumLoadService _albumLoadService;
     private readonly IBitmapFactory _bitmapFactory;
     private readonly IDialogService _dialogService;
+    private readonly IGBxCartImportService _gbxCartImportService;
     private readonly IImageExportService _imageExportService;
     private readonly IPicNRecImportService _picNRecImportService;
     private readonly IVideoExportService _videoExportService;
@@ -83,6 +86,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         IAlbumLoadService albumLoadService,
         IBitmapFactory bitmapFactory,
         IDialogService dialogService,
+        IGBxCartImportService gbxCartImportService,
         IImageExportService imageExportService,
         IPicNRecImportService picNRecImportService,
         IVideoExportService videoExportService,
@@ -91,6 +95,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         _albumLoadService = albumLoadService;
         _bitmapFactory = bitmapFactory;
         _dialogService = dialogService;
+        _gbxCartImportService = gbxCartImportService;
         _imageExportService = imageExportService;
         _picNRecImportService = picNRecImportService;
         _videoExportService = videoExportService;
@@ -99,6 +104,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         Photos = [];
         VisiblePhotos = [];
         LoadImagesCommand = new AsyncRelayCommand(LoadImagesAsync, CanRunCommands);
+        DownloadGbxCartCommand = new AsyncRelayCommand(DownloadGbxCartAsync, CanRunCommands);
         DownloadPicNRecCommand = new AsyncRelayCommand(DownloadPicNRecAsync, CanRunCommands);
         CancelOperationCommand = new RelayCommand(CancelOperation, () => CanCancelOperation);
         ExportSelectedCommand = new AsyncRelayCommand(ExportSelectedAsync, CanExportSelected);
@@ -120,6 +126,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public ObservableCollection<PhotoItemViewModel> VisiblePhotos { get; }
 
     public IAsyncRelayCommand LoadImagesCommand { get; }
+
+    public IAsyncRelayCommand DownloadGbxCartCommand { get; }
 
     public IAsyncRelayCommand DownloadPicNRecCommand { get; }
 
@@ -172,6 +180,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string ToggleSelectAllButtonText => HasSelectedPhotos ? "Deselect All" : "Select All";
 
     public string SelectedPhotoTitle => SelectedPhoto?.Title ?? "Nothing selected.";
+
+    public Bitmap? SelectedPhotoPreviewBitmap => SelectedPhoto is null ? null : SelectedPhoto.PreviewBitmap;
+
+    public IReadOnlyList<MetadataEntry> SelectedPhotoMetadataEntries => SelectedPhoto?.MetadataEntries ?? [];
 
     public int CurrentPageNumber => HasPhotos ? _currentPageIndex + 1 : 1;
 
@@ -226,6 +238,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(IsSelectionEmpty));
         OnPropertyChanged(nameof(SelectedPhotoTitle));
+        OnPropertyChanged(nameof(SelectedPhotoPreviewBitmap));
+        OnPropertyChanged(nameof(SelectedPhotoMetadataEntries));
         PreviousSelectedPhotoCommand.NotifyCanExecuteChanged();
         NextSelectedPhotoCommand.NotifyCanExecuteChanged();
     }
@@ -238,6 +252,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsBusyChanged(bool value)
     {
         LoadImagesCommand.NotifyCanExecuteChanged();
+        DownloadGbxCartCommand.NotifyCanExecuteChanged();
         DownloadPicNRecCommand.NotifyCanExecuteChanged();
         CancelOperationCommand.NotifyCanExecuteChanged();
         ExportSelectedCommand.NotifyCanExecuteChanged();
@@ -470,6 +485,85 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private async Task DownloadGbxCartAsync()
+    {
+        GbxCartImportRequest? previousRequest = null;
+        string? retryErrorMessage = null;
+
+        while (true)
+        {
+            IReadOnlyList<GbxCartPortInfo> ports = _gbxCartImportService.GetAvailablePorts();
+            GbxCartImportRequest? request = await _dialogService
+                .SelectGbxCartImportRequestAsync(ports, previousRequest, retryErrorMessage)
+                .ConfigureAwait(true);
+            if (request is null)
+            {
+                if (!string.IsNullOrWhiteSpace(retryErrorMessage))
+                {
+                    ErrorMessage = retryErrorMessage;
+                }
+
+                return;
+            }
+
+            previousRequest = request;
+
+            try
+            {
+                CancellationTokenSource operationCancellation = BeginCancellableOperation();
+                IsBusy = true;
+                IsLoadingPhotos = true;
+                ErrorMessage = string.Empty;
+                OperationLogText = string.Empty;
+                OperationProgressMaximum = 1;
+                OperationProgressValue = 0;
+                OperationProgressText = "Preparing GBxCart import...";
+                AppendOperationLog(OperationProgressText);
+
+                Progress<GbxCartImportProgress> progress = new(UpdateGbxCartProgress);
+                GbxCartImportResult importResult = await _gbxCartImportService
+                    .ImportAsync(request, progress, operationCancellation.Token)
+                    .ConfigureAwait(true);
+                OperationProgressValue = OperationProgressMaximum;
+                OperationProgressText = $"Imported {request.Mode} data from {importResult.PortName}.";
+                AppendOperationLog(OperationProgressText);
+
+                ReplacePhotos(importResult.Album.Photos);
+                SourceSummary = $"Imported {Photos.Count} image(s) from GBxCart on {importResult.PortName} using {request.Mode}.";
+                retryErrorMessage = null;
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                ErrorMessage = string.Empty;
+                SourceSummary = "GBxCart import canceled.";
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to import images from GBxCart.");
+                retryErrorMessage = FormatUserVisibleException(ex);
+                ErrorMessage = retryErrorMessage;
+                AppendOperationLog($"ERROR: {retryErrorMessage}");
+            }
+            finally
+            {
+                IsLoadingPhotos = false;
+                IsBusy = false;
+                OperationProgressText = string.Empty;
+                EndCancellableOperation();
+            }
+        }
+    }
+
+    private void UpdateGbxCartProgress(GbxCartImportProgress progress)
+    {
+        OperationProgressMaximum = Math.Max(1, progress.TotalSteps);
+        OperationProgressValue = Math.Clamp(progress.CompletedSteps, 0, progress.TotalSteps);
+        OperationProgressText = progress.Message;
+        AppendOperationLog(progress.Message);
+    }
+
     private void UpdatePicNRecDiscoveryProgress(PicNRecDiscoveryProgress progress)
     {
         OperationProgressText = progress.Message;
@@ -539,7 +633,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void CancelOperation()
     {
-        OperationProgressText = "Canceling PicNRec operation...";
+        OperationProgressText = "Canceling current operation...";
         _operationCancellation?.Cancel();
         OnPropertyChanged(nameof(CanCancelOperation));
         CancelOperationCommand.NotifyCanExecuteChanged();
