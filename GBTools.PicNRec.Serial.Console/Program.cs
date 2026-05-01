@@ -524,7 +524,7 @@ internal static class ProgramEntry
         catch (Exception error)
         {
             LogWarning($"{(connectInFastMode ? "Fast-mode" : "Normal-mode")} probe failed for {portName} on attempt {attempt}.", error);
-            await DisconnectClientAsync(candidate);
+            candidate.Dispose();
             return new ProbePortResult(null, openedPort);
         }
     }

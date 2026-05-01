@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +34,8 @@ public sealed class PicNRecSerialClient : IDisposable
     public static string[] GetAvailablePortNames()
     {
         return SerialPort.GetPortNames()
-            .OrderBy(static portName => portName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static portName => GetPortPriority(portName))
+            .ThenBy(static portName => portName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 
@@ -248,6 +251,37 @@ public sealed class PicNRecSerialClient : IDisposable
         _disposed = true;
         ClosePort();
         _operationLock.Dispose();
+    }
+
+    private static int GetPortPriority(string portName)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return 0;
+        }
+
+        var deviceName = Path.GetFileName(portName);
+        if (deviceName.StartsWith("ttyUSB", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (deviceName.StartsWith("ttyAMA", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        if (deviceName.StartsWith("ttyS", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (deviceName.StartsWith("ttyACM", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        return 4;
     }
 
     private void OpenPort(string portName, int baudRate)
