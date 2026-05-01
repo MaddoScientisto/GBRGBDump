@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -16,7 +17,8 @@ internal static class SerialPortDiscovery
     public static IReadOnlyList<GbxCartPortInfo> GetAvailablePorts()
     {
         string[] portNames = SerialPort.GetPortNames()
-            .OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static portName => GetPortPriority(portName))
+            .ThenBy(static value => value, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (portNames.Length == 0)
@@ -70,8 +72,40 @@ internal static class SerialPortDiscovery
 
         return portsByName.Values
             .OrderByDescending(static port => port.IsKnownUsbBridge)
+            .ThenBy(static port => GetPortPriority(port.PortName))
             .ThenBy(static port => port.PortName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static int GetPortPriority(string portName)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return 0;
+        }
+
+        string deviceName = Path.GetFileName(portName);
+        if (deviceName.StartsWith("ttyUSB", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (deviceName.StartsWith("ttyAMA", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        if (deviceName.StartsWith("ttyS", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (deviceName.StartsWith("ttyACM", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        return 4;
     }
 
     private static string? ExtractPortName(string? value)

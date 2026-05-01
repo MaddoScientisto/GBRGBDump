@@ -71,10 +71,12 @@ public sealed class GbxCartSerialClient : IDisposable
     public static async Task<GbxCartProbeResult?> TryProbeAsync(string portName, CancellationToken cancellationToken = default)
     {
         using GbxCartSerialClient client = new(new GbxCartClientOptions { PortName = portName });
+        bool probeSucceeded = false;
         try
         {
             await client.ConnectAsync(cancellationToken).ConfigureAwait(false);
             GbxCartCartridgeInfo info = await client.ReadCartridgeInfoAsync(cancellationToken).ConfigureAwait(false);
+            probeSucceeded = true;
             return new GbxCartProbeResult(portName, info);
         }
         catch
@@ -85,7 +87,14 @@ public sealed class GbxCartSerialClient : IDisposable
         {
             if (client.IsConnected)
             {
-                await client.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+                if (probeSucceeded)
+                {
+                    await client.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    client.Dispose();
+                }
             }
         }
     }
