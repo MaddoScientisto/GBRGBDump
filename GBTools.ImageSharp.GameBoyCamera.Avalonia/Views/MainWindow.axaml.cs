@@ -37,10 +37,6 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainWindowViewModel.OperationLogText))
-        {
-            Dispatcher.UIThread.Post(OperationLogScrollViewer.ScrollToEnd, DispatcherPriority.Background);
-        }
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)

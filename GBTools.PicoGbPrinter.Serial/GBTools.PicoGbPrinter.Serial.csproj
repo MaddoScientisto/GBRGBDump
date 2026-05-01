@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <AssemblyName>GBTools.PicoGbPrinter.Serial</AssemblyName>
+    <RootNamespace>GBTools.PicoGbPrinter.Serial</RootNamespace>
+    <PackageId>GBTools.PicoGbPrinter.Serial</PackageId>
+    <Title>GBTools.PicoGbPrinter.Serial</Title>
+    <Description>Pico GB Printer USB serial capture client library for GBRGBDump tools.</Description>
+    <Authors>GBRGBDump</Authors>
+    <PackageTags>pico;serial;gameboy;printer;gbtools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+</Project>

@@ -8,6 +8,10 @@ public interface IAppSettingsService
 
     string? LastGbxCartMode { get; set; }
 
+    string? LastPicoGbPrinterPortName { get; set; }
+
+    string? LastPicoGbPrinterMode { get; set; }
+
     bool IgnoreDeletedPhotosForGbxCart { get; set; }
 
     bool IgnoreLastSeenPhotoForGbxCart { get; set; }

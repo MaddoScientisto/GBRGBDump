@@ -30,6 +30,16 @@ public sealed class AlbumLoadService : IAlbumLoadService
         return Task.Run(() => Load(path), cancellationToken);
     }
 
+    public Task<LoadedAlbumResult> LoadPicoGbPrinterCaptureAsync(
+        byte[] captureData,
+        string captureName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(captureData);
+        ArgumentException.ThrowIfNullOrWhiteSpace(captureName);
+        return Task.Run(() => LoadPicoGbPrinterCapture(captureData, captureName), cancellationToken);
+    }
+
     private LoadedAlbumResult Load(string path)
     {
         using FileStream stream = File.OpenRead(path);
@@ -64,6 +74,25 @@ public sealed class AlbumLoadService : IAlbumLoadService
             .ToArray();
 
         return new LoadedAlbumResult(detectedSourceKind, photos);
+    }
+
+    private LoadedAlbumResult LoadPicoGbPrinterCapture(byte[] captureData, string captureName)
+    {
+        _logger.LogInformation("Loading in-memory Pico GB Printer capture {CaptureName} ({ByteCount} bytes).", captureName, captureData.Length);
+
+        using MemoryStream stream = new(captureData, writable: false);
+        GbcAlbum album = LoadPicoGbPrinterPacketAlbum(stream);
+        string created = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss:fff", CultureInfo.InvariantCulture);
+
+        IReadOnlyList<LoadedPhotoInfo> photos = album.Photos
+            .Select((photo, index) => new LoadedPhotoInfo(
+                $"{captureName} {index + 1:D2}",
+                created,
+                photo,
+                PhotoMetadataEntryBuilder.Build(photo, album.Metadata, index, "Pico GB Printer")))
+            .ToArray();
+
+        return new LoadedAlbumResult(GameBoyCameraSourceKind.PicoGbPrinterPacket, photos);
     }
 
     private static GbcAlbum LoadCanonicalAlbum(Stream stream)

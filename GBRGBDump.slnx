@@ -6,11 +6,13 @@
   </Configurations>
   <Folder Name="/Console/">
     <Project Path="GBTools.GBxCart.Serial.Console/GBTools.GBxCart.Serial.Console.csproj" />
+    <Project Path="GBTools.PicoGbPrinter.Serial.Console/GBTools.PicoGbPrinter.Serial.Console.csproj" />
     <Project Path="GBTools.PicNRec.Serial.Console/GBTools.PicNRec.Serial.Console.csproj" />
     <Project Path="GBRGBDump/GBRGBDump.csproj" />
   </Folder>
   <Folder Name="/Core/">
     <Project Path="GBTools.GBxCart.Serial/GBTools.GBxCart.Serial.csproj" />
+    <Project Path="GBTools.PicoGbPrinter.Serial/GBTools.PicoGbPrinter.Serial.csproj" />
     <Project Path="GBTools.PicNRec.Serial/GBTools.PicNRec.Serial.csproj" />
     <Project Path="GBTools.Bootstrapper/GBTools.Bootstrapper.csproj" />
     <Project Path="GBTools.Common/GBTools.Common.csproj" />

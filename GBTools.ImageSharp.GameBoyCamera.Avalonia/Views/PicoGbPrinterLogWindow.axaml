@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels"
+        x:Class="GBTools.ImageSharp.GameBoyCamera.Avalonia.Views.PicoGbPrinterLogWindow"
+        x:DataType="vm:PicoGbPrinterLogWindowViewModel"
+        Width="840"
+        Height="460"
+        MinWidth="640"
+        MinHeight="320"
+        Title="Pico GB Printer Serial Output">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+        <StackPanel Spacing="6">
+            <TextBlock Text="Pico GB Printer serial monitor"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="{Binding StatusText}"
+                       TextWrapping="Wrap"
+                       Opacity="0.82" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,12"
+                Padding="10"
+                Background="#111111"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="8">
+            <ScrollViewer x:Name="ConsoleScrollViewer">
+                <SelectableTextBlock Text="{Binding ConsoleOutput}"
+                                     FontFamily="Consolas"
+                                     FontSize="12"
+                                     TextWrapping="Wrap" />
+            </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Stop Capture"
+                Command="{Binding StopCommand}"
+                MinWidth="110" />
+            <Button Content="Clear"
+                    Command="{Binding ClearCommand}"
+                    MinWidth="90" />
+            <Button Content="Close"
+                    Command="{Binding CloseCommand}"
+                    MinWidth="90" />
+        </StackPanel>
+    </Grid>
+</Window>

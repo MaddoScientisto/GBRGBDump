@@ -21,6 +21,8 @@
                               Command="{Binding LoadImagesCommand}" />
                     <MenuItem Header="From PicNRec..."
                               Command="{Binding DownloadPicNRecCommand}" />
+                    <MenuItem Header="From Pico GB Serial..."
+                              Command="{Binding DownloadPicoGbPrinterCommand}" />
                     <MenuItem Header="From GBxCart..."
                               Command="{Binding DownloadGbxCartCommand}" />
                 </MenuItem>
@@ -149,28 +151,10 @@
                                  Minimum="0"
                                  Maximum="{Binding OperationProgressMaximum}"
                                  Value="{Binding OperationProgressValue}" />
-                            <TextBlock Text="{Binding OperationProgressText}"
-                                   HorizontalAlignment="Center"
-                                   TextWrapping="Wrap" />
                             <Button Content="Cancel"
                                 Command="{Binding CancelOperationCommand}"
                                 IsVisible="{Binding CanCancelOperation}"
                                 MinWidth="100" />
-                            <Border Background="#AA000000"
-                                BorderBrush="#33FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="8"
-                                IsVisible="{Binding HasOperationLog}">
-                                <ScrollViewer x:Name="OperationLogScrollViewer"
-                                              Width="520"
-                                      Height="180">
-                                <TextBlock Text="{Binding OperationLogText}"
-                                       FontFamily="Consolas"
-                                       FontSize="12"
-                                       TextWrapping="Wrap" />
-                            </ScrollViewer>
-                            </Border>
                         </StackPanel>
                     </Border>
                 </Grid>

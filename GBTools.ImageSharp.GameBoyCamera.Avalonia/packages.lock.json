@@ -428,6 +428,12 @@
         "dependencies": {
           "System.IO.Ports": "[8.0.0, )"
         }
+      },
+      "gbtools.picogbprinter.serial": {
+        "type": "Project",
+        "dependencies": {
+          "System.IO.Ports": "[8.0.0, )"
+        }
       }
     }
   }

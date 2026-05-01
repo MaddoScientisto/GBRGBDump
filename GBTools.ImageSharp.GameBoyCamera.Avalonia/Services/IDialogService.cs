@@ -1,4 +1,5 @@
 using GBTools.ImageSharp.GameBoyCamera.Avalonia.Models;
+using GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
 using GBTools.ImageSharp.GameBoyCamera.Model;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.Services;
@@ -20,7 +21,14 @@ public interface IDialogService
         GbxCartImportRequest? initialRequest = null,
         string? errorMessage = null);
 
+    Task<PicoGbPrinterImportRequest?> SelectPicoGbPrinterImportRequestAsync(
+        IReadOnlyList<string> ports,
+        PicoGbPrinterImportRequest? initialRequest = null,
+        string? errorMessage = null);
+
     Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo);
+
+    PicoGbPrinterLogWindowViewModel ShowPicoGbPrinterLogWindow(string title);
 
     Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension);
 

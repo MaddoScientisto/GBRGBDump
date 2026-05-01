@@ -21,6 +21,7 @@ public sealed class DialogService : IDialogService
     private readonly IBitmapFactory _bitmapFactory;
     private readonly IPicNRecImportService _picNRecImportService;
     private readonly IAppSettingsService _settings;
+    private PicoGbPrinterLogWindow? _picoGbPrinterLogWindow;
 
     public DialogService(
         MainWindowProvider mainWindowProvider,
@@ -114,6 +115,20 @@ public sealed class DialogService : IDialogService
         return ShowGbxCartDialogAndPersistAsync(dialog);
     }
 
+    public Task<PicoGbPrinterImportRequest?> SelectPicoGbPrinterImportRequestAsync(
+        IReadOnlyList<string> ports,
+        PicoGbPrinterImportRequest? initialRequest = null,
+        string? errorMessage = null)
+    {
+        PicoGbPrinterImportRequest seedRequest = initialRequest ?? CreateStoredPicoGbPrinterRequest();
+        PicoGbPrinterImportDialog dialog = new()
+        {
+            DataContext = new PicoGbPrinterImportDialogViewModel(ports, seedRequest, errorMessage),
+        };
+
+        return ShowPicoGbPrinterDialogAndPersistAsync(dialog);
+    }
+
     public Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo)
     {
         PicNRecRangeDialog dialog = new()
@@ -122,6 +137,36 @@ public sealed class DialogService : IDialogService
         };
 
         return dialog.ShowDialog<PicNRecDownloadRequest?>(RequireWindow());
+    }
+
+    public PicoGbPrinterLogWindowViewModel ShowPicoGbPrinterLogWindow(string title)
+    {
+        if (_picoGbPrinterLogWindow?.DataContext is PicoGbPrinterLogWindowViewModel existingViewModel)
+        {
+            existingViewModel.Reset(title);
+            _picoGbPrinterLogWindow.Title = title;
+            _picoGbPrinterLogWindow.Activate();
+            return existingViewModel;
+        }
+
+        PicoGbPrinterLogWindowViewModel viewModel = new(title);
+        PicoGbPrinterLogWindow window = new()
+        {
+            DataContext = viewModel,
+            Title = title,
+        };
+
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_picoGbPrinterLogWindow, window))
+            {
+                _picoGbPrinterLogWindow = null;
+            }
+        };
+
+        _picoGbPrinterLogWindow = window;
+        window.Show(RequireWindow());
+        return viewModel;
     }
 
     public async Task<string?> SaveExportFileAsync(ExportFormat format, string suggestedFileNameWithoutExtension)
@@ -267,6 +312,15 @@ public sealed class DialogService : IDialogService
             _settings.AcceptBadDumpsForGbxCart);
     }
 
+    private PicoGbPrinterImportRequest CreateStoredPicoGbPrinterRequest()
+    {
+        PicoGbPrinterImportMode mode = Enum.TryParse(_settings.LastPicoGbPrinterMode, ignoreCase: true, out PicoGbPrinterImportMode parsedMode)
+            ? parsedMode
+            : PicoGbPrinterImportMode.WaitForNextCapture;
+
+        return new PicoGbPrinterImportRequest(_settings.LastPicoGbPrinterPortName, mode);
+    }
+
     private async Task<GbxCartImportRequest?> ShowGbxCartDialogAndPersistAsync(GbxCartImportDialog dialog)
     {
         GbxCartImportRequest? request = await dialog.ShowDialog<GbxCartImportRequest?>(RequireWindow()).ConfigureAwait(true);
@@ -280,6 +334,20 @@ public sealed class DialogService : IDialogService
         _settings.IgnoreDeletedPhotosForGbxCart = request.IgnoreDeletedPhotos;
         _settings.IgnoreLastSeenPhotoForGbxCart = request.IgnoreLastSeenPhoto;
         _settings.AcceptBadDumpsForGbxCart = request.AcceptBadDumps;
+        _settings.Save();
+        return request;
+    }
+
+    private async Task<PicoGbPrinterImportRequest?> ShowPicoGbPrinterDialogAndPersistAsync(PicoGbPrinterImportDialog dialog)
+    {
+        PicoGbPrinterImportRequest? request = await dialog.ShowDialog<PicoGbPrinterImportRequest?>(RequireWindow()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return null;
+        }
+
+        _settings.LastPicoGbPrinterPortName = request.PortName;
+        _settings.LastPicoGbPrinterMode = request.Mode.ToString();
         _settings.Save();
         return request;
     }

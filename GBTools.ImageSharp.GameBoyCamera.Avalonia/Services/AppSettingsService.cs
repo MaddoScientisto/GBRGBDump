@@ -34,6 +34,18 @@ public sealed class AppSettingsService : IAppSettingsService
         set => _state.LastGbxCartMode = value;
     }
 
+    public string? LastPicoGbPrinterPortName
+    {
+        get => _state.LastPicoGbPrinterPortName;
+        set => _state.LastPicoGbPrinterPortName = value;
+    }
+
+    public string? LastPicoGbPrinterMode
+    {
+        get => _state.LastPicoGbPrinterMode;
+        set => _state.LastPicoGbPrinterMode = value;
+    }
+
     public bool IgnoreDeletedPhotosForGbxCart
     {
         get => _state.IgnoreDeletedPhotosForGbxCart;
@@ -101,6 +113,10 @@ public sealed class AppSettingsService : IAppSettingsService
         public string? LastGbxCartPortName { get; set; }
 
         public string? LastGbxCartMode { get; set; } = GBTools.GBxCart.Serial.GbxCartDumpMode.Save.ToString();
+
+        public string? LastPicoGbPrinterPortName { get; set; }
+
+        public string? LastPicoGbPrinterMode { get; set; } = Models.PicoGbPrinterImportMode.WaitForNextCapture.ToString();
 
         public bool IgnoreDeletedPhotosForGbxCart { get; set; } = true;
 

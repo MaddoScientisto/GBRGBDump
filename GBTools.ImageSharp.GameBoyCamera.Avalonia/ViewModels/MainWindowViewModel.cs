@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IGBxCartImportService _gbxCartImportService;
     private readonly IImageExportService _imageExportService;
+    private readonly IPicoGbPrinterImportService _picoGbPrinterImportService;
     private readonly IPicNRecImportService _picNRecImportService;
     private readonly IVideoExportService _videoExportService;
     private readonly ILogger<MainWindowViewModel> _logger;
@@ -88,6 +89,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         IDialogService dialogService,
         IGBxCartImportService gbxCartImportService,
         IImageExportService imageExportService,
+        IPicoGbPrinterImportService picoGbPrinterImportService,
         IPicNRecImportService picNRecImportService,
         IVideoExportService videoExportService,
         ILogger<MainWindowViewModel> logger)
@@ -97,6 +99,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dialogService = dialogService;
         _gbxCartImportService = gbxCartImportService;
         _imageExportService = imageExportService;
+        _picoGbPrinterImportService = picoGbPrinterImportService;
         _picNRecImportService = picNRecImportService;
         _videoExportService = videoExportService;
         _logger = logger;
@@ -105,6 +108,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         VisiblePhotos = [];
         LoadImagesCommand = new AsyncRelayCommand(LoadImagesAsync, CanRunCommands);
         DownloadGbxCartCommand = new AsyncRelayCommand(DownloadGbxCartAsync, CanRunCommands);
+        DownloadPicoGbPrinterCommand = new AsyncRelayCommand(DownloadPicoGbPrinterAsync, CanRunCommands);
         DownloadPicNRecCommand = new AsyncRelayCommand(DownloadPicNRecAsync, CanRunCommands);
         CancelOperationCommand = new RelayCommand(CancelOperation, () => CanCancelOperation);
         ExportSelectedCommand = new AsyncRelayCommand(ExportSelectedAsync, CanExportSelected);
@@ -128,6 +132,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public IAsyncRelayCommand LoadImagesCommand { get; }
 
     public IAsyncRelayCommand DownloadGbxCartCommand { get; }
+
+    public IAsyncRelayCommand DownloadPicoGbPrinterCommand { get; }
 
     public IAsyncRelayCommand DownloadPicNRecCommand { get; }
 
@@ -253,6 +259,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         LoadImagesCommand.NotifyCanExecuteChanged();
         DownloadGbxCartCommand.NotifyCanExecuteChanged();
+        DownloadPicoGbPrinterCommand.NotifyCanExecuteChanged();
         DownloadPicNRecCommand.NotifyCanExecuteChanged();
         CancelOperationCommand.NotifyCanExecuteChanged();
         ExportSelectedCommand.NotifyCanExecuteChanged();
@@ -448,15 +455,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             Progress<PicNRecDownloadProgress> progress = new(progress => UpdatePicNRecProgress(progress, downloadedPhotos));
             LoadedAlbumResult loadedAlbum = await _picNRecImportService.DownloadImagesAsync(request, progress, operationCancellation.Token).ConfigureAwait(true);
-            ReplacePhotos(loadedAlbum.Photos);
-            SourceSummary = $"Downloaded {Photos.Count} image(s) from PicNRec images {request.StartImageNumber} to {request.EndImageNumber}.";
+            AppendLoadedPhotos(loadedAlbum.Photos);
+            SourceSummary = $"Added {loadedAlbum.Photos.Count} image(s) from PicNRec images {request.StartImageNumber} to {request.EndImageNumber}. Gallery now has {Photos.Count} image(s).";
         }
         catch (OperationCanceledException)
         {
             if (downloadedPhotos.Count > 0)
             {
-                ReplacePhotos(downloadedPhotos);
-                SourceSummary = $"PicNRec operation canceled. Showing {downloadedPhotos.Count} downloaded image(s).";
+                AppendLoadedPhotos(downloadedPhotos);
+                SourceSummary = $"PicNRec operation canceled after adding {downloadedPhotos.Count} image(s). Gallery now has {Photos.Count} image(s).";
             }
             else
             {
@@ -467,14 +474,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex)
         {
-            if (request is not null)
-            {
-                ClearPhotos();
-            }
-
             _logger.LogError(ex, "Failed to download images from PicNRec.");
             ErrorMessage = FormatUserVisibleException(ex);
-            SourceSummary = request is null ? SourceSummary : "No file loaded.";
+            SourceSummary = request is null ? SourceSummary : SourceSummary;
         }
         finally
         {
@@ -528,8 +530,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 OperationProgressText = $"Imported {request.Mode} data from {importResult.PortName}.";
                 AppendOperationLog(OperationProgressText);
 
-                ReplacePhotos(importResult.Album.Photos);
-                SourceSummary = $"Imported {Photos.Count} image(s) from GBxCart on {importResult.PortName} using {request.Mode}.";
+                AppendLoadedPhotos(importResult.Album.Photos);
+                SourceSummary = $"Added {importResult.Album.Photos.Count} image(s) from GBxCart on {importResult.PortName} using {request.Mode}. Gallery now has {Photos.Count} image(s).";
                 retryErrorMessage = null;
                 return;
             }
@@ -556,12 +558,128 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private async Task DownloadPicoGbPrinterAsync()
+    {
+        PicoGbPrinterImportRequest? previousRequest = null;
+        string? retryErrorMessage = null;
+
+        while (true)
+        {
+            IReadOnlyList<string> ports = _picoGbPrinterImportService.GetAvailablePorts();
+            PicoGbPrinterImportRequest? request = await _dialogService
+                .SelectPicoGbPrinterImportRequestAsync(ports, previousRequest, retryErrorMessage)
+                .ConfigureAwait(true);
+            if (request is null)
+            {
+                if (!string.IsNullOrWhiteSpace(retryErrorMessage))
+                {
+                    ErrorMessage = retryErrorMessage;
+                }
+
+                return;
+            }
+
+            previousRequest = request;
+            string windowTitle = request.Mode == PicoGbPrinterImportMode.LoadLastCapture
+                ? "Pico GB Printer Serial Output - Replay"
+                : "Pico GB Printer Serial Output - Live Capture";
+            PicoGbPrinterLogWindowViewModel logWindow = _dialogService.ShowPicoGbPrinterLogWindow(windowTitle);
+            var stopRequested = false;
+            void HandleStopRequested() => stopRequested = true;
+            logWindow.StopRequested += HandleStopRequested;
+
+            try
+            {
+                CancellationTokenSource operationCancellation = BeginCancellableOperation();
+                bool galleryUpdatedFromProgress = false;
+                IsBusy = true;
+                IsLoadingPhotos = true;
+                ErrorMessage = string.Empty;
+                OperationLogText = string.Empty;
+                OperationProgressMaximum = 1;
+                OperationProgressValue = 0;
+                OperationProgressText = "Preparing Pico GB Printer import...";
+                AppendOperationLog(OperationProgressText);
+                logWindow.AppendLine(OperationProgressText);
+                logWindow.SetStatus(OperationProgressText);
+
+                Progress<PicoGbPrinterImportProgress> progress = new(progress => UpdatePicoGbPrinterProgress(progress, logWindow, ref galleryUpdatedFromProgress));
+                PicoGbPrinterImportResult importResult = await _picoGbPrinterImportService
+                    .ImportAsync(request, progress, () => stopRequested, operationCancellation.Token)
+                    .ConfigureAwait(true);
+
+                OperationProgressValue = OperationProgressMaximum;
+                OperationProgressText = request.Mode == PicoGbPrinterImportMode.LoadLastCapture
+                    ? $"Loaded {importResult.Album.Photos.Count} image(s) from stored Pico capture on {importResult.PortName}."
+                    : $"Imported {importResult.Album.Photos.Count} image(s) from {importResult.PortName} after {importResult.CaptureByteCount} captured bytes.";
+                AppendOperationLog(OperationProgressText);
+                logWindow.AppendLine(OperationProgressText);
+                logWindow.MarkFinished(OperationProgressText, null);
+
+                if (!galleryUpdatedFromProgress && importResult.Album.Photos.Count > 0)
+                {
+                    AppendLoadedPhotos(importResult.Album.Photos);
+                }
+
+                SourceSummary = importResult.IsReplay
+                    ? $"Added {importResult.Album.Photos.Count} image(s) from the last Pico GB Printer capture on {importResult.PortName}. Gallery now has {Photos.Count} image(s)."
+                    : $"Added {importResult.Album.Photos.Count} image(s) from a live Pico GB Printer capture on {importResult.PortName}. Gallery now has {Photos.Count} image(s).";
+                retryErrorMessage = null;
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                ErrorMessage = string.Empty;
+                SourceSummary = stopRequested
+                    ? "Pico GB Printer capture stopped before any data was received."
+                    : "Pico GB Printer import canceled.";
+                logWindow.AppendLine(stopRequested ? "Stop requested before any capture data arrived." : "Import canceled.");
+                logWindow.MarkFinished(stopRequested ? "Stopped before any data arrived." : "Import canceled.", null);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to import images from Pico GB Printer.");
+                retryErrorMessage = FormatUserVisibleException(ex);
+                ErrorMessage = retryErrorMessage;
+                AppendOperationLog($"ERROR: {retryErrorMessage}");
+                logWindow.AppendLine($"ERROR: {retryErrorMessage}");
+                logWindow.MarkFinished(retryErrorMessage, ex);
+            }
+            finally
+            {
+                logWindow.StopRequested -= HandleStopRequested;
+                IsLoadingPhotos = false;
+                IsBusy = false;
+                OperationProgressText = string.Empty;
+                EndCancellableOperation();
+            }
+        }
+    }
+
     private void UpdateGbxCartProgress(GbxCartImportProgress progress)
     {
         OperationProgressMaximum = Math.Max(1, progress.TotalSteps);
         OperationProgressValue = Math.Clamp(progress.CompletedSteps, 0, progress.TotalSteps);
         OperationProgressText = progress.Message;
         AppendOperationLog(progress.Message);
+    }
+
+    private void UpdatePicoGbPrinterProgress(PicoGbPrinterImportProgress progress, PicoGbPrinterLogWindowViewModel logWindow, ref bool galleryUpdatedFromProgress)
+    {
+        logWindow.SetStatus(progress.Message);
+        if (progress.AppendToLog)
+        {
+            AppendOperationLog(progress.Message);
+            logWindow.AppendLine(progress.Message);
+        }
+
+        if (progress.ReceivedPhotos is { Count: > 0 })
+        {
+            AppendLoadedPhotos(progress.ReceivedPhotos);
+            galleryUpdatedFromProgress = true;
+            SourceSummary = $"Imported {Photos.Count} image(s) from Pico GB Printer so far.";
+        }
     }
 
     private void UpdatePicNRecDiscoveryProgress(PicNRecDiscoveryProgress progress)
@@ -774,15 +892,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             LoadedAlbumResult loadedAlbum = await _albumLoadService.LoadAsync(path).ConfigureAwait(true);
 
-            ReplacePhotos(loadedAlbum.Photos);
-            SourceSummary = $"Loaded {Photos.Count} image(s) from {Path.GetFileName(path)} as {loadedAlbum.SourceKind}.";
+            AppendLoadedPhotos(loadedAlbum.Photos);
+            SourceSummary = $"Added {loadedAlbum.Photos.Count} image(s) from {Path.GetFileName(path)} as {loadedAlbum.SourceKind}. Gallery now has {Photos.Count} image(s).";
         }
         catch (Exception ex)
         {
-            ClearPhotos();
             _logger.LogError(ex, "Failed to load images from {Path}", path);
             ErrorMessage = FormatUserVisibleException(ex);
-            SourceSummary = "No file loaded.";
         }
         finally
         {
@@ -863,6 +979,21 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         ClearPhotos();
 
+        AppendLoadedPhotos(photos);
+
+        ExportSelectedCommand.NotifyCanExecuteChanged();
+        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
+    }
+
+    private void AppendLoadedPhotos(IReadOnlyList<LoadedPhotoInfo> photos)
+    {
+        if (photos.Count == 0)
+        {
+            return;
+        }
+
+        List<PhotoItemViewModel> addedPhotos = [];
+
         foreach (LoadedPhotoInfo photo in photos)
         {
             PhotoItemViewModel viewModel = new(
@@ -875,13 +1006,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 SelectPhoto);
             viewModel.PropertyChanged += OnPhotoPropertyChanged;
             Photos.Add(viewModel);
+            addedPhotos.Add(viewModel);
         }
 
         ApplyOrderingAndPagination(preserveSelection: false);
+        if (SelectedPhoto is null)
+        {
+            SelectedPhoto = addedPhotos.FirstOrDefault();
+        }
+
         OnPropertyChanged(nameof(HasPhotos));
         OnPropertyChanged(nameof(IsEmptyStateVisible));
-        ExportSelectedCommand.NotifyCanExecuteChanged();
-        ExportSelectedVideoCommand.NotifyCanExecuteChanged();
+        UpdateNavigationState();
     }
 
     private IReadOnlyList<PhotoItemViewModel> GetSelectedMonochromePhotos()
