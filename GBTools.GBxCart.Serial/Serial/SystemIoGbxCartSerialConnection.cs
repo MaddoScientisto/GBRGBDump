@@ -10,7 +10,6 @@ internal sealed class SystemIoGbxCartSerialConnection : IGbxCartSerialConnection
 {
     private readonly GbxCartClientOptions _options;
     private SerialPort? _serialPort;
-    private BufferedSerialReader? _reader;
 
     public SystemIoGbxCartSerialConnection(GbxCartClientOptions options)
     {
@@ -34,7 +33,6 @@ internal sealed class SystemIoGbxCartSerialConnection : IGbxCartSerialConnection
         _serialPort.Open();
         _serialPort.DiscardInBuffer();
         _serialPort.DiscardOutBuffer();
-        _reader = new BufferedSerialReader(_serialPort, GbxCartProtocolConstants.MaxTransferSize);
     }
 
     public void Close()
@@ -47,8 +45,6 @@ internal sealed class SystemIoGbxCartSerialConnection : IGbxCartSerialConnection
 
     public void DiscardInBuffer()
     {
-        _reader?.Clear();
-
         try
         {
             _serialPort?.DiscardInBuffer();
@@ -117,13 +113,37 @@ internal sealed class SystemIoGbxCartSerialConnection : IGbxCartSerialConnection
     public Task<byte[]> ReadExactAsync(int count, int commandTimeoutMs, int portReadTimeoutMs, CancellationToken cancellationToken)
     {
         EnsureOpen();
-        return _reader!.ReadExactAsync(count, commandTimeoutMs, cancellationToken);
+
+        byte[] buffer = new byte[count];
+        int offset = 0;
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(commandTimeoutMs);
+
+        while (offset < count)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            TimeSpan remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+            {
+                throw new TimeoutException($"Timed out waiting for {count} byte(s); received {offset}.");
+            }
+
+            _serialPort!.ReadTimeout = Math.Max(1, Math.Min(portReadTimeoutMs, (int)remaining.TotalMilliseconds));
+
+            int bytesRead = _serialPort.Read(buffer, offset, count - offset);
+            if (bytesRead <= 0)
+            {
+                continue;
+            }
+
+            offset += bytesRead;
+        }
+
+        return Task.FromResult(buffer);
     }
 
     public void Dispose()
     {
-        _reader?.Dispose();
-        _reader = null;
         _serialPort?.Dispose();
         _serialPort = null;
     }

@@ -491,6 +491,7 @@ public sealed class GbxCartSerialClient : IDisposable
         {
             try
             {
+                DiscardInputBuffer();
                 await SendCommandAsync(DeviceCommands["DMG_CART_READ"], cancellationToken).ConfigureAwait(false);
                 return await ReadExactAsync(chunkLength, cancellationToken).ConfigureAwait(false);
             }

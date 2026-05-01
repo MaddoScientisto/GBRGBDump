@@ -21,6 +21,16 @@
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/GBRGBDump.Web.GUI/GBRGBDump.Web.GUI.csproj"
+        },
+        {
+            "name": "C#: GBTools.ImageSharp.GameBoyCamera.Avalonia Debug (Linux)",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/GBTools.ImageSharp.GameBoyCamera.Avalonia/GBTools.ImageSharp.GameBoyCamera.Avalonia.csproj",
+            "env": {
+                "DOTNET_ROOT": "${env:HOME}/.dotnet",
+                "PATH": "${env:HOME}/.dotnet:${env:PATH}"
+            }
         }
 
     ]
