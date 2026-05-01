@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - beta
+      - develop
   workflow_dispatch:
 concurrency: production
 permissions: 
