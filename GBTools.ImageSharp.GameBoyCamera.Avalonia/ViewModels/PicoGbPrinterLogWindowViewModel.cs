@@ -1,10 +1,16 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
+using System.Text;
 
 namespace GBTools.ImageSharp.GameBoyCamera.Avalonia.ViewModels;
 
 public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
 {
+    private readonly object _consoleLock = new();
+    private readonly StringBuilder _pendingConsoleOutput = new();
+    private bool _consoleFlushScheduled;
+
     [ObservableProperty]
     private string title;
 
@@ -61,7 +67,24 @@ public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
 
     public void AppendLine(string line)
     {
-        ConsoleOutput += string.IsNullOrEmpty(ConsoleOutput) ? line : Environment.NewLine + line;
+        lock (_consoleLock)
+        {
+            if (_pendingConsoleOutput.Length > 0 || !string.IsNullOrEmpty(ConsoleOutput))
+            {
+                _pendingConsoleOutput.AppendLine();
+            }
+
+            _pendingConsoleOutput.Append(line);
+
+            if (_consoleFlushScheduled)
+            {
+                return;
+            }
+
+            _consoleFlushScheduled = true;
+        }
+
+        Dispatcher.UIThread.Post(FlushPendingConsoleOutput, DispatcherPriority.Background);
     }
 
     public void SetStatus(string status)
@@ -98,7 +121,32 @@ public sealed partial class PicoGbPrinterLogWindowViewModel : ViewModelBase
 
     private void Clear()
     {
+        lock (_consoleLock)
+        {
+            _pendingConsoleOutput.Clear();
+            _consoleFlushScheduled = false;
+        }
+
         ConsoleOutput = string.Empty;
+    }
+
+    private void FlushPendingConsoleOutput()
+    {
+        string pending;
+
+        lock (_consoleLock)
+        {
+            pending = _pendingConsoleOutput.ToString();
+            _pendingConsoleOutput.Clear();
+            _consoleFlushScheduled = false;
+        }
+
+        if (string.IsNullOrEmpty(pending))
+        {
+            return;
+        }
+
+        ConsoleOutput += pending;
     }
 
     private void Stop()

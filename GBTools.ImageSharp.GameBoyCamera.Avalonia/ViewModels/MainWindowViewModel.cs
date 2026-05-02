@@ -429,8 +429,24 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task DownloadPicNRecAsync()
     {
+        PicNRecImportRequest? importRequest = null;
         PicNRecDownloadRequest? request = null;
         List<LoadedPhotoInfo> downloadedPhotos = [];
+        bool galleryUpdatedFromProgress = false;
+        ExportRequest? exportRequest = null;
+        string? exportFolder = null;
+        int exportedFileCount = 0;
+
+        IReadOnlyList<string> ports = _picNRecImportService.GetAvailablePorts();
+        importRequest = await _dialogService.SelectPicNRecImportRequestAsync(ports).ConfigureAwait(true);
+        if (importRequest is null)
+        {
+            return;
+        }
+
+        PicoGbPrinterLogWindowViewModel logWindow = _dialogService.ShowPicoGbPrinterLogWindow("PicNRec Serial Output");
+        void HandleStopRequested() => CancelOperation();
+        logWindow.StopRequested += HandleStopRequested;
 
         try
         {
@@ -443,19 +459,49 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             OperationProgressText = "Detecting PicNRec device...";
             OperationProgressValue = 0;
             OperationProgressMaximum = 1;
+            AppendOperationLog(OperationProgressText);
+            logWindow.AppendLine(OperationProgressText);
+            logWindow.SetStatus(OperationProgressText);
+            logWindow.SetProgress(0, 1);
 
-            Progress<PicNRecDiscoveryProgress> discoveryProgress = new(UpdatePicNRecDiscoveryProgress);
-            PicNRecDeviceInfo deviceInfo = await _picNRecImportService.DetectAsync(discoveryProgress, operationCancellation.Token).ConfigureAwait(true);
+            Progress<PicNRecDiscoveryProgress> discoveryProgress = new(progress => UpdatePicNRecDiscoveryProgress(progress, logWindow));
+            Progress<string> serialLog = new(logWindow.AppendLine);
+            PicNRecDeviceInfo deviceInfo = await _picNRecImportService
+                .DetectAsync(importRequest.PortName, discoveryProgress, serialLog, operationCancellation.Token)
+                .ConfigureAwait(true);
             SourceSummary = $"Detected PicNRec on {deviceInfo.PortName}. Available images: {deviceInfo.ImageCount}.";
             IsLoadingPhotos = false;
             IsBusy = false;
             OperationProgressText = string.Empty;
             EndCancellableOperation();
+            logWindow.AppendLine(SourceSummary);
+            logWindow.SetStatus("Detection complete. Configure the download range in the dialog.");
 
             request = await _dialogService.SelectPicNRecDownloadRequestAsync(deviceInfo).ConfigureAwait(true);
             if (request is null)
             {
+                logWindow.AppendLine("PicNRec range selection canceled.");
+                logWindow.MarkFinished("Range selection canceled.", null);
                 return;
+            }
+
+            if (request.Target == PicNRecTransferTarget.ExportToFolder)
+            {
+                exportRequest = await _dialogService.SelectExportRequestAsync().ConfigureAwait(true);
+                if (exportRequest is null)
+                {
+                    logWindow.AppendLine("PicNRec export format selection canceled.");
+                    logWindow.MarkFinished("Export format selection canceled.", null);
+                    return;
+                }
+
+                exportFolder = await _dialogService.PickExportFolderAsync().ConfigureAwait(true);
+                if (string.IsNullOrWhiteSpace(exportFolder))
+                {
+                    logWindow.AppendLine("PicNRec export folder selection canceled.");
+                    logWindow.MarkFinished("Export folder selection canceled.", null);
+                    return;
+                }
             }
 
             operationCancellation = BeginCancellableOperation();
@@ -466,18 +512,62 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             OperationProgressValue = 0;
             _picNRecDownloadStartedAt = DateTime.UtcNow;
             OperationProgressText = $"Preparing to download images {request.StartImageNumber} to {request.EndImageNumber}.";
+            AppendOperationLog(OperationProgressText);
+            logWindow.AppendLine(OperationProgressText);
+            logWindow.SetStatus(OperationProgressText);
+            logWindow.SetProgress(0, request.ImageCount);
 
-            Progress<PicNRecDownloadProgress> progress = new(progress => UpdatePicNRecProgress(progress, downloadedPhotos));
-            LoadedAlbumResult loadedAlbum = await _picNRecImportService.DownloadImagesAsync(request, progress, operationCancellation.Token).ConfigureAwait(true);
-            AppendLoadedPhotos(loadedAlbum.Photos);
-            SourceSummary = $"Added {loadedAlbum.Photos.Count} image(s) from PicNRec images {request.StartImageNumber} to {request.EndImageNumber}. Gallery now has {Photos.Count} image(s).";
+            Progress<PicNRecDownloadProgress> progress = new(progress => UpdatePicNRecProgress(progress, downloadedPhotos, logWindow, ref galleryUpdatedFromProgress, request.Target));
+            Progress<string> downloadSerialLog = new(logWindow.AppendLine);
+            Func<LoadedPhotoInfo, CancellationToken, Task>? onPhotoLoaded = null;
+            if (request.Target == PicNRecTransferTarget.ExportToFolder)
+            {
+                onPhotoLoaded = async (photo, cancellationToken) =>
+                {
+                    PhotoExportRequest photoExportRequest = new(
+                        photo.Title.Replace(' ', '-').ToLowerInvariant(),
+                        photo.Title,
+                        photo.Created,
+                        photo.Photo);
+                    await _imageExportService.ExportAsync([photoExportRequest], exportRequest!, exportFolder!, destinationIsDirectory: true, cancellationToken).ConfigureAwait(true);
+                    exportedFileCount++;
+                };
+            }
+
+            LoadedAlbumResult loadedAlbum = await _picNRecImportService
+                .DownloadImagesAsync(request, progress, downloadSerialLog, onPhotoLoaded, operationCancellation.Token)
+                .ConfigureAwait(true);
+            if (request.Target == PicNRecTransferTarget.ImportToGallery)
+            {
+                if (!galleryUpdatedFromProgress)
+                {
+                    AppendLoadedPhotos(loadedAlbum.Photos);
+                }
+
+                SourceSummary = $"Added {loadedAlbum.Photos.Count} image(s) from PicNRec images {request.StartImageNumber} to {request.EndImageNumber}. Gallery now has {Photos.Count} image(s).";
+            }
+            else
+            {
+                SourceSummary = exportRequest!.Format == ExportFormat.Png
+                    ? $"Exported {exportedFileCount} PicNRec image(s) to {exportFolder} as {exportRequest.Format.GetDisplayName()} at {exportRequest.PngMagnification}x magnification."
+                    : $"Exported {exportedFileCount} PicNRec image(s) to {exportFolder} as {exportRequest!.Format.GetDisplayName()}.";
+            }
+
+            logWindow.AppendLine(SourceSummary);
+            logWindow.MarkFinished(SourceSummary, null);
         }
         catch (OperationCanceledException)
         {
-            if (downloadedPhotos.Count > 0)
+            if (request?.Target == PicNRecTransferTarget.ImportToGallery && downloadedPhotos.Count > 0 && !galleryUpdatedFromProgress)
             {
                 AppendLoadedPhotos(downloadedPhotos);
                 SourceSummary = $"PicNRec operation canceled after adding {downloadedPhotos.Count} image(s). Gallery now has {Photos.Count} image(s).";
+            }
+            else if (request?.Target == PicNRecTransferTarget.ExportToFolder && exportedFileCount > 0)
+            {
+                SourceSummary = exportRequest?.Format == ExportFormat.Png
+                    ? $"PicNRec export canceled after writing {exportedFileCount} image(s) to {exportFolder} as {exportRequest.Format.GetDisplayName()} at {exportRequest.PngMagnification}x magnification."
+                    : $"PicNRec export canceled after writing {exportedFileCount} image(s) to {exportFolder} as {exportRequest?.Format.GetDisplayName()}.";
             }
             else
             {
@@ -485,15 +575,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             ErrorMessage = string.Empty;
+            logWindow.AppendLine(SourceSummary);
+            logWindow.MarkFinished(SourceSummary, null);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download images from PicNRec.");
             ErrorMessage = FormatUserVisibleException(ex);
             SourceSummary = request is null ? SourceSummary : SourceSummary;
+            logWindow.AppendLine($"ERROR: {ErrorMessage}");
+            logWindow.MarkFinished(ErrorMessage, ex);
         }
         finally
         {
+            logWindow.StopRequested -= HandleStopRequested;
             IsImportSourceBusy = false;
             IsLoadingPhotos = false;
             IsBusy = false;
@@ -701,18 +796,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void UpdatePicNRecDiscoveryProgress(PicNRecDiscoveryProgress progress)
+    private void UpdatePicNRecDiscoveryProgress(PicNRecDiscoveryProgress progress, PicoGbPrinterLogWindowViewModel logWindow)
     {
         OperationProgressText = progress.Message;
         AppendOperationLog(progress.Message);
+        logWindow.SetStatus(progress.Message);
 
         if (progress.Succeeded == true)
         {
             OperationProgressValue = OperationProgressMaximum;
+            logWindow.SetProgress(OperationProgressMaximum, OperationProgressMaximum);
         }
     }
 
-    private void UpdatePicNRecProgress(PicNRecDownloadProgress progress, List<LoadedPhotoInfo> downloadedPhotos)
+    private void UpdatePicNRecProgress(PicNRecDownloadProgress progress, List<LoadedPhotoInfo> downloadedPhotos, PicoGbPrinterLogWindowViewModel logWindow, ref bool galleryUpdatedFromProgress, PicNRecTransferTarget target)
     {
         if (progress.ClearsDownloadedPhotos)
         {
@@ -722,6 +819,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (progress.DownloadedPhoto is not null)
         {
             downloadedPhotos.Add(progress.DownloadedPhoto);
+
+            if (target == PicNRecTransferTarget.ImportToGallery)
+            {
+                AppendLoadedPhotos([progress.DownloadedPhoto]);
+                galleryUpdatedFromProgress = true;
+                SourceSummary = $"Imported {Photos.Count} PicNRec image(s) so far.";
+            }
         }
 
         OperationProgressMaximum = Math.Max(1, progress.TotalImageCount);
@@ -731,6 +835,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             ? $"{progress.Message} ({progress.CompletedImageCount}/{progress.TotalImageCount})"
             : $"{progress.Message} ({progress.CompletedImageCount}/{progress.TotalImageCount}, ETA {etaText})";
         AppendOperationLog(OperationProgressText);
+        logWindow.SetStatus(OperationProgressText);
+        logWindow.SetProgress(OperationProgressValue, OperationProgressMaximum);
     }
 
     private string FormatEstimatedTimeRemaining(int completedImageCount, int totalImageCount)

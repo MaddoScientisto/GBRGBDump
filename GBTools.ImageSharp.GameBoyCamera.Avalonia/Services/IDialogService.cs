@@ -26,6 +26,11 @@ public interface IDialogService
         PicoGbPrinterImportRequest? initialRequest = null,
         string? errorMessage = null);
 
+    Task<PicNRecImportRequest?> SelectPicNRecImportRequestAsync(
+        IReadOnlyList<string> ports,
+        PicNRecImportRequest? initialRequest = null,
+        string? errorMessage = null);
+
     Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo);
 
     PicoGbPrinterLogWindowViewModel ShowPicoGbPrinterLogWindow(string title);

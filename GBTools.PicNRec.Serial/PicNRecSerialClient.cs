@@ -56,8 +56,10 @@ public sealed class PicNRecSerialClient : IDisposable
                 throw new InvalidOperationException("A serial port name is required.");
             }
 
+            Trace($"Opening {_options.PortName} at {PicNRecProtocolConstants.DefaultBaudRate} baud.");
             OpenPort(_options.PortName, PicNRecProtocolConstants.DefaultBaudRate);
             await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
+            Trace($"Connected to {PortName} at {_currentBaudRate} baud.");
 
             if (_options.ConnectInFastMode)
             {
@@ -77,6 +79,7 @@ public sealed class PicNRecSerialClient : IDisposable
         await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            Trace($"Disconnecting from {PortName}.");
             try
             {
                 await SafeStopCoreAsync(cancellationToken).ConfigureAwait(false);
@@ -86,6 +89,7 @@ public sealed class PicNRecSerialClient : IDisposable
             }
 
             ClosePort();
+            Trace("Serial port closed.");
         }
         finally
         {
@@ -121,6 +125,7 @@ public sealed class PicNRecSerialClient : IDisposable
             {
                 try
                 {
+                    Trace($"Reading metadata attempt {attempt}/{_options.MetadataReadRetryCount}.");
                     await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
                     await WriteNumberCommandCoreAsync(0, cancellationToken).ConfigureAwait(false);
                     await WriteModeCommandCoreAsync('R', cancellationToken).ConfigureAwait(false);
@@ -129,11 +134,13 @@ public sealed class PicNRecSerialClient : IDisposable
                         PicNRecProtocolConstants.MetadataBlockCount,
                         cancellationToken).ConfigureAwait(false);
                     await WriteModeCommandCoreAsync('0', cancellationToken).ConfigureAwait(false);
+                    Trace($"Metadata read complete ({metadata.Length} bytes).");
                     return metadata;
                 }
                 catch (Exception error)
                 {
                     lastError = error;
+                    Trace($"Metadata read attempt {attempt} failed: {error.GetType().Name}: {error.Message}");
                     await SafeStopCoreAsync(cancellationToken).ConfigureAwait(false);
                     await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
 
@@ -159,7 +166,9 @@ public sealed class PicNRecSerialClient : IDisposable
     public async Task<int> ReadLastImageNumberAsync(CancellationToken cancellationToken = default)
     {
         var metadata = await ReadMetadataAsync(cancellationToken).ConfigureAwait(false);
-        return PicNRecBinary.DecodeLastImageNumber(metadata);
+        var lastImageNumber = PicNRecBinary.DecodeLastImageNumber(metadata);
+        Trace($"Decoded last image number: {lastImageNumber}.");
+        return lastImageNumber;
     }
 
     public async Task<byte[]> ReadImageAsync(int imageNumber, CancellationToken cancellationToken = default)
@@ -181,6 +190,7 @@ public sealed class PicNRecSerialClient : IDisposable
             {
                 try
                 {
+                    Trace($"Reading image {imageNumber} attempt {attempt}/{_options.ImageReadRetryCount}.");
                     await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
                     await WriteNumberCommandCoreAsync(imageNumber, cancellationToken).ConfigureAwait(false);
                     await WriteModeCommandCoreAsync('R', cancellationToken).ConfigureAwait(false);
@@ -190,11 +200,13 @@ public sealed class PicNRecSerialClient : IDisposable
                         cancellationToken).ConfigureAwait(false);
 
                     await WriteModeCommandCoreAsync('0', cancellationToken).ConfigureAwait(false);
+                    Trace($"Image {imageNumber} read complete ({image.Length} bytes).");
                     return image;
                 }
                 catch (Exception error)
                 {
                     lastError = error;
+                    Trace($"Image {imageNumber} read attempt {attempt} failed: {error.GetType().Name}: {error.Message}");
                     await SafeStopCoreAsync(cancellationToken).ConfigureAwait(false);
                     await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
 
@@ -226,8 +238,10 @@ public sealed class PicNRecSerialClient : IDisposable
         {
             EnsureConnected();
             await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
+            Trace("Clearing last image metadata marker.");
             await WriteAsciiCoreAsync("k", cancellationToken).ConfigureAwait(false);
             var ack = await _reader!.ReadExactAsync(1, _options.BlockTimeoutMs, cancellationToken).ConfigureAwait(false);
+            Trace($"Received clear acknowledgement 0x{ack[0].ToString("X2", CultureInfo.InvariantCulture)}.");
 
             if (ack[0] != 0x31)
             {
@@ -331,6 +345,7 @@ public sealed class PicNRecSerialClient : IDisposable
     {
         EnsureConnected();
         await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
+        Trace("Requesting fast mode.");
         await WriteAsciiCoreAsync(">", cancellationToken).ConfigureAwait(false);
         await Task.Delay(_options.FastModeSettleDelayMs, cancellationToken).ConfigureAwait(false);
 
@@ -341,10 +356,12 @@ public sealed class PicNRecSerialClient : IDisposable
         try
         {
             OpenPort(portName, PicNRecProtocolConstants.FastBaudRate);
+            Trace($"Reopened {portName} at fast baud {PicNRecProtocolConstants.FastBaudRate}.");
         }
         catch
         {
             OpenPort(portName, PicNRecProtocolConstants.DefaultBaudRate);
+            Trace($"Fast-mode reopen failed; restored {portName} to {PicNRecProtocolConstants.DefaultBaudRate} baud.");
         }
 
         await FlushInputCoreAsync(cancellationToken).ConfigureAwait(false);
@@ -403,6 +420,7 @@ public sealed class PicNRecSerialClient : IDisposable
 
     private Task WriteModeCommandCoreAsync(char command, CancellationToken cancellationToken)
     {
+        Trace($"TX mode '{command}'.");
         return WriteAsciiCoreAsync(command.ToString(), cancellationToken);
     }
 
@@ -414,6 +432,7 @@ public sealed class PicNRecSerialClient : IDisposable
         var output = new byte[payload.Length + 1];
         Buffer.BlockCopy(payload, 0, output, 0, payload.Length);
         output[output.Length - 1] = 0x00;
+        Trace($"TX image selector {text}\\0.");
         return WriteBytesCoreAsync(output, cancellationToken);
     }
 
@@ -445,6 +464,11 @@ public sealed class PicNRecSerialClient : IDisposable
         {
             return Task.CompletedTask;
         }
+    }
+
+    private void Trace(string message)
+    {
+        _options.Trace?.Invoke(message);
     }
 
     private void DiscardInBufferSafe()

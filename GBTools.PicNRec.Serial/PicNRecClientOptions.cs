@@ -1,8 +1,12 @@
+using System;
+
 namespace GBTools.PicNRec.Serial;
 
 public sealed class PicNRecClientOptions
 {
     public string PortName { get; set; } = string.Empty;
+
+    public Action<string>? Trace { get; set; }
 
     public bool ConnectInFastMode { get; set; }
 

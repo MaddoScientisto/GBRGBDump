@@ -129,6 +129,20 @@ public sealed class DialogService : IDialogService
         return ShowPicoGbPrinterDialogAndPersistAsync(dialog);
     }
 
+    public Task<PicNRecImportRequest?> SelectPicNRecImportRequestAsync(
+        IReadOnlyList<string> ports,
+        PicNRecImportRequest? initialRequest = null,
+        string? errorMessage = null)
+    {
+        PicNRecImportRequest seedRequest = initialRequest ?? new PicNRecImportRequest(_settings.LastPicNRecPortName);
+        PicNRecImportDialog dialog = new()
+        {
+            DataContext = new PicNRecImportDialogViewModel(ports, seedRequest, errorMessage),
+        };
+
+        return ShowPicNRecDialogAndPersistAsync(dialog);
+    }
+
     public Task<PicNRecDownloadRequest?> SelectPicNRecDownloadRequestAsync(PicNRecDeviceInfo deviceInfo)
     {
         PicNRecRangeDialog dialog = new()
@@ -348,6 +362,19 @@ public sealed class DialogService : IDialogService
 
         _settings.LastPicoGbPrinterPortName = request.PortName;
         _settings.LastPicoGbPrinterMode = request.Mode.ToString();
+        _settings.Save();
+        return request;
+    }
+
+    private async Task<PicNRecImportRequest?> ShowPicNRecDialogAndPersistAsync(PicNRecImportDialog dialog)
+    {
+        PicNRecImportRequest? request = await dialog.ShowDialog<PicNRecImportRequest?>(RequireWindow()).ConfigureAwait(true);
+        if (request is null)
+        {
+            return null;
+        }
+
+        _settings.LastPicNRecPortName = request.PortName;
         _settings.Save();
         return request;
     }

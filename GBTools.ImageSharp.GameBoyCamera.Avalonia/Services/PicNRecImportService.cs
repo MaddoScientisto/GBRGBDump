@@ -21,23 +21,25 @@ public sealed class PicNRecImportService : IPicNRecImportService
         _logger = logger;
     }
 
+    public IReadOnlyList<string> GetAvailablePorts() => PicNRecSerialClient.GetAvailablePortNames();
+
     public async Task<PicNRecDeviceInfo> DetectAsync(
+        string? portName = null,
         IProgress<PicNRecDiscoveryProgress>? progress = null,
+        IProgress<string>? serialLog = null,
         CancellationToken cancellationToken = default)
     {
-        string[] ports = PicNRecSerialClient.GetAvailablePortNames();
+        string[] ports = string.IsNullOrWhiteSpace(portName)
+            ? PicNRecSerialClient.GetAvailablePortNames()
+            : [portName];
+
         if (ports.Length == 0)
         {
             throw new InvalidOperationException("No serial ports found.");
         }
 
-        PicNRecDetectionResult detectedDevice = await DetectDeviceAsync(ports, progress, cancellationToken).ConfigureAwait(false)
+        PicNRecDetectionResult detectedDevice = await DetectDeviceAsync(ports, progress, serialLog, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Automatic detection did not find a responsive PicNRec device.");
-
-        if (detectedDevice.LastImageNumber <= 0)
-        {
-            throw new InvalidOperationException("Device reported no available images.");
-        }
 
         return new PicNRecDeviceInfo(detectedDevice.PortName, detectedDevice.LastImageNumber, MaxSupportedImageIndex);
     }
@@ -45,6 +47,8 @@ public sealed class PicNRecImportService : IPicNRecImportService
     public async Task<LoadedAlbumResult> DownloadImagesAsync(
         PicNRecDownloadRequest request,
         IProgress<PicNRecDownloadProgress>? progress = null,
+        IProgress<string>? serialLog = null,
+        Func<LoadedPhotoInfo, CancellationToken, Task>? onPhotoLoaded = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -62,7 +66,7 @@ public sealed class PicNRecImportService : IPicNRecImportService
                 request.ImageCount,
                 "Starting fast-mode download.",
                 ClearsDownloadedPhotos: true));
-            return await DownloadFromPortAsync(request, useFastMode: true, progress, cancellationToken).ConfigureAwait(false);
+            return await DownloadFromPortAsync(request, useFastMode: true, progress, serialLog, onPhotoLoaded, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -77,18 +81,19 @@ public sealed class PicNRecImportService : IPicNRecImportService
                 request.ImageCount,
                 "Fast-mode download failed; retrying at the default baud rate.",
                 ClearsDownloadedPhotos: true));
-            return await DownloadFromPortAsync(request, useFastMode: false, progress, cancellationToken).ConfigureAwait(false);
+            return await DownloadFromPortAsync(request, useFastMode: false, progress, serialLog, onPhotoLoaded, cancellationToken).ConfigureAwait(false);
         }
     }
 
     public async Task<LoadedPhotoInfo> PreviewImageAsync(
         string portName,
         int imageNumber,
+        IProgress<string>? serialLog = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            return await ReadSingleImageAsync(portName, imageNumber, useFastMode: true, cancellationToken).ConfigureAwait(false);
+            return await ReadSingleImageAsync(portName, imageNumber, useFastMode: true, serialLog, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -97,20 +102,42 @@ public sealed class PicNRecImportService : IPicNRecImportService
         catch (Exception error)
         {
             _logger.LogWarning(error, "Fast PicNRec preview failed on {PortName}; retrying at the default baud rate.", portName);
-            return await ReadSingleImageAsync(portName, imageNumber, useFastMode: false, cancellationToken).ConfigureAwait(false);
+            return await ReadSingleImageAsync(portName, imageNumber, useFastMode: false, serialLog, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async Task ClearLastImageMarkerAsync(
+        string portName,
+        IProgress<string>? serialLog = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await ClearLastImageMarkerCoreAsync(portName, useFastMode: true, serialLog, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            _logger.LogWarning(error, "Fast PicNRec metadata clear failed on {PortName}; retrying at the default baud rate.", portName);
+            serialLog?.Report($"Fast-mode clear failed; retrying {portName} at the default baud rate.");
+            await ClearLastImageMarkerCoreAsync(portName, useFastMode: false, serialLog, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task<PicNRecDetectionResult?> DetectDeviceAsync(
         IReadOnlyList<string> ports,
         IProgress<PicNRecDiscoveryProgress>? progress,
+        IProgress<string>? serialLog,
         CancellationToken cancellationToken)
     {
         foreach (string portName in ports)
         {
             for (int attempt = 1; attempt <= AutoDetectProbeAttempts; attempt++)
             {
-                PicNRecProbeResult normalProbe = await TryProbePortAsync(portName, attempt, connectInFastMode: false, progress, cancellationToken).ConfigureAwait(false);
+                PicNRecProbeResult normalProbe = await TryProbePortAsync(portName, attempt, connectInFastMode: false, progress, serialLog, cancellationToken).ConfigureAwait(false);
                 if (normalProbe.DetectionResult is not null)
                 {
                     return normalProbe.DetectionResult;
@@ -118,7 +145,7 @@ public sealed class PicNRecImportService : IPicNRecImportService
 
                 if (normalProbe.OpenedPort)
                 {
-                    PicNRecProbeResult fastProbe = await TryProbePortAsync(portName, attempt, connectInFastMode: true, progress, cancellationToken).ConfigureAwait(false);
+                    PicNRecProbeResult fastProbe = await TryProbePortAsync(portName, attempt, connectInFastMode: true, progress, serialLog, cancellationToken).ConfigureAwait(false);
                     if (fastProbe.DetectionResult is not null)
                     {
                         return fastProbe.DetectionResult;
@@ -140,6 +167,7 @@ public sealed class PicNRecImportService : IPicNRecImportService
         int attempt,
         bool connectInFastMode,
         IProgress<PicNRecDiscoveryProgress>? progress,
+        IProgress<string>? serialLog,
         CancellationToken cancellationToken)
     {
         string mode = connectInFastMode ? "fast-mode" : "normal-mode";
@@ -147,6 +175,7 @@ public sealed class PicNRecImportService : IPicNRecImportService
         {
             PortName = portName,
             ConnectInFastMode = connectInFastMode,
+            Trace = serialLog is null ? null : message => serialLog.Report(message),
         });
 
         bool openedPort = false;
@@ -209,9 +238,15 @@ public sealed class PicNRecImportService : IPicNRecImportService
         PicNRecDownloadRequest request,
         bool useFastMode,
         IProgress<PicNRecDownloadProgress>? progress,
+        IProgress<string>? serialLog,
+        Func<LoadedPhotoInfo, CancellationToken, Task>? onPhotoLoaded,
         CancellationToken cancellationToken)
     {
-        using PicNRecSerialClient client = new(new PicNRecClientOptions { PortName = request.PortName });
+        using PicNRecSerialClient client = new(new PicNRecClientOptions
+        {
+            PortName = request.PortName,
+            Trace = serialLog is null ? null : message => serialLog.Report(message),
+        });
 
         try
         {
@@ -243,6 +278,11 @@ public sealed class PicNRecImportService : IPicNRecImportService
                     PhotoMetadataEntryBuilder.Build(photo, null, imageNumber, "PicNRec"));
                 photos.Add(loadedPhoto);
 
+                if (onPhotoLoaded is not null)
+                {
+                    await onPhotoLoaded(loadedPhoto, cancellationToken).ConfigureAwait(false);
+                }
+
                 progress?.Report(new PicNRecDownloadProgress(
                     imageNumber,
                     completed + 1,
@@ -266,9 +306,14 @@ public sealed class PicNRecImportService : IPicNRecImportService
         string portName,
         int imageNumber,
         bool useFastMode,
+        IProgress<string>? serialLog,
         CancellationToken cancellationToken)
     {
-        using PicNRecSerialClient client = new(new PicNRecClientOptions { PortName = portName });
+        using PicNRecSerialClient client = new(new PicNRecClientOptions
+        {
+            PortName = portName,
+            Trace = serialLog is null ? null : message => serialLog.Report(message),
+        });
 
         try
         {
@@ -287,6 +332,38 @@ public sealed class PicNRecImportService : IPicNRecImportService
                 created,
                 photo,
                 PhotoMetadataEntryBuilder.Build(photo, null, imageNumber, "PicNRec"));
+        }
+        finally
+        {
+            if (client.IsConnected)
+            {
+                await client.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task ClearLastImageMarkerCoreAsync(
+        string portName,
+        bool useFastMode,
+        IProgress<string>? serialLog,
+        CancellationToken cancellationToken)
+    {
+        using PicNRecSerialClient client = new(new PicNRecClientOptions
+        {
+            PortName = portName,
+            Trace = serialLog is null ? null : message => serialLog.Report(message),
+        });
+
+        try
+        {
+            await client.ConnectAsync(cancellationToken).ConfigureAwait(false);
+
+            if (useFastMode)
+            {
+                await client.EnterFastModeAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            await client.ClearMetadataAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {

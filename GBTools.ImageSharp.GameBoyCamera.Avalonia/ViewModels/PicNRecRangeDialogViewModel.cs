@@ -11,6 +11,7 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
     private readonly PicNRecDeviceInfo _deviceInfo;
     private readonly IPicNRecImportService _picNRecImportService;
     private readonly IBitmapFactory _bitmapFactory;
+    private int _currentImageCount;
     private CancellationTokenSource? _previewCancellation;
     private Bitmap? _previewBitmap;
 
@@ -32,6 +33,9 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
     [ObservableProperty]
     private bool isPreviewLoading;
 
+    [ObservableProperty]
+    private bool isMetadataActionRunning;
+
     public PicNRecRangeDialogViewModel(
         PicNRecDeviceInfo deviceInfo,
         IPicNRecImportService picNRecImportService,
@@ -40,19 +44,26 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
         _deviceInfo = deviceInfo;
         _picNRecImportService = picNRecImportService;
         _bitmapFactory = bitmapFactory;
+        _currentImageCount = deviceInfo.ImageCount;
         endImageNumberText = Math.Max(0, deviceInfo.LastImageIndex).ToString(System.Globalization.CultureInfo.InvariantCulture);
         ConfirmCommand = new RelayCommand(Confirm);
         CancelCommand = new RelayCommand(Cancel);
+        ExportToFilesCommand = new RelayCommand(ExportToFiles);
+        ClearLastPhotoRecordCommand = new AsyncRelayCommand(ClearLastPhotoRecordAsync);
         PreviewImageNumber = Math.Max(0, deviceInfo.LastImageIndex);
     }
 
-    public string DeviceSummary => $"Detected {_deviceInfo.PortName}. Last photo counter: {_deviceInfo.ImageCount} (last indexed photo {_deviceInfo.LastImageIndex}).";
+    public string DeviceSummary => _currentImageCount > 0
+        ? $"Detected {_deviceInfo.PortName}. Last photo counter: {_currentImageCount} (last indexed photo {CurrentLastImageIndex})."
+        : $"Detected {_deviceInfo.PortName}. The device reported no active photos, but slots can still be previewed in case deleted data remains.";
 
     public double MaxSupportedImageNumber => _deviceInfo.MaxSupportedImageIndex;
 
-    public double LastImageMarker => Math.Max(0, _deviceInfo.LastImageIndex);
+    public double LastImageMarker => Math.Max(0, CurrentLastImageIndex);
 
-    public string LastImageMarkerText => $"Last photo counter marker: {_deviceInfo.LastImageIndex}. Slots up to {_deviceInfo.MaxSupportedImageIndex} can still be previewed.";
+    public string LastImageMarkerText => _currentImageCount > 0
+        ? $"Last photo counter marker: {CurrentLastImageIndex}. Slots up to {_deviceInfo.MaxSupportedImageIndex} can still be previewed."
+        : $"No current last photo marker was reported. Slots up to {_deviceInfo.MaxSupportedImageIndex} can still be previewed.";
 
     public Bitmap? PreviewBitmap
     {
@@ -78,17 +89,25 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
 
     public string PreviewImageNumberText => $"Preview slot {SelectedPreviewImageNumber}";
 
-    public string PreviewPositionText => SelectedPreviewImageNumber == _deviceInfo.LastImageIndex
+    public string PreviewPositionText => SelectedPreviewImageNumber == CurrentLastImageIndex
         ? "Selected slot is the last photo counter."
-        : SelectedPreviewImageNumber > _deviceInfo.LastImageIndex
+        : SelectedPreviewImageNumber > CurrentLastImageIndex
             ? "Selected slot is past the last photo counter and may be deleted or unused."
             : "Selected slot is before the last photo counter.";
+
+    public bool CanRunMetadataAction => !IsMetadataActionRunning && !IsPreviewLoading;
+
+    private int CurrentLastImageIndex => _currentImageCount - 1;
 
     private int SelectedPreviewImageNumber => Math.Clamp((int)Math.Round(PreviewImageNumber), 0, _deviceInfo.MaxSupportedImageIndex);
 
     public IRelayCommand ConfirmCommand { get; }
 
     public IRelayCommand CancelCommand { get; }
+
+    public IRelayCommand ExportToFilesCommand { get; }
+
+    public IAsyncRelayCommand ClearLastPhotoRecordCommand { get; }
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
@@ -104,6 +123,18 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
         OnPropertyChanged(nameof(PreviewImageNumberText));
         OnPropertyChanged(nameof(PreviewPositionText));
         _ = PreviewSelectedImageAsync(SelectedPreviewImageNumber);
+    }
+
+    partial void OnIsPreviewLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanRunMetadataAction));
+        ClearLastPhotoRecordCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsMetadataActionRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanRunMetadataAction));
+        ClearLastPhotoRecordCommand.NotifyCanExecuteChanged();
     }
 
     public void Dispose()
@@ -125,7 +156,7 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
             IsPreviewLoading = true;
             PreviewStatus = $"Previewing slot {imageNumber}...";
             await Task.Delay(350, cancellation.Token).ConfigureAwait(true);
-            LoadedPhotoInfo photo = await _picNRecImportService.PreviewImageAsync(_deviceInfo.PortName, imageNumber, cancellation.Token).ConfigureAwait(true);
+            LoadedPhotoInfo photo = await _picNRecImportService.PreviewImageAsync(_deviceInfo.PortName, imageNumber, cancellationToken: cancellation.Token).ConfigureAwait(true);
             if (ReferenceEquals(_previewCancellation, cancellation))
             {
                 PreviewBitmap = _bitmapFactory.CreatePreviewBitmap(photo.Photo);
@@ -174,8 +205,71 @@ public sealed partial class PicNRecRangeDialogViewModel : ViewModelBase, IDispos
         }
 
         ErrorMessage = string.Empty;
-        CloseRequested?.Invoke(new PicNRecDownloadRequest(_deviceInfo.PortName, startImageNumber, endImageNumber));
+        CloseRequested?.Invoke(new PicNRecDownloadRequest(_deviceInfo.PortName, startImageNumber, endImageNumber, PicNRecTransferTarget.ImportToGallery));
     }
 
     private void Cancel() => CloseRequested?.Invoke(null);
+
+    private void ExportToFiles()
+    {
+        if (!TryCreateTransferRequest(PicNRecTransferTarget.ExportToFolder, out PicNRecDownloadRequest? request))
+        {
+            return;
+        }
+
+        CloseRequested?.Invoke(request);
+    }
+
+    private async Task ClearLastPhotoRecordAsync()
+    {
+        try
+        {
+            IsMetadataActionRunning = true;
+            ErrorMessage = string.Empty;
+            PreviewStatus = "Clearing the PicNRec last photo marker...";
+            await _picNRecImportService.ClearLastImageMarkerAsync(_deviceInfo.PortName).ConfigureAwait(true);
+            _currentImageCount = 0;
+            PreviewStatus = "Cleared the last photo marker. Previewing deleted slots is still available.";
+            OnPropertyChanged(nameof(DeviceSummary));
+            OnPropertyChanged(nameof(LastImageMarker));
+            OnPropertyChanged(nameof(LastImageMarkerText));
+            OnPropertyChanged(nameof(PreviewPositionText));
+        }
+        catch (Exception error)
+        {
+            PreviewStatus = $"Clearing the last photo marker failed: {error.GetType().Name}: {error.Message}";
+        }
+        finally
+        {
+            IsMetadataActionRunning = false;
+        }
+    }
+
+    private bool TryCreateTransferRequest(PicNRecTransferTarget target, out PicNRecDownloadRequest? request)
+    {
+        request = null;
+
+        if (!int.TryParse(StartImageNumberText, out int startImageNumber)
+            || !int.TryParse(EndImageNumberText, out int endImageNumber))
+        {
+            ErrorMessage = "Enter whole-number start and end image numbers.";
+            return false;
+        }
+
+        if (startImageNumber < 0 || startImageNumber > _deviceInfo.MaxSupportedImageIndex)
+        {
+            ErrorMessage = $"Start must be between 0 and {_deviceInfo.MaxSupportedImageIndex}.";
+            return false;
+        }
+
+        if (endImageNumber < startImageNumber || endImageNumber > _deviceInfo.MaxSupportedImageIndex)
+        {
+            ErrorMessage = $"End must be between {startImageNumber} and {_deviceInfo.MaxSupportedImageIndex}.";
+            return false;
+        }
+
+        ErrorMessage = string.Empty;
+        request = new PicNRecDownloadRequest(_deviceInfo.PortName, startImageNumber, endImageNumber, target);
+        return true;
+    }
 }
