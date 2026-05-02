@@ -38,9 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="packages.lock.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
 
