@@ -3,7 +3,7 @@
   <PropertyGroup>
 	  <AssemblyName>GBRGBDump.Web.Shared</AssemblyName>
 	  <RootNamespace>GBRGBDump.WebShared</RootNamespace>
-	  <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
 	  <ImplicitUsings>enable</ImplicitUsings>
 	  <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
