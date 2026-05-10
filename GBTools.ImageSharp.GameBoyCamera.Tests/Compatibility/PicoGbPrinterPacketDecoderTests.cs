@@ -1,4 +1,4 @@
-using GBTools.ImageSharp.GameBoyCamera.Lite;
+using GBTools.ImageSharp.GameBoyCamera;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
